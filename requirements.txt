@@ -1,0 +1,4 @@
+numpy~=1.21.5
+torch~=1.10.2+cu113
+torchvision~=0.11.3+cu113
+opencv-python~=4.5.5.64
