@@ -89,7 +89,7 @@ if __name__ == '__main__':
     resolution = [int(v) for v in args['tsize'].split(',')]
     tiler = get_tiler('tiler', tiler_size=(2, 2), frame_size=tuple(resolution))
 
-    outer = OuterComponent('display')
+    outer = OuterComponent('display', ['tiler'])
 
     pipeline.set_device('cuda')
     pipeline.add_all([muxer, model_det, bbox_painter, tiler, outer])
