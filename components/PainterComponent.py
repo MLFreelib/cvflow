@@ -1,6 +1,7 @@
 import os
 from typing import Union
 
+import cv2
 import torch
 from torchvision.transforms import Resize
 from torchvision.utils import draw_bounding_boxes, make_grid
@@ -61,9 +62,10 @@ class BBoxPainter(Painter):
             for frame in data.get_meta_frames_by_src_name(source):
                 shape = frame.get_frame().shape
                 if frame.get_bbox_info() is not None:
-                    bbox = frame.get_bbox_info().get_bbox()
+                    meta_bbox = frame.get_bbox_info()
+                    bbox = meta_bbox.get_bbox()
                     self.__bbox_denormalize(bbox, shape)
-                    meta_labels = frame.get_labels_info()
+                    meta_labels = meta_bbox.get_label_info()
                     ids = meta_labels.get_object_ids()
                     if len(ids) == 0:
                         meta_objects_info = zip(meta_labels.get_labels(), meta_labels.get_confidence())
@@ -103,3 +105,33 @@ class BBoxPainter(Painter):
         # [N, xmin, ymin, xmax, ymax] | [C, H, W]
         bboxes[:, (0, 2)] = bboxes[:, (0, 2)].mul(shape[2])
         bboxes[:, (1, 3)] = bboxes[:, (1, 3)].mul(shape[1])
+
+
+class LabelPainter(Painter):
+    def __init__(self, name: str):
+        super().__init__(name)
+
+    def do(self, data: Union[MetaBatch, MetaFrame]) -> Union[MetaBatch, MetaFrame]:
+        for source in data.get_source_names():
+            for meta_frame in data.get_meta_frames_by_src_name(source):
+                label_info = meta_frame.get_labels_info()
+                if meta_frame.get_labels_info() is not None:
+                    labels = label_info.get_labels()
+                    label_confidence = label_info.get_confidence()
+                    label_id = torch.max(label_confidence, dim=1)[1]
+                    label_id = label_id.detach().cpu().numpy()[0]
+                    label_name = labels[label_id]
+
+                    frame = meta_frame.get_frame()
+                    frame = frame.detach().cpu()
+                    frame = frame.permute((1, 2, 0)).numpy()
+                    frame = cv2.putText(frame,
+                                        text=f'{label_name}',
+                                        org=(50, 50), fontFace=cv2.FONT_HERSHEY_SIMPLEX,
+                                        color=(128, 128, 64), thickness=2, lineType=cv2.LINE_AA, fontScale=1)
+
+                    frame = torch.tensor(frame, device=self.get_device())
+                    frame = frame.permute((2, 0, 1))
+                    meta_frame.set_frame(frame)
+
+        return data
