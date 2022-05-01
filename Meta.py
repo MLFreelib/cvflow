@@ -11,7 +11,7 @@ class MetaLabel:
         self.__object_ids: List[int] = list()
         self.__confidence: List[float] = confidence
 
-    def get_confidence(self) -> List[float]:
+    def get_confidence(self) -> torch.tensor:
         return self.__confidence
 
     def set_object_id(self, object_ids: List[int]):
