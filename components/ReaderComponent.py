@@ -39,6 +39,9 @@ class USBCamReader(ReaderBase):
 
         return frame
 
+    def stop(self):
+        self.__cap_send.release()
+
 
 class VideoReader(ReaderBase):
 
@@ -61,3 +64,6 @@ class VideoReader(ReaderBase):
         self._last_frame = frame
 
         return frame
+
+    def stop(self):
+        self.__cap_send.release()

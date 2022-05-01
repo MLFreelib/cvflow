@@ -59,8 +59,6 @@ class Pipeline:
 
             count += 1
 
-        cv2.destroyAllWindows()
-
         all_time = time.time() - all_time
         [print(f'Component: {key}: execution time per iteration {item} sec') for key, item in job_time.items()]
         print(f'FPS: {count / all_time}')
@@ -73,6 +71,9 @@ class Pipeline:
             self.__to_device(self.__components[i])
 
         [component.start() for component in self.__components]
+
+    def close(self):
+        [component.stop() for component in self.__components]
 
     def __to_device(self, component: ComponentBase):
         component.set_device(device=self.__device)
