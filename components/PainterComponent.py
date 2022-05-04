@@ -4,7 +4,7 @@ from typing import Union
 import cv2
 import torch
 from torchvision.transforms import Resize
-from torchvision.utils import draw_bounding_boxes, make_grid
+from torchvision.utils import draw_bounding_boxes, draw_segmentation_masks, make_grid
 
 from Meta import MetaFrame, MetaBatch
 from components.ComponentBase import ComponentBase
@@ -135,3 +135,21 @@ class LabelPainter(Painter):
                     meta_frame.set_frame(frame)
 
         return data
+
+
+class MaskPainter(Painter):
+    def __init__(self, name: str):
+        super().__init__(name)
+
+    def do(self, data: MetaBatch) -> MetaBatch:
+        for source in data.get_source_names():
+            for meta_frame in data.get_meta_frames_by_src_name(source):
+                meta_mask = meta_frame.get_mask_info()
+                masks = meta_mask.get_mask()
+                frame = meta_frame.get_frame()
+                for mask in masks:
+                    frame = draw_segmentation_masks(frame.detach().cpu(), mask.detach().cpu())
+                meta_frame.set_frame(frame)
+        return data
+
+

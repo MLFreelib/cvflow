@@ -3,7 +3,7 @@ from typing import Union, List
 import numpy as np
 import torch
 
-from Meta import MetaBatch, MetaFrame, MetaLabel, MetaBBox
+from Meta import MetaBatch, MetaFrame, MetaLabel, MetaBBox, MetaMask
 from components.ComponentBase import ComponentBase
 from exceptions import MethodNotOverriddenException
 
@@ -149,3 +149,37 @@ class ModelClassification(ModelBase):
                     meta_frame.set_label_info(meta_label)
                     prob_i += 1
         return data
+
+
+class ModelSegmentation(ModelBase):
+
+    def __init__(self, name: str, model: torch.nn.Module):
+        super().__init__(name, model)
+
+    def do(self, data: MetaBatch) -> MetaBatch:
+        src_data = _to_model(connected_sources=self._connected_sources,
+                             data=data,
+                             device=self.get_device(),
+                             transform=self._transform)
+
+        batch, src_size = _to_tensor(src_data)
+
+        with torch.no_grad():
+            output = self._inference(batch)['out']
+
+        normalized_masks = torch.nn.functional.softmax(output, dim=1)
+
+        prob_i = 0
+        for src_name in self._connected_sources:
+            for src_frames_size in src_size:
+                for i in range(src_frames_size):
+                    meta_frame = data.get_meta_frames_by_src_name(src_name)[i]
+                    normalized_mask = normalized_masks[prob_i]
+                    mask = torch.zeros(normalized_mask.shape, dtype=torch.bool, device=self.get_device())
+                    mask[normalized_mask > self._confidence] = True
+                    mask = mask[None, :]
+                    meta_mask = MetaMask(mask, MetaLabel(self._label_names, normalized_mask))
+                    meta_frame.set_mask_info(meta_mask)
+                    prob_i += 1
+        return data
+

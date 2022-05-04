@@ -58,17 +58,14 @@ class MetaBBox:
 class MetaMask:
     def __init__(self, mask: torch.tensor, label_info: MetaLabel):
 
-        if len(mask.shape) != 3:
-            raise ValueError(f"Expected bbox shape 3, but received {len(mask.shape)}")
-
-        if mask.shape[1] != 4:
-            raise ValueError(f"Expected bbox size 4 (xmin, ymin, xmax, ymax), but received {len(mask.shape[1])}")
+        if len(mask.shape) != 4:
+            raise ValueError(f"Expected bbox shape 4, but received {len(mask.shape)}")
 
         self.__mask: torch.tensor = mask
 
         labels_count = len(label_info.get_labels())
-        if labels_count != mask.shape[0]:
-            raise ValueError(f"Exptected number of bbox {labels_count}, but received {mask.shape[0]}")
+        if labels_count != mask.shape[1]:
+            raise ValueError(f"Exptected number of masks {labels_count}, but received {mask.shape[1]}")
 
         self.__label_info: MetaLabel = label_info
 
@@ -132,6 +129,9 @@ class MetaFrame:
             raise TypeError(f'Expected type of label a MetaLabel, received {type(mask_info)}')
 
         self.__mask_info = mask_info
+
+    def get_mask_info(self) -> MetaMask:
+        return self.__mask_info
 
     def set_bbox_info(self, bbox_info: MetaBBox):
 
