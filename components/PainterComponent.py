@@ -11,10 +11,19 @@ from components.ComponentBase import ComponentBase
 
 
 class Painter(ComponentBase):
+    r""" Component of basic painter """
     pass
 
 
 class Tiler(Painter):
+    r""" Component which combines frames from different sources into one frame in the form of a grid.
+
+        :param name: str
+                    name of component
+        :param tiler_size: tuple
+                    number of rows and columns. Example: (3, 2) for 6 frames. If there are not enough frames,
+                    then the remaining space is filled black.
+    """
     def __init__(self, name: str, tiler_size: tuple):
         super().__init__(name)
         self.__tile_size = (360, 640)
@@ -22,6 +31,7 @@ class Tiler(Painter):
         self.__dividers = None
 
     def do(self, data: Union[MetaBatch, MetaFrame]) -> Union[MetaBatch, MetaFrame]:
+        r""" Combines frames from different sources into one frame in the form of a grid. """
         frames = data.get_meta_frames_all()
 
         tiles = list()
@@ -45,12 +55,28 @@ class Tiler(Painter):
         return data
 
     def set_size(self, size: tuple):
+        r""" Resolution of the output frame.
+            :param size: tuple
+                    resolution. Example: (1280, 1920)
+        """
         if len(size) != 2:
             raise ValueError(f'Expected length of size 2, actual {len(size)}')
         self.__tile_size = (size[0] // self.__tiler_size[0], size[1] // self.__tiler_size[1])
 
 
 class BBoxPainter(Painter):
+    r""" A component for drawing bounding boxes on frames.
+
+        :param name: str
+                    name of component
+        :param font_path: str
+                    path to font
+        :param font_size: int
+                    font size
+        :param font_width: int
+                    font width
+    """
+
     def __init__(self, name: str, font_path: str, font_size: int = 20, font_width: int = 3):
         super().__init__(name)
         self.__font_path = font_path
@@ -58,6 +84,8 @@ class BBoxPainter(Painter):
         self.__font_width = font_width
 
     def do(self, data: Union[MetaBatch, MetaFrame]) -> Union[MetaBatch, MetaFrame]:
+        r""" Draws bounding boxes with labels on frames. """
+
         for source in data.get_source_names():
             for frame in data.get_meta_frames_by_src_name(source):
                 shape = frame.get_frame().shape
@@ -67,11 +95,12 @@ class BBoxPainter(Painter):
                     self.__bbox_denormalize(bbox, shape)
                     meta_labels = meta_bbox.get_label_info()
                     ids = meta_labels.get_object_ids()
+                    labels = meta_labels.get_labels()
                     if len(ids) == 0:
-                        meta_objects_info = zip(meta_labels.get_labels(), meta_labels.get_confidence())
+                        meta_objects_info = zip(labels, meta_labels.get_confidence())
                         labels = [f'{label} {round(conf * 100)}%' for label, conf in meta_objects_info]
                     else:
-                        meta_objects_info = zip(meta_labels.get_labels(), meta_labels.get_confidence(), ids)
+                        meta_objects_info = zip(labels, meta_labels.get_confidence(), ids)
                         labels = [f'{obj_id} {label} {round(conf * 100)}%' for label, conf, obj_id in meta_objects_info]
 
                     bboxes_frame = draw_bounding_boxes(frame.get_frame().cpu(),
@@ -84,6 +113,7 @@ class BBoxPainter(Painter):
         return data
 
     def start(self):
+        r""" Checks types and sets default values. """
 
         if self.__font_path is None:
             raise FileNotFoundError(f'Font is a required parameter')
@@ -101,17 +131,29 @@ class BBoxPainter(Painter):
         if self.__font_size <= 0:
             self.__font_size = 20
 
-    def __bbox_denormalize(self, bboxes: torch.Tensor, shape: torch.Tensor):
-        # [N, xmin, ymin, xmax, ymax] | [C, H, W]
+    def __bbox_denormalize(self, bboxes: torch.tensor, shape: torch.tensor):
+        r""" Gets coordinates for bounding boxes.
+
+            :param bboxes: torch.tensor
+                        bounding boxes. shape: [N, 4]
+            :param shape: torch.tensor
+                        frame resolution
+        """
         bboxes[:, (0, 2)] = bboxes[:, (0, 2)].mul(shape[2])
         bboxes[:, (1, 3)] = bboxes[:, (1, 3)].mul(shape[1])
 
 
 class LabelPainter(Painter):
+    r""" Writes a label to an image.
+
+        :param name: str
+                   name of component
+    """
     def __init__(self, name: str):
         super().__init__(name)
 
     def do(self, data: Union[MetaBatch, MetaFrame]) -> Union[MetaBatch, MetaFrame]:
+        r""" Writes labels on the frames. """
         for source in data.get_source_names():
             for meta_frame in data.get_meta_frames_by_src_name(source):
                 label_info = meta_frame.get_labels_info()
@@ -138,10 +180,16 @@ class LabelPainter(Painter):
 
 
 class MaskPainter(Painter):
+    r"""A component for drawing masks on frames.
+
+        :param name: str
+                   name of component
+    """
     def __init__(self, name: str):
         super().__init__(name)
 
     def do(self, data: MetaBatch) -> MetaBatch:
+        r""" Draws masks on frames. """
         for source in data.get_source_names():
             for meta_frame in data.get_meta_frames_by_src_name(source):
                 meta_mask = meta_frame.get_mask_info()

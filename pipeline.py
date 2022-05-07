@@ -1,4 +1,5 @@
 import time
+from typing import List
 
 import cv2
 import torch
@@ -9,17 +10,25 @@ from exceptions import InvalidComponentException
 
 
 class Pipeline:
+    r""" A container for building and controlling the pipeline. Allows you to manage components,
+        start and stop them.
+    """
     def __init__(self):
         self.__device = 'cuda' if torch.cuda.is_available() else 'cpu'
         self.__components = list()
         self.__muxer = None
 
     def add(self, component: ComponentBase):
+        r""" Adds a component to the pipeline.
+            :param component: ComponentBase.
+            :exception InvalidComponentException if the first component in the pipeline is not a MuxerBase.
+        """
         if not isinstance(component, MuxerBase) and len(self.__components) == 0:
             raise InvalidComponentException('The first element of the pipeline must be of type MuxerBase')
         self.__components.append(component)
 
     def set_device(self, device: str):
+        r""" Sets the device type. Available types: cpu and cuda. """
         if device == 'cuda' and torch.cuda.is_available():
             self.__device = device
         elif device == 'cpu':
@@ -27,7 +36,14 @@ class Pipeline:
         else:
             raise TypeError(f'Expected cuda or cpu, actual {device}')
 
-    def add_all(self, components: list):
+    def add_all(self, components: List[ComponentBase]):
+        r""" Adds a list of components to the pipeline. The data in the pipeline will move through the components
+            in the order in which they are in the list.
+
+            :param components: List[ComponentBase].
+            :exception TypeError if component is not ComponentBase.
+            :exception InvalidComponentException if the first component in the pipeline is not a MuxerBase.
+        """
         for component in components:
             if not isinstance(component, ComponentBase):
                 self.__components = list()
@@ -35,6 +51,7 @@ class Pipeline:
             self.add(component)
 
     def run(self):
+        r""" Starts the pipeline. """
         job_time = dict()
         all_time = time.time()
         count = 0
@@ -64,6 +81,7 @@ class Pipeline:
         print(f'FPS: {count / all_time}')
 
     def compile(self):
+        r""" Configures and verifies components. """
         for i in range(0, len(self.__components) - 1):
             if isinstance(self.__components[i], SourceMuxer):
                 self.__muxer = self.__components[i]
@@ -73,7 +91,11 @@ class Pipeline:
         [component.start() for component in self.__components]
 
     def close(self):
+        r""" Closes each component. """
         [component.stop() for component in self.__components]
 
     def __to_device(self, component: ComponentBase):
+        r""" Sets the device type for the component.
+            :param component: ComponentBase.
+        """
         component.set_device(device=self.__device)

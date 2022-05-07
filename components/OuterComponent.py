@@ -7,6 +7,15 @@ from components.ComponentBase import ComponentBase
 
 
 class OuterComponent(ComponentBase):
+    r""" A component for displaying the pipeline result.
+
+        :param  name: str
+                    name of component
+        :param  output: List[str]
+                    names of sources to display
+        :param  escape_btn: str
+                    the key to close the window
+    """
 
     def __init__(self, name: str, output: List[str], escape_btn: str = 'q'):
         super().__init__(name)
@@ -14,6 +23,7 @@ class OuterComponent(ComponentBase):
         self.__output = output
 
     def do(self, data: Union[MetaBatch, MetaFrame]):
+        r""" Displays frames from selected sources in the window. """
         full_batch = data.get_meta_frames_all()
 
         for key in self.__output:
@@ -25,4 +35,5 @@ class OuterComponent(ComponentBase):
                 cv2.imshow(key, frame)
 
     def stop(self):
+        r""" Closes windows """
         cv2.destroyAllWindows()
