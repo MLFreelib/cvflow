@@ -6,7 +6,7 @@ from typing import List
 import torch
 import torchvision
 import pandas as pd
-from common import parser
+from common import utils
 from components.ModelComponent import ModelClassification
 from components.MuxerComponent import SourceMuxer
 from components.OuterComponent import OuterComponent
@@ -55,7 +55,7 @@ def get_labels(path: str):
 
 
 if __name__ == '__main__':
-    args = parser.args
+    args = utils.args
     model = torchvision.models.resnet50(pretrained=True)
     labels = get_labels('ImageNetClasses.csv')
     pipeline = Pipeline()

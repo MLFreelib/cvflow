@@ -120,7 +120,8 @@ class MetaFrame:
                     expected shape [3, H, W].
     """
     def __init__(self, source_name: str, frame: torch.tensor):
-        self.__frame = self.set_frame(frame)
+        self.__frame = None
+        self.set_frame(frame)
         self.__labels_info: Union[MetaLabel, None] = None
         self.__mask_info: Union[MetaMask, None] = None
         self.__bbox_info: Union[MetaBBox, None] = None
@@ -242,7 +243,9 @@ class MetaBatch:
 
     def add_frames(self, name: str, frames: torch.tensor):
         r""" Adds a frames to the batch.
-            :param frame: torch.tensor.
+            :param name: str
+                        name of source
+            :param frames: torch.tensor.
             :exception TypeError if frames is not tensor.
         """
         if not isinstance(frames, torch.Tensor):

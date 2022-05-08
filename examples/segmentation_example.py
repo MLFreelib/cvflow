@@ -5,7 +5,7 @@ sys.path.append('../')
 from typing import List
 import torch
 import torchvision
-from common import parser
+from common import utils
 from components.ModelComponent import ModelSegmentation
 from components.MuxerComponent import SourceMuxer
 from components.OuterComponent import OuterComponent
@@ -54,7 +54,7 @@ def get_tiler(name: str, tiler_size: tuple, frame_size: tuple = (640, 1280)) -> 
 
 
 if __name__ == '__main__':
-    args = parser.args
+    args = utils.args
     model = torchvision.models.segmentation.fcn_resnet50(pretrained=True)
     pipeline = Pipeline()
 
@@ -87,3 +87,4 @@ if __name__ == '__main__':
     pipeline.add_all([muxer, model_segm, mask_painter, tiler, outer])
     pipeline.compile()
     pipeline.run()
+    pipeline.close()
