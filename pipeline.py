@@ -4,6 +4,7 @@ from typing import List
 import cv2
 import torch
 
+from common.utils import Logger
 from components.ComponentBase import ComponentBase
 from components.MuxerComponent import MuxerBase, SourceMuxer
 from exceptions import InvalidComponentException
@@ -13,10 +14,12 @@ class Pipeline:
     r""" A container for building and controlling the pipeline. Allows you to manage components,
         start and stop them.
     """
+
     def __init__(self):
         self.__device = 'cuda' if torch.cuda.is_available() else 'cpu'
         self.__components = list()
         self.__muxer = None
+        self.__logger = self.__create_logger()
 
     def add(self, component: ComponentBase):
         r""" Adds a component to the pipeline.
@@ -77,25 +80,44 @@ class Pipeline:
             count += 1
 
         all_time = time.time() - all_time
-        [print(f'Component: {key}: execution time per iteration {item} sec') for key, item in job_time.items()]
-        print(f'FPS: {count / all_time}')
+        [self.__logger.write(msg=f'Component: {key}: execution time per iteration {item} sec', lvl='INFO') for key, item
+         in
+         job_time.items()]
+        self.__logger.write(msg=f'FPS: {count / all_time}', lvl='INFO')
 
     def compile(self):
         r""" Configures and verifies components. """
+        self.__logger.write(msg='Compiling...', lvl='INFO')
+        self.__logger.write(msg=f'Device type: {self.__device}.', lvl='INFO')
         for i in range(0, len(self.__components) - 1):
             if isinstance(self.__components[i], SourceMuxer):
+                self.__logger.write(msg='SourceMuxer found.', lvl='INFO')
                 self.__muxer = self.__components[i]
             self.__components[i].connect(self.__components[i + 1])
+
+            cur_comp_name = self.__components[i].__class__.__name__
+            next_comp_name = self.__components[i + 1].__class__.__name__
+            self.__logger.write(msg=f'{cur_comp_name} connected to {next_comp_name}.', lvl='INFO')
             self.__to_device(self.__components[i])
 
         [component.start() for component in self.__components]
+        self.__logger.write(msg='Compilation completed', lvl='INFO')
 
     def close(self):
         r""" Closes each component. """
+        self.__logger.write(msg='Closing the components...', lvl='INFO')
         [component.stop() for component in self.__components]
+        self.__logger.write(msg='Closing the components is complete.', lvl='INFO')
 
     def __to_device(self, component: ComponentBase):
         r""" Sets the device type for the component.
             :param component: ComponentBase.
         """
         component.set_device(device=self.__device)
+
+    def __create_logger(self):
+        logger = Logger()
+        logger.add_logger(name='pipeline', options={'handlers': ['consoleHandler'],
+                                                    'level': 'INFO'})
+        logger.compile_logger(logger_name='pipeline')
+        return logger
