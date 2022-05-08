@@ -1,4 +1,4 @@
-from components.ComponentBase import ComponentBase
+from components.component_base import ComponentBase
 
 
 class MethodNotOverriddenException(Exception):

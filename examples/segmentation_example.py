@@ -6,11 +6,11 @@ from typing import List
 import torch
 import torchvision
 from common import utils
-from components.ModelComponent import ModelSegmentation
-from components.MuxerComponent import SourceMuxer
-from components.OuterComponent import OuterComponent
-from components.PainterComponent import Tiler, MaskPainter
-from components.ReaderComponent import USBCamReader, VideoReader, ReaderBase
+from components.model_component import ModelSegmentation
+from components.muxer_component import SourceMuxer
+from components.outer_component import OuterComponent
+from components.painter_component import Tiler, MaskPainter
+from components.reader_component import USBCamReader, VideoReader, ReaderBase
 from pipeline import Pipeline
 
 SEM_CLASSES = [

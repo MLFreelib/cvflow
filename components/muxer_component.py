@@ -3,8 +3,8 @@ from typing import Union, List
 import torch
 
 from Meta import MetaBatch, MetaFrame
-from components.ComponentBase import ComponentBase
-from components.ReaderComponent import ReaderBase
+from components.component_base import ComponentBase
+from components.reader_component import ReaderBase
 
 
 class MuxerBase(ComponentBase):

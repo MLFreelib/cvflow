@@ -7,11 +7,11 @@ import torch
 import torchvision
 import pandas as pd
 from common import utils
-from components.ModelComponent import ModelClassification
-from components.MuxerComponent import SourceMuxer
-from components.OuterComponent import OuterComponent
-from components.PainterComponent import Tiler, LabelPainter
-from components.ReaderComponent import USBCamReader, VideoReader, ReaderBase
+from components.model_component import ModelClassification
+from components.muxer_component import SourceMuxer
+from components.outer_component import OuterComponent
+from components.painter_component import Tiler, LabelPainter
+from components.reader_component import USBCamReader, VideoReader, ReaderBase
 from pipeline import Pipeline
 
 

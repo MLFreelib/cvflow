@@ -5,8 +5,8 @@ import cv2
 import torch
 
 from common.utils import Logger
-from components.ComponentBase import ComponentBase
-from components.MuxerComponent import MuxerBase, SourceMuxer
+from components.component_base import ComponentBase
+from components.muxer_component import MuxerBase, SourceMuxer
 from exceptions import InvalidComponentException
 
 

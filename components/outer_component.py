@@ -3,7 +3,7 @@ from typing import Union, List
 import cv2
 
 from Meta import MetaBatch, MetaFrame
-from components.ComponentBase import ComponentBase
+from components.component_base import ComponentBase
 
 
 class OuterComponent(ComponentBase):

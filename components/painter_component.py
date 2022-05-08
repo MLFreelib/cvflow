@@ -7,7 +7,7 @@ from torchvision.transforms import Resize
 from torchvision.utils import draw_bounding_boxes, draw_segmentation_masks, make_grid
 
 from Meta import MetaFrame, MetaBatch
-from components.ComponentBase import ComponentBase
+from components.component_base import ComponentBase
 
 
 class Painter(ComponentBase):

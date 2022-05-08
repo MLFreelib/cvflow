@@ -4,7 +4,7 @@ import numpy as np
 import torch
 
 from Meta import MetaBatch, MetaLabel, MetaBBox, MetaMask
-from components.ComponentBase import ComponentBase
+from components.component_base import ComponentBase
 
 
 def _to_tensor(src_data: List[torch.tensor]):

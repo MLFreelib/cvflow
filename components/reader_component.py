@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 
-from components.ComponentBase import ComponentBase
+from components.component_base import ComponentBase
 from exceptions import MethodNotOverriddenException
 
 
