@@ -17,7 +17,7 @@ class ComponentBase:
         self._to_component: Union[ComponentBase, None] = None
         self._data_names = list()
         self._source_names = list()
-        self._device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        self._device = 'cpu'
 
     def add_data_name(self, data_name: str):
         r""" Add the data name.

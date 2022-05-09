@@ -2,7 +2,9 @@ import os
 from typing import Union
 
 import cv2
+import numpy as np
 import torch
+import torchvision.transforms
 from torchvision.transforms import Resize
 from torchvision.utils import draw_bounding_boxes, draw_segmentation_masks, make_grid
 
@@ -17,7 +19,6 @@ class Painter(ComponentBase):
 
 class Tiler(Painter):
     r""" Component which combines frames from different sources into one frame in the form of a grid.
-
         :param name: str
                     name of component
         :param tiler_size: tuple
@@ -28,7 +29,6 @@ class Tiler(Painter):
         super().__init__(name)
         self.__tile_size = (360, 640)
         self.__tiler_size = tiler_size
-        self.__dividers = None
 
     def do(self, data: Union[MetaBatch, MetaFrame]) -> Union[MetaBatch, MetaFrame]:
         r""" Combines frames from different sources into one frame in the form of a grid. """
@@ -49,7 +49,7 @@ class Tiler(Painter):
                     tiles[i] = torch.cat((tiles[i], frame), dim=0)
 
         for i in range(len(tiles)):
-            tile = make_grid(tiles[i], nrow=2)
+            tile = make_grid(tiles[i], nrow=self.__tiler_size[0], padding=0)
             frame = MetaFrame('tiler', tile)
             data.add_meta_frame(frame)
         return data
@@ -66,7 +66,6 @@ class Tiler(Painter):
 
 class BBoxPainter(Painter):
     r""" A component for drawing bounding boxes on frames.
-
         :param name: str
                     name of component
         :param font_path: str
@@ -133,7 +132,6 @@ class BBoxPainter(Painter):
 
     def __bbox_denormalize(self, bboxes: torch.tensor, shape: torch.tensor):
         r""" Gets coordinates for bounding boxes.
-
             :param bboxes: torch.tensor
                         bounding boxes. shape: [N, 4]
             :param shape: torch.tensor
@@ -145,7 +143,6 @@ class BBoxPainter(Painter):
 
 class LabelPainter(Painter):
     r""" Writes a label to an image.
-
         :param name: str
                    name of component
     """
@@ -167,6 +164,7 @@ class LabelPainter(Painter):
                     frame = meta_frame.get_frame()
                     frame = frame.detach().cpu()
                     frame = frame.permute((1, 2, 0)).numpy()
+                    frame = np.ascontiguousarray(frame)
                     frame = cv2.putText(frame,
                                         text=f'{label_name}',
                                         org=(50, 50), fontFace=cv2.FONT_HERSHEY_SIMPLEX,
@@ -181,7 +179,6 @@ class LabelPainter(Painter):
 
 class MaskPainter(Painter):
     r"""A component for drawing masks on frames.
-
         :param name: str
                    name of component
     """
@@ -199,5 +196,3 @@ class MaskPainter(Painter):
                     frame = draw_segmentation_masks(frame.detach().cpu(), mask.detach().cpu())
                 meta_frame.set_frame(frame)
         return data
-
-

@@ -6,7 +6,6 @@ import torch
 
 class MetaLabel:
     r""" Container for storing information about labels and id from tracking.
-
         :param labels: List[str]
                     list of label names.
         :param confidence: List[float]
@@ -43,12 +42,10 @@ class MetaLabel:
 
 class MetaBBox:
     r""" Container for storing information about bounding boxes.
-
         :param points: torch.tensor
                     bounding boxes with shape: [N, 4]. Bounding box format: [x_min, y_min, x_max, y_max].
         :param label_info: MetaLabel
                     information about each bounding box.
-
         :exception TypeError if bbox is not tensor.
         :exception ValueError if the points are of the wrong format.
     """
@@ -61,7 +58,7 @@ class MetaBBox:
             raise ValueError(f"Expected bbox shape 2, but received {len(points.shape)}")
 
         if points.shape[1] != 4:
-            raise ValueError(f"Expected bbox size 4 (xmin, ymin, xmax, ymax), but received {len(points.shape[1])}")
+            raise ValueError(f"Expected bbox size 4 (xmin, ymin, xmax, ymax), but received {points.shape[1]}")
 
         self.__points: torch.tensor = points
 
@@ -82,12 +79,10 @@ class MetaBBox:
 
 class MetaMask:
     r""" Container for storing information about masks
-
         :param mask: torch.tensor
                     batch of masks.
         :param label_info: MetaLabel
                     information about each mask.
-
     """
     def __init__(self, mask: torch.tensor, label_info: MetaLabel):
 
@@ -113,7 +108,6 @@ class MetaMask:
 
 class MetaFrame:
     r""" Container for storing a frame information.
-
         :param source_name: str
                     the name of the source from which the frame was received.
         :param frame: torch.tensor
@@ -128,10 +122,6 @@ class MetaFrame:
         self.__custom_meta = dict()
         self.timestamp = time.time()
         self.__source_name = source_name
-
-    def get_label_meta(self) -> Union[MetaLabel, None]:
-        r""" Returns a MetaLabel containing information about the label in the frame. """
-        return self.__labels_info
 
     def get_src_name(self) -> str:
         r""" Returns the name of the source from which the frame was received. """
@@ -161,7 +151,6 @@ class MetaFrame:
                         name of custom data.
             :param value: Any
                         custom data.
-
         """
         self.__custom_meta[meta_name] = value
 
