@@ -1,15 +1,18 @@
 import os
-from typing import Union
+import random
+from typing import Union, List
 
 import cv2
 import numpy as np
 import torch
-import torchvision.transforms
 from torchvision.transforms import Resize
 from torchvision.utils import draw_bounding_boxes, draw_segmentation_masks, make_grid
 
 from Meta import MetaFrame, MetaBatch
 from components.component_base import ComponentBase
+
+
+def _generate_color() -> tuple: return tuple([random.randint(0, 255) for _ in range(3)])
 
 
 class Painter(ComponentBase):
@@ -25,6 +28,7 @@ class Tiler(Painter):
                     number of rows and columns. Example: (3, 2) for 6 frames. If there are not enough frames,
                     then the remaining space is filled black.
     """
+
     def __init__(self, name: str, tiler_size: tuple):
         super().__init__(name)
         self.__tile_size = (360, 640)
@@ -81,6 +85,15 @@ class BBoxPainter(Painter):
         self.__font_path = font_path
         self.__font_size = font_size
         self.__font_width = font_width
+        self.__colors = dict()
+
+    def set_font_size(self, font_size: int):
+        if isinstance(font_size, int):
+            self.__font_size = font_size
+
+    def set_font_width(self, font_width: int):
+        if isinstance(font_width, int):
+            self.__font_width = font_width
 
     def do(self, data: Union[MetaBatch, MetaFrame]) -> Union[MetaBatch, MetaFrame]:
         r""" Draws bounding boxes with labels on frames. """
@@ -97,17 +110,18 @@ class BBoxPainter(Painter):
                     labels = meta_labels.get_labels()
                     if len(ids) == 0:
                         meta_objects_info = zip(labels, meta_labels.get_confidence())
-                        labels = [f'{label} {round(conf * 100)}%' for label, conf in meta_objects_info]
+                        full_labels = [f'{label} {round(conf * 100)}%' for label, conf in meta_objects_info]
                     else:
                         meta_objects_info = zip(labels, meta_labels.get_confidence(), ids)
-                        labels = [f'{obj_id} {label} {round(conf * 100)}%' for label, conf, obj_id in meta_objects_info]
+                        full_labels = [f'{obj_id} {label} {round(conf * 100)}%' for label, conf, obj_id in meta_objects_info]
 
                     bboxes_frame = draw_bounding_boxes(frame.get_frame().cpu(),
                                                        boxes=bbox,
                                                        width=self.__font_width,
-                                                       labels=labels,
+                                                       labels=full_labels,
                                                        font_size=self.__font_size,
-                                                       font=self.__font_path)
+                                                       font=self.__font_path,
+                                                       colors=self.__get_colors(labels))
                     frame.set_frame(bboxes_frame)
         return data
 
@@ -140,14 +154,54 @@ class BBoxPainter(Painter):
         bboxes[:, (0, 2)] = bboxes[:, (0, 2)].mul(shape[2])
         bboxes[:, (1, 3)] = bboxes[:, (1, 3)].mul(shape[1])
 
+    def __get_colors(self, labels: List) -> List:
+        colors = list()
+        for label_name in labels:
+            if label_name not in list(self.__colors.keys()):
+                self.__colors[label_name] = _generate_color()
+            colors.append(self.__colors[label_name])
+        return colors
+
 
 class LabelPainter(Painter):
     r""" Writes a label to an image.
         :param name: str
                    name of component
     """
+
     def __init__(self, name: str):
         super().__init__(name)
+        self.__font_face = 0
+        self.__org = (10, 10)
+        self.__colors = dict()
+        self.__thickness = 2
+        self.__lineType = 16
+        self.__font_scale = 1
+
+    def set_font_face(self, font_face: int):
+        if isinstance(font_face, int):
+            self.__font_face = font_face
+
+    def set_org(self, org: tuple):
+        if isinstance(org, tuple):
+            if len(org) == 2:
+                self.__org = org
+
+    def set_colors(self, colors: dict):
+        if isinstance(colors, dict):
+            self.__colors = colors
+
+    def set_thickness(self, thickness: int):
+        if isinstance(thickness, int):
+            self.__thickness = thickness
+
+    def set_lineType(self, lineType: int):
+        if isinstance(lineType, int):
+            self.__lineType = lineType
+
+    def set_font_scale(self, font_scale: int):
+        if isinstance(font_scale, int):
+            self.__font_scale = font_scale
 
     def do(self, data: Union[MetaBatch, MetaFrame]) -> Union[MetaBatch, MetaFrame]:
         r""" Writes labels on the frames. """
@@ -167,8 +221,9 @@ class LabelPainter(Painter):
                     frame = np.ascontiguousarray(frame)
                     frame = cv2.putText(frame,
                                         text=f'{label_name}',
-                                        org=(50, 50), fontFace=cv2.FONT_HERSHEY_SIMPLEX,
-                                        color=(128, 128, 64), thickness=2, lineType=cv2.LINE_AA, fontScale=1)
+                                        org=self.__org, fontFace=self.__font_face,
+                                        color=self.__get_label_color(label_name), thickness=2, lineType=self.__lineType,
+                                        fontScale=self.__font_scale)
 
                     frame = torch.tensor(frame, device=self.get_device())
                     frame = frame.permute((2, 0, 1))
@@ -176,14 +231,27 @@ class LabelPainter(Painter):
 
         return data
 
+    def __get_label_color(self, label_name: str):
+        if label_name not in self.__colors.keys():
+            self.__colors[label_name] = _generate_color()
+        return self.__colors[label_name]
+
 
 class MaskPainter(Painter):
     r"""A component for drawing masks on frames.
         :param name: str
                    name of component
     """
+
     def __init__(self, name: str):
         super().__init__(name)
+        self.__colors = dict()
+        self.__alpha = 0.8
+
+    def set_alpha(self, alpha: float):
+        if isinstance(alpha, float):
+            if 0 <= alpha <= 1:
+                self.__alpha = alpha
 
     def do(self, data: MetaBatch) -> MetaBatch:
         r""" Draws masks on frames. """
@@ -192,7 +260,18 @@ class MaskPainter(Painter):
                 meta_mask = meta_frame.get_mask_info()
                 masks = meta_mask.get_mask()
                 frame = meta_frame.get_frame()
+                colors = self.__get_colors(meta_mask.get_label_info().get_labels())
                 for mask in masks:
-                    frame = draw_segmentation_masks(frame.detach().cpu(), mask.detach().cpu())
+                    frame = draw_segmentation_masks(frame.detach().cpu(), mask.detach().cpu(),
+                                                    alpha=self.__alpha,
+                                                    colors=colors)
                 meta_frame.set_frame(frame)
         return data
+
+    def __get_colors(self, labels: List):
+        colors = list()
+        for label_name in labels:
+            if label_name not in self.__colors.keys():
+                self.__colors[label_name] = _generate_color()
+            colors.append(self.__colors[label_name])
+        return colors
