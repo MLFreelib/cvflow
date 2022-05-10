@@ -5,6 +5,7 @@ from typing import Union, List
 import cv2
 import numpy as np
 import torch
+import torchvision.transforms
 from torchvision.transforms import Resize
 from torchvision.utils import draw_bounding_boxes, draw_segmentation_masks, make_grid
 
@@ -262,7 +263,8 @@ class MaskPainter(Painter):
                 frame = meta_frame.get_frame()
                 colors = self.__get_colors(meta_mask.get_label_info().get_labels())
                 for mask in masks:
-                    frame = draw_segmentation_masks(frame.detach().cpu(), mask.detach().cpu(),
+                    resized_mask = torchvision.transforms.Resize((frame.shape[-2:]))(mask)
+                    frame = draw_segmentation_masks(frame.detach().cpu(), resized_mask.detach().cpu(),
                                                     alpha=self.__alpha,
                                                     colors=colors)
                 meta_frame.set_frame(frame)
