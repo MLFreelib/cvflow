@@ -12,7 +12,7 @@ from components.muxer_component import SourceMuxer
 from components.outer_component import OuterComponent
 from components.painter_component import Tiler, BBoxPainter
 from components.reader_component import USBCamReader, VideoReader, ReaderBase
-from components.handler_component import Filter, Counter
+from components.handler_component import Filter
 
 from pipeline import Pipeline
 
@@ -88,10 +88,9 @@ if __name__ == '__main__':
 
     outer = OuterComponent('display', ['tiler'])
     filter_comp = Filter('filter', ['person', 'zebra', 'mouse'])
-    counter = Counter('counter', get_line(), memory=5)
 
     pipeline.set_device(get_device())
-    pipeline.add_all([muxer, model_det, filter_comp, counter, bbox_painter, tiler, outer])
+    pipeline.add_all([muxer, model_det, filter_comp, bbox_painter, tiler, outer])
     pipeline.compile()
     pipeline.run()
     pipeline.close()
