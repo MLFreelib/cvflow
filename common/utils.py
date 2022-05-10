@@ -68,6 +68,21 @@ class Logger:
         }
 
 
+class ConfigParser:
+    def __init__(self, path: str):
+        self.__path = path
+        self.__config = dict()
+
+    def read(self):
+        import json
+        with open(self.__path) as f:
+            d = json.load(f)
+            self.__config = d
+
+    def get_value(self, key: str):
+        return self.__config.get(key)
+
+
 argparser = argparse.ArgumentParser()
 
 argparser.add_argument('--usbcam', required=False)
@@ -75,6 +90,75 @@ argparser.add_argument('--videofile', required=False)
 argparser.add_argument('-c', '--confidence', required=False)
 argparser.add_argument('-f', '--font', required=False)
 argparser.add_argument('--tsize', required=False)
+argparser.add_argument('--fsize', required=False)
 argparser.add_argument('-d', '--device', required=False)
+argparser.add_argument('-l', '--line', required=False)
 
 args = vars(argparser.parse_args())
+
+
+def get_video_file_srcs():
+    readers = list()
+    file_srcs = args['videofile']
+    if file_srcs is not None:
+        readers = file_srcs.split(',')
+    return readers
+
+
+def get_cam_srcs():
+    readers = list()
+    file_srcs = args['usbcam']
+    if file_srcs is not None:
+        readers = file_srcs.split(',')
+    return readers
+
+
+def get_confidence():
+    try:
+        return float(args['confidence'])
+    except ValueError:
+        return .0
+    except AttributeError:
+        return .0
+    except TypeError:
+        return .0
+
+def get_font():
+    return args['font']
+
+
+def get_tsize():
+    try:
+        return [int(v) for v in args['tsize'].split(',')]
+    except ValueError:
+        return 2, 2
+    except AttributeError:
+        return 2, 2
+    except TypeError:
+        return 2, 2
+
+
+def get_fsize():
+    try:
+        return [int(v) for v in args['fsize'].split(',')]
+    except ValueError:
+        return None
+    except AttributeError:
+        return 640, 960
+    except TypeError:
+        return 640, 960
+
+
+def get_device():
+    return 'cpu' if args['device'] is None else args['device']
+
+
+def get_line():
+    try:
+        return [int(v) for v in args['line'].split(',')]
+    except ValueError:
+        return None
+    except AttributeError:
+        return 0, 0, 0, 0
+    except TypeError:
+        return 0, 0, 0, 0
