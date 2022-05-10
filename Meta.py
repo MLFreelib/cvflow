@@ -27,7 +27,7 @@ class MetaLabel:
         """
         if len(object_ids) != len(self.__labels):
             raise ValueError(
-                f"Expected number of object IDs {len(self.__labels)}, but received {len(self.__object_ids)}"
+                f"Expected number of object IDs {len(self.__labels)}, but received {len(object_ids)}"
             )
         self.__object_ids = object_ids
 
@@ -49,8 +49,18 @@ class MetaBBox:
         :exception TypeError if bbox is not tensor.
         :exception ValueError if the points are of the wrong format.
     """
-    def __init__(self, points: torch.tensor, label_info: MetaLabel):
 
+    def __init__(self, points: torch.tensor, label_info: MetaLabel):
+        self.__label_info = None
+        self.__points = None
+        self.set_bboxes(points)
+        self.set_label_info(label_info)
+
+    def get_bbox(self) -> torch.tensor:
+        r""" Returns the bounding boxes. """
+        return self.__points
+
+    def set_bboxes(self, points: torch.tensor):
         if not isinstance(points, torch.Tensor):
             raise TypeError(f'Expected type of bbox a torch.Tensor, received {type(points)}')
 
@@ -62,19 +72,16 @@ class MetaBBox:
 
         self.__points: torch.tensor = points
 
-        labels_count = len(label_info.get_labels())
-        if labels_count != points.shape[0]:
-            raise ValueError(f"Exptected number of bbox {labels_count}, but received {points.shape[0]}")
-
-        self.__label_info: MetaLabel = label_info
-
-    def get_bbox(self) -> torch.tensor:
-        r""" Returns the bounding boxes. """
-        return self.__points
-
     def get_label_info(self) -> MetaLabel:
         r""" Returns a MetaLabel that contains information about the labels for each bounding box. """
         return self.__label_info
+
+    def set_label_info(self, label_info: MetaLabel):
+        labels_count = len(label_info.get_labels())
+        if labels_count != self.__points.shape[0]:
+            raise ValueError(f"Exptected number of bbox {labels_count}, but received {self.__points.shape[0]}")
+
+        self.__label_info: MetaLabel = label_info
 
 
 class MetaMask:
@@ -84,26 +91,33 @@ class MetaMask:
         :param label_info: MetaLabel
                     information about each mask.
     """
+
     def __init__(self, mask: torch.tensor, label_info: MetaLabel):
-
-        if len(mask.shape) != 4:
-            raise ValueError(f"Expected mask shape 4, but received {len(mask.shape)}")
-
-        self.__mask: torch.tensor = mask
-
-        labels_count = len(label_info.get_labels())
-        if labels_count != mask.shape[1]:
-            raise ValueError(f"Exptected number of masks {labels_count}, but received {mask.shape[1]}")
-
-        self.__label_info: MetaLabel = label_info
+        self.__mask = None
+        self.__label_info = None
+        self.set_mask(mask)
+        self.set_label_info(label_info)
 
     def get_mask(self) -> torch.tensor:
         r""" Returns the batch of mask. """
         return self.__mask
 
+    def set_mask(self, mask: torch.tensor):
+        if len(mask.shape) != 4:
+            raise ValueError(f"Expected mask shape 4, but received {len(mask.shape)}")
+
+        self.__mask: torch.tensor = mask
+
     def get_label_info(self) -> MetaLabel:
         r""" Returns a MetaLabel that contains information about the labels for each mask. """
         return self.__label_info
+
+    def set_label_info(self, label_info: MetaLabel):
+        labels_count = len(label_info.get_labels())
+        if labels_count != self.__mask.shape[1]:
+            raise ValueError(f"Exptected number of masks {labels_count}, but received {self.__mask.shape[1]}")
+
+        self.__label_info: MetaLabel = label_info
 
 
 class MetaFrame:
@@ -113,6 +127,7 @@ class MetaFrame:
         :param frame: torch.tensor
                     expected shape [3, H, W].
     """
+
     def __init__(self, source_name: str, frame: torch.tensor):
         self.__frame = None
         self.set_frame(frame)
@@ -211,6 +226,7 @@ class MetaBatch:
         :param name: str
                 name of batch.
     """
+
     def __init__(self, name: str):
         self.__name = name
         self.__meta_frames = dict()
