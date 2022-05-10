@@ -9,10 +9,12 @@ from components.component_base import ComponentBase
 
 def _to_tensor(src_data: List[torch.tensor]):
     r""" Combines frames from different sources into one batch.
+
         :param src_data: List[torch.tensor] - list of tensors with frames. Tensor shape: [N, C, W, H], where N - batch
          size, C - channels, W - width, H - height
         :return: batch: Tensor, batch of frames
                  size_frames: number of frames for each source.
+
                 Example:
                     size_frames is [3, 2, 3] and batch size is 8 means that the first 3 frames in the batch
                     belong to the first source, the next 2 frames belong to the second source, and the last 3 belong
@@ -50,6 +52,7 @@ def _to_model(connected_sources: List[str], data: MetaBatch, device: str, transf
 
 class ModelBase(ComponentBase):
     r""" Component of basic model. This class is necessary for implementing models using inheritance.
+
         :param name: str
                 name of component.
         :param model: torch.nn.Module
@@ -121,8 +124,10 @@ class ModelDetection(ModelBase):
             - boxes - [N, 4]
             - labels - [N]
             - scores - [N]
+
         Examples:
             Example for the forward method of the model:
+
                 def forward(self, x):
                     ...
                     return {boxes:...,
@@ -134,6 +139,7 @@ class ModelDetection(ModelBase):
                           41, 32, 112, 96]]), where shape [3, 4]
                 - labels: tensor([0, 3, 3])
                 - scores: tensor([0.832, 0.12, 0.675])
+
     """
 
     def __init__(self, name: str, model: torch.nn.Module):
@@ -183,7 +189,6 @@ class ModelDetection(ModelBase):
                 self.__bbox_normalize(boxes, shape)
                 meta_frame = data.get_meta_frames_by_src_name(src_name)[i]
                 meta_label = MetaLabel(labels=label_names, confidence=conf)
-
                 meta_frame.set_bbox_info(MetaBBox(boxes, meta_label))
 
     def __bbox_normalize(self, bboxes: torch.tensor, shape: torch.tensor):
@@ -199,8 +204,10 @@ class ModelDetection(ModelBase):
 
 class ModelClassification(ModelBase):
     r""" Component for classification models
+
         :param name: str
                     name of component
+
         :param model: torch.nn.Module
                     classification model, which returns vector of shape [N, K], where N - batch size, K - number of labels
                     and values in the range from 0 to 1.
@@ -225,9 +232,9 @@ class ModelClassification(ModelBase):
         probabilities = torch.nn.functional.softmax(probabilities, dim=1)
 
         prob_i = 0
-        for src_name_i in range(len(self._connected_sources)):
-            for i in range(src_size[src_name_i]):
-                meta_frame = data.get_meta_frames_by_src_name(self._connected_sources[src_name_i])[i]
+        for i_src_name in range(len(self._connected_sources)):
+            for i in range(src_size[i_src_name]):
+                meta_frame = data.get_meta_frames_by_src_name(self._connected_sources[i_src_name])[i]
                 probability = probabilities[prob_i]
                 probability = probability[None, :]
                 meta_label = MetaLabel(labels=self.get_labels(), confidence=probability)
@@ -238,8 +245,10 @@ class ModelClassification(ModelBase):
 
 class ModelSegmentation(ModelBase):
     r""" Component for segmentation models
+
         :param name: str
                 name of component
+
         :param model: torch.nn.Module
                     segmentation model, which returns dictionary with key "out" which contains tensor of shape
                     [N, K, H, W], where N - batch size, K - number of labels, H - mask height, W - mask width and
@@ -264,11 +273,12 @@ class ModelSegmentation(ModelBase):
             output = self._inference(batch)['out']
 
         normalized_masks = torch.nn.functional.softmax(output, dim=1)
+        normalized_masks[normalized_masks < self._confidence] = 0
 
         prob_i = 0
-        for src_name_i in range(len(self._connected_sources)):
-            for i in range(src_size[src_name_i]):
-                meta_frame = data.get_meta_frames_by_src_name(self._connected_sources[src_name_i])[i]
+        for i_src_name in range(len(self._connected_sources)):
+            for i in range(src_size[i_src_name]):
+                meta_frame = data.get_meta_frames_by_src_name(self._connected_sources[i_src_name])[i]
                 normalized_mask = normalized_masks[prob_i]
                 mask = torch.zeros(normalized_mask.shape, dtype=torch.bool, device=self.get_device())
                 mask[normalized_mask > self._confidence] = True
