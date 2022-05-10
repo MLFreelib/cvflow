@@ -29,13 +29,17 @@ class ReaderBase(ComponentBase):
 class USBCamReader(ReaderBase):
     r""" A component for reading a video stream from a USB camera
 
-        :param src_name: str
+        :param device: str
                     location of the USB camera
         :param name: str
                     name of component
     """
-    def __init__(self, src_name: str, name=None, framerate: int = 30):
-        super().__init__(path=src_name, name=name, framerate=framerate)
+    def __init__(self, device: str, name=None, framerate: int = 30):
+        super().__init__(path=device, name=name, framerate=framerate)
+        try:
+            self._path = int(device)
+        except ValueError:
+            pass
         self.__cap_send = None
 
     # def run(self):
