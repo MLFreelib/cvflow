@@ -222,6 +222,7 @@ class ModelClassification(ModelBase):
 
         with torch.no_grad():
             probabilities = self._inference(batch)
+        probabilities = torch.nn.functional.softmax(probabilities, dim=1)
 
         prob_i = 0
         for src_name_i in range(len(self._connected_sources)):
