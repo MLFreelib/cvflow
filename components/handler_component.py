@@ -32,6 +32,7 @@ class Filter(ComponentBase):
             :param data: MetaBatch
                         metadata about batch.
         """
+
         for source in data.get_source_names():
             for meta_frame in data.get_meta_frames_by_src_name(source):
                 self.__filter_labels(meta_frame)
@@ -51,9 +52,9 @@ class Filter(ComponentBase):
             sr_labels = pd.Series(False, labels)
             indexes = list(set(labels) & set(self.__mask_labels))
             sr_labels[indexes] = True
-            confs = meta_labels.get_confidence()[0]
-            confs[list(~sr_labels.values)] = 0
-            meta_frame.set_label_info(MetaLabel(labels, torch.unsqueeze(confs, dim=0).detach().cpu().tolist()))
+            confs = meta_labels.get_confidence().clone()
+            confs = confs[list(sr_labels.values)]
+            meta_frame.set_label_info(MetaLabel(list(sr_labels.index[sr_labels.values]), torch.unsqueeze(confs, dim=0)))
 
     def __filter_bboxes(self, meta_frame: MetaFrame):
         r""" Filters labels and bboxes for detection models.
@@ -88,10 +89,8 @@ class Filter(ComponentBase):
             sr_labels = pd.Series(False, labels)
             indexes = list(set(labels) & set(self.__mask_labels))
             sr_labels[indexes] = True
-            labels_id = list(sr_labels.values)
             masks = meta_masks.get_mask()
-            masks[0, ~sr_labels.values, :, :] = 0
-            meta_masks.set_label_info(MetaLabel(list(sr_labels.index), meta_labels.get_confidence()[labels_id]))
+            masks[:, ~sr_labels.values, :, :] = 0
             meta_masks.set_mask(masks)
 
 
@@ -121,7 +120,7 @@ class Counter(ComponentBase):
                 if meta_frame.get_bbox_info() is not None:
                     self.__update(meta_frame.get_bbox_info(),
                                   meta_frame.get_frame().detach().cpu().numpy().shape, src_name)
-
+                    meta_frame.add_meta('counter', self.__label_count)
         return data
 
     def __update(self, meta_bbox: MetaBBox, shape: Iterable[int], source: str):
@@ -170,7 +169,7 @@ class Counter(ComponentBase):
         """
         frame = frame.detach().cpu()
         frame = frame.permute(1, 2, 0).numpy()
-        print(frame.shape, self.__line)
+        frame = np.ascontiguousarray(frame)
         frame = cv2.line(frame, self.__line[:2], self.__line[2:], color=(0, 255, 0), thickness=2)
         return torch.tensor(frame, device=self.get_device()).permute(2, 0, 1)
 
@@ -184,10 +183,11 @@ class Counter(ComponentBase):
         cv_shape = (*shape[1:], shape[0])
         self.__bbox_denormalize(torch.unsqueeze(bbox, dim=0), shape)
         np_bbox = bbox.detach().cpu().numpy().astype(int)
-        check_line = cv2.line(np.zeros(cv_shape), self.__line[:2], self.__line[2:], thickness=1, color=(1, 1, 1))
-        check_bbox = cv2.rectangle(np.zeros(cv_shape), np_bbox[:2], np_bbox[2:], color=(1, 1, 1), thickness=-1)
+        check_line = cv2.line(np.zeros(cv_shape), self.__line[:2], self.__line[2:], thickness=1, color=(255, 255, 255))
+        check_bbox = cv2.rectangle(np.zeros(cv_shape), np_bbox[:2], np_bbox[2:], color=(255, 255, 255), thickness=-1)
         dif = check_bbox - check_line
         dif[dif < 0] = 0
+
         if np.sum(check_bbox) != np.sum(dif):
             return True
         else:
