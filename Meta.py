@@ -115,7 +115,7 @@ class MetaMask:
     def set_label_info(self, label_info: MetaLabel):
         labels_count = len(label_info.get_labels())
         if labels_count != self.__mask.shape[1]:
-            raise ValueError(f"Exptected number of masks {labels_count}, but received {self.__mask.shape[1]}")
+            raise ValueError(f"Exptected number of labels {labels_count}, but received {self.__mask.shape[1]}")
 
         self.__label_info: MetaLabel = label_info
 
