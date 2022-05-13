@@ -87,6 +87,8 @@ class BBoxPainter(Painter):
         self.__font_size = font_size
         self.__font_width = font_width
         self.__colors = dict()
+        self.__resolution = None
+
 
     def set_font_size(self, font_size: int):
         if isinstance(font_size, int):
@@ -100,10 +102,10 @@ class BBoxPainter(Painter):
         r""" Draws bounding boxes with labels on frames. """
 
         for source in data.get_source_names():
-            for frame in data.get_meta_frames_by_src_name(source):
-                shape = frame.get_frame().shape
-                if frame.get_bbox_info() is not None:
-                    meta_bbox = frame.get_bbox_info()
+            for meta_frame in data.get_meta_frames_by_src_name(source):
+                shape = meta_frame.get_frame().shape
+                if meta_frame.get_bbox_info() is not None:
+                    meta_bbox = meta_frame.get_bbox_info()
                     bbox = meta_bbox.get_bbox()
                     self.__bbox_denormalize(bbox, shape)
                     meta_labels = meta_bbox.get_label_info()
@@ -115,15 +117,19 @@ class BBoxPainter(Painter):
                     else:
                         meta_objects_info = zip(labels, meta_labels.get_confidence(), ids)
                         full_labels = [f'{obj_id} {label} {round(conf * 100)}%' for label, conf, obj_id in meta_objects_info]
+                    frame = meta_frame.get_frame().cpu()
+                    if self.__resolution is None:
+                        self.__resolution = frame.shape[-2:]
 
-                    bboxes_frame = draw_bounding_boxes(frame.get_frame().cpu(),
+                    frame = torchvision.transforms.Resize(self.__resolution)(frame)
+                    bboxes_frame = draw_bounding_boxes(frame,
                                                        boxes=bbox,
                                                        width=self.__font_width,
                                                        labels=full_labels,
                                                        font_size=self.__font_size,
                                                        font=self.__font_path,
                                                        colors=self.__get_colors(labels))
-                    frame.set_frame(bboxes_frame)
+                    meta_frame.set_frame(bboxes_frame)
         return data
 
     def start(self):
@@ -173,11 +179,12 @@ class LabelPainter(Painter):
     def __init__(self, name: str):
         super().__init__(name)
         self.__font_face = 0
-        self.__org = (10, 10)
+        self.__org = (30, 30)
         self.__colors = dict()
         self.__thickness = 2
         self.__lineType = 16
         self.__font_scale = 1
+        self.__resolution = None
 
     def set_font_face(self, font_face: int):
         if isinstance(font_face, int):
@@ -219,6 +226,9 @@ class LabelPainter(Painter):
                     frame = meta_frame.get_frame()
                     frame = frame.detach().cpu()
                     frame = frame.permute((1, 2, 0)).numpy()
+                    if self.__resolution is None:
+                        self.__resolution = frame.shape[:2]
+                    frame = cv2.resize(frame, self.__resolution)
                     frame = np.ascontiguousarray(frame)
                     frame = cv2.putText(frame,
                                         text=f'{label_name}',
