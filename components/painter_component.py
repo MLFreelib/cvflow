@@ -227,7 +227,7 @@ class LabelPainter(Painter):
                     frame = frame.detach().cpu()
                     frame = frame.permute((1, 2, 0)).numpy()
                     if self.__resolution is None:
-                        self.__resolution = frame.shape[:2]
+                        self.__resolution = frame.shape[1], frame.shape[0]
                     frame = cv2.resize(frame, self.__resolution)
                     frame = np.ascontiguousarray(frame)
                     frame = cv2.putText(frame,
