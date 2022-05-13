@@ -19,5 +19,5 @@ class SourceMuxerTest(unittest.TestCase):
         muxer = SourceMuxer('muxer')
         muxer.add_source(self.reader)
         muxer.start()
-        self.assertEqual(MetaBatch, type(muxer.do(None)))
+        self.assertEqual(MetaBatch, type(muxer.do(MetaBatch('test_batch'))))
         muxer.stop()
