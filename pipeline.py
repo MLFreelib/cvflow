@@ -1,9 +1,11 @@
 import time
+from enum import Enum
 from typing import List
 
 import cv2
 import torch
 
+from Meta import MetaBatch
 from common.utils import Logger
 from components.component_base import ComponentBase
 from components.muxer_component import MuxerBase, SourceMuxer
@@ -19,6 +21,7 @@ class Pipeline:
         self.__device = 'cuda' if torch.cuda.is_available() else 'cpu'
         self.__components = list()
         self.__muxer = None
+        self.__signal_names = list()
         self.__logger = self.__create_logger()
 
     def add(self, component: ComponentBase):
@@ -61,28 +64,29 @@ class Pipeline:
 
         is_stopped = False
         while not is_stopped:
-            data = None
+            data = MetaBatch('pipe_batch')
+            data.add_signal(Mode.__name__)
+            data.set_signal(Mode.__name__, Mode.PLAY)
             for i in range(len(self.__components)):
+                comp_name = self.__components[i].__class__.__name__
                 s_time = time.time()
                 data = self.__components[i].do(data)
                 e_time = time.time()
 
-                comp_name = self.__components[i].__class__.__name__
                 if comp_name not in job_time.keys():
                     job_time[comp_name] = e_time - s_time
                 else:
                     job_time[comp_name] = (job_time[comp_name] * count + (
                             e_time - s_time)) / (count + 1)
 
-                if cv2.waitKey(1) & 0xFF == ord('q'):
+                if data.get_signal(Mode.__name__) == Mode.STOP:
                     is_stopped = True
 
             count += 1
 
         all_time = time.time() - all_time
         [self.__logger.write(msg=f'Component: {key}: execution time per iteration {item} sec', lvl='INFO') for key, item
-         in
-         job_time.items()]
+         in job_time.items()]
         self.__logger.write(msg=f'FPS: {count / all_time}', lvl='INFO')
 
     def compile(self):
@@ -109,6 +113,9 @@ class Pipeline:
         [component.stop() for component in self.__components]
         self.__logger.write(msg='Closing the components is complete.', lvl='INFO')
 
+    def add_signals(self, signals: List[str]):
+        self.__signal_names = signals
+
     def __to_device(self, component: ComponentBase):
         r""" Sets the device type for the component.
             :param component: ComponentBase.
@@ -121,3 +128,9 @@ class Pipeline:
                                                     'level': 'INFO'})
         logger.compile_logger(logger_name='pipeline')
         return logger
+
+
+class Mode(Enum):
+    PLAY = 1
+    PAUSE = 2
+    STOP = 0

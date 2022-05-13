@@ -232,6 +232,37 @@ class MetaBatch:
         self.__meta_frames = dict()
         self.__frames = dict()
         self.__source_names = list()
+        self.__signals = dict()
+
+    def add_signal(self, name: str):
+        r""" Adds name to signals.
+            :param name: str
+                        name of signal.
+            :exception TypeError: if name is not str.
+        """
+        if isinstance(name, str):
+            self.__signals[name] = None
+        else:
+            raise TypeError(f'Expected type of name str, but {type(name)} received.')
+
+    def set_signal(self, name: str, value: Any):
+        r""" Sets the value for signals by name.
+            :param name: str name of signal
+            :param value: Any value of signal.
+            :exception TypeError: if name is not str
+            :exception ValueError: if the name is missing in the signals.
+        """
+        if not isinstance(name, str):
+            raise TypeError(f'Expected type of name str, but {type(name)} received.')
+        if name not in list(self.__signals.keys()):
+            raise ValueError(f'Signal {name} not found.')
+        self.__signals[name] = value
+
+    def get_signal(self, name: str) -> Union[Any]:
+        r""" Returns the value by name.
+            :param name: str name of signal
+        """
+        return self.__signals.get(name)
 
     def add_meta_frame(self, frame: MetaFrame):
         r""" Adds a frame with information about this frame to the batch.

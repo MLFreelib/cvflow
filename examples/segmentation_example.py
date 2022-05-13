@@ -8,7 +8,7 @@ import torchvision
 from common.utils import *
 from components.model_component import ModelSegmentation
 from components.muxer_component import SourceMuxer
-from components.outer_component import OuterComponent
+from components.outer_component import DisplayComponent
 from components.painter_component import Tiler, MaskPainter
 from components.reader_component import USBCamReader, VideoReader, ReaderBase
 from components.handler_component import Filter
@@ -68,15 +68,15 @@ if __name__ == '__main__':
         readers.append(get_videofile_reader(file_srcs, file_srcs))
 
     muxer = get_muxer(readers)
-    print(readers)
-    model_segm = get_segmentation_model('detection', model, sources=readers, classes=SEM_CLASSES, confidence=get_confidence())
+    model_segm = get_segmentation_model('detection', model, sources=readers, classes=SEM_CLASSES,
+                                        confidence=get_confidence())
 
     model_segm.set_transforms([torchvision.transforms.Resize((240, 320))])
     mask_painter = MaskPainter('mask_painter')
 
     tiler = get_tiler('tiler', tiler_size=get_tsize(), frame_size=get_fsize())
 
-    outer = OuterComponent('display', ['tiler'])
+    outer = DisplayComponent('display')
 
     filter_comp = Filter('filter', ['person'])
 

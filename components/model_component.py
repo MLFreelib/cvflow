@@ -155,7 +155,6 @@ class ModelDetection(ModelBase):
                              transform=self._transform)
 
         batch, src_size = _to_tensor(src_data)
-
         with torch.no_grad():
             preds = self._inference(batch)
 

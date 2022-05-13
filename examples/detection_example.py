@@ -9,7 +9,7 @@ import torch
 import torchvision
 from components.model_component import ModelDetection
 from components.muxer_component import SourceMuxer
-from components.outer_component import OuterComponent
+from components.outer_component import DisplayComponent
 from components.painter_component import Tiler, BBoxPainter
 from components.reader_component import USBCamReader, VideoReader, ReaderBase
 from components.handler_component import Filter
@@ -86,7 +86,7 @@ if __name__ == '__main__':
 
     tiler = get_tiler('tiler', tiler_size=get_tsize(), frame_size=get_fsize())
 
-    outer = OuterComponent('display', ['tiler'])
+    outer = DisplayComponent('display')
     filter_comp = Filter('filter', ['person', 'zebra', 'mouse'])
 
     pipeline.set_device(get_device())

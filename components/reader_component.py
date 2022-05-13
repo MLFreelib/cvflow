@@ -49,7 +49,7 @@ class USBCamReader(ReaderBase):
 
     def run(self):
         r""" Creates an instance for video capture. """
-        self.__cap_send = cv2.VideoCapture(self._path)
+        self.__cap_send = cv2.VideoCapture(self._path, cv2.CAP_DSHOW)
 
     def read(self) -> np.array:
         r""" Reads frame from usb camera. """
@@ -81,7 +81,7 @@ class VideoReader(ReaderBase):
 
     def run(self):
         r""" Creates an instance for video capture. """
-        self.__cap_send = cv2.VideoCapture(self._path)
+        self.__cap_send = cv2.VideoCapture(self._path, cv2.CAP_DSHOW)
         if self.__cap_send.isOpened():
             self._framerate = int(self.__cap_send.get(cv2.CAP_PROP_FPS))
         else:

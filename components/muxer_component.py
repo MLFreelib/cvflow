@@ -45,8 +45,7 @@ class SourceMuxer(MuxerBase):
 
     def do(self, data: Union[MetaBatch, MetaFrame]):
         r""" Reads frames from sources and collects MetaBatch. """
-        self.__batch = MetaBatch('batch')
-        self.__batch.set_source_names([source.get_name() for source in self.__sources])
+        data.set_source_names([source.get_name() for source in self.__sources])
         source_count = len(self.__sources)
 
         while True:
@@ -55,15 +54,13 @@ class SourceMuxer(MuxerBase):
 
                 meta_frame = self.__to_meta_frame(frame, self.__sources[i].get_name())
 
-                self.__batch.add_meta_frame(meta_frame)
-                self.__batch.add_frames(meta_frame.get_src_name(), meta_frame.get_frame())
+                data.add_meta_frame(meta_frame)
+                data.add_frames(meta_frame.get_src_name(), meta_frame.get_frame())
                 self.__current_batch_size += 1
 
                 if (self.__current_batch_size / source_count) >= self.__max_batch_size:
-                    batch = self.__batch
                     self.__current_batch_size = 0
-                    self.__batch = None
-                    return batch
+                    return data
 
     def __to_meta_frame(self, frame: torch.Tensor, src_name: str) -> MetaFrame:
         r""" Creates MetaFrame from a frame. """

@@ -9,10 +9,9 @@ import pandas as pd
 from common.utils import *
 from components.model_component import ModelClassification
 from components.muxer_component import SourceMuxer
-from components.outer_component import OuterComponent
+from components.outer_component import DisplayComponent, FileWriterComponent
 from components.painter_component import Tiler, LabelPainter
 from components.reader_component import USBCamReader, VideoReader, ReaderBase
-from components.handler_component import Filter
 
 from pipeline import Pipeline
 
@@ -78,10 +77,11 @@ if __name__ == '__main__':
 
     tiler = get_tiler('tiler', tiler_size=get_tsize(), frame_size=get_fsize())
 
-    outer = OuterComponent('display', ['tiler'])
+    file_out = FileWriterComponent('file', file_path='example.avi')
+    display = DisplayComponent('display')
 
     pipeline.set_device(get_device())
-    pipeline.add_all([muxer, model_class, label_painter, tiler, outer])
+    pipeline.add_all([muxer, model_class, label_painter, tiler, file_out, display])
     pipeline.compile()
     pipeline.run()
     pipeline.close()
