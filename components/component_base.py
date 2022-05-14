@@ -11,23 +11,11 @@ class ComponentBase:
         :param name: str
             name of component
     """
+
     def __init__(self, name: str):
         self._name: str = name
-        self._active_status = None
-        self._to_component: Union[ComponentBase, None] = None
-        self._data_names = list()
         self._source_names = list()
         self._device = 'cpu'
-
-    def add_data_name(self, data_name: str):
-        r""" Add the data name.
-            :param data_name: str
-        """
-        self._data_names.append(data_name)
-
-    def get_data_names(self) -> List[str]:
-        r""" Returns the names of data. """
-        return self._data_names
 
     def connect(self, component):
         """ Connecting to the next component.

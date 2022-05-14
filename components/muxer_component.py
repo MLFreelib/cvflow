@@ -22,7 +22,6 @@ class SourceMuxer(MuxerBase):
         super().__init__(name)
         self.__current_batch_size = 0
         self.__max_batch_size = max_batch_size
-        self.__batch = None
         self.__sources = list()
 
     def add_source(self, source: ReaderBase):
