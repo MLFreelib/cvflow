@@ -11,8 +11,8 @@ from components.model_component import ModelDetection
 from components.muxer_component import SourceMuxer
 from components.outer_component import DisplayComponent
 from components.painter_component import Tiler, BBoxPainter
-from components.reader_component import USBCamReader, VideoReader, ReaderBase
-from components.handler_component import Filter
+from components.reader_component import CamReader, VideoReader, ReaderBase, ImageReader
+from components.handler_component import Filter, Counter
 
 from pipeline import Pipeline
 
@@ -32,8 +32,8 @@ COCO_INSTANCE_CATEGORY_NAMES = [
 ]
 
 
-def get_usb_cam(path: str, name: str) -> USBCamReader:
-    return USBCamReader(path, name)
+def get_usb_cam(path: str, name: str) -> CamReader:
+    return CamReader(path, name)
 
 
 def get_videofile_reader(path: str, name: str) -> VideoReader:
@@ -66,7 +66,7 @@ def get_tiler(name: str, tiler_size: tuple, frame_size: tuple = (640, 1280)) -> 
 
 
 if __name__ == '__main__':
-    model = torchvision.models.detection.retinanet_resnet50_fpn(pretrained=True)
+    model = torchvision.models.detection.fasterrcnn_resnet50_fpn(pretrained=True)
     pipeline = Pipeline()
 
     readers = []
@@ -74,23 +74,29 @@ if __name__ == '__main__':
     for usb_src in usb_srcs:
         readers.append(get_usb_cam(usb_src, usb_src))
 
+    name = None
     file_srcs = get_video_file_srcs()
-    for file_srcs in file_srcs:
-        readers.append(get_videofile_reader(file_srcs, file_srcs))
+    for i_file_srcs in range(len(file_srcs)):
+        name = f'{file_srcs[i_file_srcs]}_{i_file_srcs}'
+        readers.append(get_videofile_reader(file_srcs[i_file_srcs], name))
 
+    image_reader1 = ImageReader('E:\PyCharmProjects\cvflow\\tests\\test_data\zebra.jpg', 'zebra1')
+    image_reader2 = ImageReader('E:\PyCharmProjects\cvflow\\tests\\test_data\zebra.jpg', 'zebra2')
+
+    readers.append(image_reader1)
+    readers.append(image_reader2)
     muxer = get_muxer(readers)
     model_det = get_detection_model('detection', model, sources=readers, classes=COCO_INSTANCE_CATEGORY_NAMES)
 
     model_det.set_transforms([torchvision.transforms.Resize((240, 320))])
+    model_det.set_source_names([f'zebra2'])
     bbox_painter = BBoxPainter('bboxer', font_path=get_font())
 
     tiler = get_tiler('tiler', tiler_size=get_tsize(), frame_size=get_fsize())
 
     outer = DisplayComponent('display')
-    filter_comp = Filter('filter', ['person', 'zebra', 'mouse'])
-
     pipeline.set_device(get_device())
-    pipeline.add_all([muxer, model_det, filter_comp, bbox_painter, tiler, outer])
+    pipeline.add_all([muxer, model_det, bbox_painter, tiler, outer])
     pipeline.compile()
     pipeline.run()
     pipeline.close()

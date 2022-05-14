@@ -29,7 +29,7 @@ class ReaderBase(ComponentBase):
         raise MethodNotOverriddenException('read in the ReaderBase')
 
 
-class USBCamReader(ReaderBase):
+class CamReader(ReaderBase):
     r""" A component for reading a video stream from a USB camera
 
         :param device: str

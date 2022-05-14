@@ -10,7 +10,7 @@ from components.model_component import ModelSegmentation
 from components.muxer_component import SourceMuxer
 from components.outer_component import DisplayComponent
 from components.painter_component import Tiler, MaskPainter
-from components.reader_component import USBCamReader, VideoReader, ReaderBase
+from components.reader_component import CamReader, VideoReader, ReaderBase
 from components.handler_component import Filter
 from pipeline import Pipeline
 
@@ -21,8 +21,8 @@ SEM_CLASSES = [
 ]
 
 
-def get_usb_cam(path: str, name: str) -> USBCamReader:
-    return USBCamReader(path, name)
+def get_usb_cam(path: str, name: str) -> CamReader:
+    return CamReader(path, name)
 
 
 def get_videofile_reader(path: str, name: str) -> VideoReader:
