@@ -131,8 +131,8 @@ class CounterTest(unittest.TestCase):
 
         label_count = returned_meta_batch.get_meta_frames_by_src_name(src_name)[0].get_meta_info('counter')
 
-        self.assertEqual(1, label_count[src_name]['labels'][self.labels[label_num]])
-        self.assertEqual(1, label_count[src_name]['ids'][self.ids[label_num]])
+        self.assertEqual(1, label_count['labels'][self.labels[label_num]])
+        self.assertEqual(1, label_count['ids'][self.ids[label_num]])
 
     def test_do_zero_in(self):
         src_name = 'test_src'
@@ -144,8 +144,8 @@ class CounterTest(unittest.TestCase):
             returned_meta_batch = counter.do(meta_batch)
 
         label_count = returned_meta_batch.get_meta_frames_by_src_name(src_name)[0].get_meta_info('counter')
-        self.assertEqual(0, len(label_count[src_name]['labels'].keys()))
-        self.assertEqual(0, len(label_count[src_name]['ids'].keys()))
+        self.assertEqual(0, len(label_count['labels'].keys()))
+        self.assertEqual(0, len(label_count['ids'].keys()))
 
     def test_do_one_in_one_out(self):
         src_name = 'test_src'
@@ -160,8 +160,8 @@ class CounterTest(unittest.TestCase):
             returned_meta_batch = counter.do(meta_batch)
 
         label_count = returned_meta_batch.get_meta_frames_by_src_name(src_name)[0].get_meta_info('counter')
-        self.assertEqual(1, label_count[src_name]['labels'][self.labels[0]])
-        self.assertEqual(1, label_count[src_name]['ids'][self.ids[0]])
+        self.assertEqual(1, label_count['labels'][self.labels[0]])
+        self.assertEqual(1, label_count['ids'][self.ids[0]])
 
     def test_do_one_in_out_in(self):
         src_name = 'test_src'
@@ -180,8 +180,8 @@ class CounterTest(unittest.TestCase):
             returned_meta_batch = counter.do(meta_batch)
 
         label_count = returned_meta_batch.get_meta_frames_by_src_name(src_name)[0].get_meta_info('counter')
-        self.assertEqual(2, label_count[src_name]['labels'][self.labels[0]])
-        self.assertEqual(2, label_count[src_name]['ids'][self.ids[0]])
+        self.assertEqual(2, label_count['labels'][self.labels[0]])
+        self.assertEqual(2, label_count['ids'][self.ids[0]])
 
     def test_do_one_in_out_in_with_different_label(self):
         src_name = 'test_src'
@@ -200,8 +200,8 @@ class CounterTest(unittest.TestCase):
             returned_meta_batch = counter.do(meta_batch)
 
         label_count = returned_meta_batch.get_meta_frames_by_src_name(src_name)[0].get_meta_info('counter')
-        self.assertEqual(2, len(label_count[src_name]['labels'].keys()))
-        self.assertEqual(2, label_count[src_name]['ids'][self.ids[0]])
+        self.assertEqual(2, len(label_count['labels'].keys()))
+        self.assertEqual(2, label_count['ids'][self.ids[0]])
 
     def test_do_one_in_out_in_with_different_id(self):
         src_name = 'test_src'
@@ -220,8 +220,8 @@ class CounterTest(unittest.TestCase):
             returned_meta_batch = counter.do(meta_batch)
 
         label_count = returned_meta_batch.get_meta_frames_by_src_name(src_name)[0].get_meta_info('counter')
-        self.assertEqual(2, label_count[src_name]['labels'][self.labels[0]])
-        self.assertEqual(2, len(label_count[src_name]['ids'].keys()))
+        self.assertEqual(2, label_count['labels'][self.labels[0]])
+        self.assertEqual(2, len(label_count['ids'].keys()))
 
     def __get_meta_batch(self, src_name, bbox: torch.Tensor, label_id: int = 0, ids: int = 0):
         meta_label = MetaLabel([self.labels[label_id]], [self.confs[label_id]])
