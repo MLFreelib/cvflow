@@ -10,9 +10,9 @@ from components.component_base import ComponentBase
 
 
 class OuterComponent(ComponentBase):
-    def __init__(self, name: str, output: List[str] = None):
+    def __init__(self, name: str):
         super().__init__(name)
-        self._output = ['tiler'] if output is None else output
+        self._source_names = ['tiler']
 
 
 class DisplayComponent(OuterComponent):
@@ -26,14 +26,14 @@ class DisplayComponent(OuterComponent):
                     the key to close the window
     """
 
-    def __init__(self, name: str, output: List[str] = None, escape_btn: str = 'q'):
-        super().__init__(name, output)
+    def __init__(self, name: str, escape_btn: str = 'q'):
+        super().__init__(name)
         self.__escape_btn = escape_btn
 
-    def do(self, data: Union[MetaBatch, MetaFrame]):
+    def do(self, data: Union[MetaBatch, MetaFrame]) -> MetaBatch:
         r""" Displays frames from selected sources in the window. """
         full_batch = data.get_meta_frames_all()
-        for key in self._output:
+        for key in self._source_names:
             frames = full_batch[key]
             for i in range(len(frames)):
                 frame = frames[i].get_frame()
@@ -65,8 +65,8 @@ class FileWriterComponent(OuterComponent):
 
     """
 
-    def __init__(self, name: str, file_path: str, output: str = None, framerate: int = 30, fourcc: str = 'XVID'):
-        super().__init__(name, output)
+    def __init__(self, name: str, file_path: str, framerate: int = 30, fourcc: str = 'XVID'):
+        super().__init__(name)
         self.__path = file_path
         fourcc = cv2.VideoWriter_fourcc(*fourcc)
         self.__fcc, self.__fps, self.dt = fourcc, framerate, 1. / framerate
@@ -81,7 +81,7 @@ class FileWriterComponent(OuterComponent):
     def do(self, data: MetaBatch) -> MetaBatch:
         r""" Puts the frames to the queue."""
         full_batch = data.get_meta_frames_all()
-        for key in self._output:
+        for key in self._source_names:
             frames = full_batch[key]
             for i in range(len(frames)):
                 frame = frames[i].get_frame()
