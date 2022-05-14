@@ -89,7 +89,6 @@ class BBoxPainter(Painter):
         self.__colors = dict()
         self.__resolution = None
 
-
     def set_font_size(self, font_size: int):
         if isinstance(font_size, int):
             self.__font_size = font_size
@@ -116,7 +115,8 @@ class BBoxPainter(Painter):
                         full_labels = [f'{label} {round(conf * 100)}%' for label, conf in meta_objects_info]
                     else:
                         meta_objects_info = zip(labels, meta_labels.get_confidence(), ids)
-                        full_labels = [f'{obj_id} {label} {round(conf * 100)}%' for label, conf, obj_id in meta_objects_info]
+                        full_labels = [f'{obj_id} {label} {round(conf * 100)}%' for label, conf, obj_id in
+                                       meta_objects_info]
                     frame = meta_frame.get_frame().cpu()
                     if self.__resolution is None:
                         self.__resolution = frame.shape[-2:]
@@ -129,8 +129,27 @@ class BBoxPainter(Painter):
                                                        font_size=self.__font_size,
                                                        font=self.__font_path,
                                                        colors=self.__get_colors(labels))
+
+                    counter = meta_frame.get_meta_info('counter')
+                    if counter is not None:
+                        bboxes_frame = self.___put_count(bboxes_frame, meta_frame.get_meta_info('counter'))
                     meta_frame.set_frame(bboxes_frame)
         return data
+
+    def ___put_count(self, frame: torch.Tensor, counts: dict):
+        if len(list(counts['labels'].keys())) == 0:
+            return frame
+        frame = frame.detach().cpu()
+        frame = frame.permute((1, 2, 0)).numpy()
+        frame = np.ascontiguousarray(frame)
+        for i in range(len(counts['labels'].keys())):
+            label = list(counts["labels"].keys())[i]
+            frame = cv2.putText(frame,
+                                text=f'Count of {label}: {str(counts["labels"][label])}',
+                                org=(50, (1 + i) * 30), fontFace=0,
+                                color=(255, 0, 0), thickness=2, lineType=16,
+                                fontScale=0.5)
+        return torch.tensor(frame, device=self.get_device()).permute((2, 0, 1))
 
     def start(self):
         r""" Checks types and sets default values. """
@@ -235,12 +254,13 @@ class LabelPainter(Painter):
                                         org=self.__org, fontFace=self.__font_face,
                                         color=self.__get_label_color(label_name), thickness=2, lineType=self.__lineType,
                                         fontScale=self.__font_scale)
-
                     frame = torch.tensor(frame, device=self.get_device())
                     frame = frame.permute((2, 0, 1))
                     meta_frame.set_frame(frame)
 
         return data
+
+        return frame
 
     def __get_label_color(self, label_name: str):
         if label_name not in self.__colors.keys():

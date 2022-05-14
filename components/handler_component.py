@@ -120,7 +120,8 @@ class Counter(ComponentBase):
                 if meta_frame.get_bbox_info() is not None:
                     self.__update(meta_frame.get_bbox_info(),
                                   meta_frame.get_frame().detach().cpu().numpy().shape, src_name)
-                    meta_frame.add_meta('counter', self.__label_count)
+                if src_name in list(self.__label_count.keys()):
+                    meta_frame.add_meta('counter', self.__label_count[src_name])
         return data
 
     def __update(self, meta_bbox: MetaBBox, shape: Iterable[int], source: str):
