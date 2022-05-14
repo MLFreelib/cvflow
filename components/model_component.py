@@ -61,7 +61,6 @@ class ModelBase(ComponentBase):
     def __init__(self, name: str, model: torch.nn.Module):
         super().__init__(name)
         self.__transforms = list()
-        self._connected_sources = list()
         self._inference: torch.nn.Module = model
         self._inference.eval()
         self._confidence = 0.8
@@ -91,7 +90,7 @@ class ModelBase(ComponentBase):
             :param name: str
                     name of source
         """
-        self._connected_sources.append(name)
+        self._source_names.append(name)
 
     def set_labels(self, labels: List[str]):
         r""" Sets labels for model
@@ -149,7 +148,7 @@ class ModelDetection(ModelBase):
         r""" Transmits data to the detection model. And adds the predicted bounding boxes with labels to the MetaFrame
             in the MetaBatch. Bounding boxes in BBoxMeta and labels in MetaLabel, which are contained in BBoxMeta.
         """
-        src_data = _to_model(connected_sources=self._connected_sources,
+        src_data = _to_model(connected_sources=self._source_names,
                              data=data,
                              device=self.get_device(),
                              transform=self._transform)
@@ -159,8 +158,8 @@ class ModelDetection(ModelBase):
             preds = self._inference(batch)
 
         i_point = 0
-        for i_src_name in range(len(self._connected_sources)):
-            src_name = self._connected_sources[i_src_name]
+        for i_src_name in range(len(self._source_names)):
+            src_name = self._source_names[i_src_name]
             shape = src_data[i_src_name].shape[-2:]
             self.__to_meta(data=data, preds=preds[i_point: i_point + src_size[i_src_name]], shape=shape,
                            src_name=src_name)
@@ -188,6 +187,7 @@ class ModelDetection(ModelBase):
                 self.__bbox_normalize(boxes, shape)
                 meta_frame = data.get_meta_frames_by_src_name(src_name)[i]
                 meta_label = MetaLabel(labels=label_names, confidence=conf)
+
                 meta_frame.set_bbox_info(MetaBBox(boxes, meta_label))
 
     def __bbox_normalize(self, bboxes: torch.tensor, shape: torch.tensor):
@@ -219,7 +219,7 @@ class ModelClassification(ModelBase):
         r""" Transmits data to the classification model. And adds the predicted labels to the MetaFrame
                    in the MetaBatch. Labels in MetaLabel, which are contained in MetaFrame.
                """
-        src_data = _to_model(connected_sources=self._connected_sources,
+        src_data = _to_model(connected_sources=self._source_names,
                              data=data,
                              device=self.get_device(),
                              transform=self._transform)
@@ -231,9 +231,9 @@ class ModelClassification(ModelBase):
         probabilities = torch.nn.functional.softmax(probabilities, dim=1)
 
         prob_i = 0
-        for i_src_name in range(len(self._connected_sources)):
+        for i_src_name in range(len(self._source_names)):
             for i in range(src_size[i_src_name]):
-                meta_frame = data.get_meta_frames_by_src_name(self._connected_sources[i_src_name])[i]
+                meta_frame = data.get_meta_frames_by_src_name(self._source_names[i_src_name])[i]
                 probability = probabilities[prob_i]
                 probability = probability[None, :]
                 meta_label = MetaLabel(labels=self.get_labels(), confidence=probability)
@@ -261,7 +261,7 @@ class ModelSegmentation(ModelBase):
         r""" Transmits data to the segmentation model. And adds the predicted masks with labels to the MetaFrame
             in the MetaBatch. Masks in MetaMask and labels in MetaLabel, which are contained in MetaMask.
         """
-        src_data = _to_model(connected_sources=self._connected_sources,
+        src_data = _to_model(connected_sources=self._source_names,
                              data=data,
                              device=self.get_device(),
                              transform=self._transform)
@@ -275,9 +275,9 @@ class ModelSegmentation(ModelBase):
         normalized_masks[normalized_masks < self._confidence] = 0
 
         prob_i = 0
-        for i_src_name in range(len(self._connected_sources)):
+        for i_src_name in range(len(self._source_names)):
             for i in range(src_size[i_src_name]):
-                meta_frame = data.get_meta_frames_by_src_name(self._connected_sources[i_src_name])[i]
+                meta_frame = data.get_meta_frames_by_src_name(self._source_names[i_src_name])[i]
                 normalized_mask = normalized_masks[prob_i]
                 mask = torch.zeros(normalized_mask.shape, dtype=torch.bool, device=self.get_device())
                 mask[normalized_mask > self._confidence] = True
