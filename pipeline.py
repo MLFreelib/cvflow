@@ -2,7 +2,6 @@ import time
 from enum import Enum
 from typing import List
 
-import cv2
 import torch
 
 from Meta import MetaBatch
@@ -20,7 +19,6 @@ class Pipeline:
     def __init__(self):
         self.__device = 'cuda' if torch.cuda.is_available() else 'cpu'
         self.__components = list()
-        self.__muxer = None
         self.__signal_names = list()
         self.__logger = self.__create_logger()
 
@@ -96,7 +94,6 @@ class Pipeline:
         for i in range(0, len(self.__components) - 1):
             if isinstance(self.__components[i], SourceMuxer):
                 self.__logger.write(msg='SourceMuxer found.', lvl='INFO')
-                self.__muxer = self.__components[i]
             self.__components[i].connect(self.__components[i + 1])
 
             cur_comp_name = self.__components[i].__class__.__name__
