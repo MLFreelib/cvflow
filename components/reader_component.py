@@ -16,7 +16,6 @@ class ReaderBase(ComponentBase):
 
     def __init__(self, path: str, name: str, framerate: int = 30):
         super().__init__(name)
-        self.__is_cuda = False
         self._path = path
         self._last_frame = None
         self._framerate = framerate
@@ -39,7 +38,7 @@ class USBCamReader(ReaderBase):
         try:
             self._path = int(device)
         except ValueError:
-            pass
+            self._path = int(device)
         self.__cap_send = None
 
     # def run(self):
@@ -77,7 +76,6 @@ class VideoReader(ReaderBase):
     def __init__(self, path: str, name: str, framerate: int = 30):
         super().__init__(path, name, framerate=framerate)
         self.__cap_send = None
-        self.__start_point = 0
 
     def run(self):
         r""" Creates an instance for video capture. """
