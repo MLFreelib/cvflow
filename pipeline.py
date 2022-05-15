@@ -4,11 +4,11 @@ from typing import List
 
 import torch
 
-from Meta import MetaBatch
-from common.utils import Logger
-from components.component_base import ComponentBase
-from components.muxer_component import MuxerBase, SourceMuxer
-from exceptions import InvalidComponentException
+from cvflow.Meta import MetaBatch
+from cvflow.common.utils import Logger
+from cvflow.components.component_base import ComponentBase
+from cvflow.components.muxer_component import MuxerBase, SourceMuxer
+from cvflow.exceptions import InvalidComponentException
 
 
 class Pipeline:
@@ -27,8 +27,8 @@ class Pipeline:
             :param component: ComponentBase.
             :exception InvalidComponentException if the first component in the pipeline is not a MuxerBase.
         """
-        if not isinstance(component, MuxerBase) and len(self.__components) == 0:
-            raise InvalidComponentException('The first element of the pipeline must be of type MuxerBase')
+        #if not isinstance(component, MuxerBase) and len(self.__components) == 0:
+        #    raise InvalidComponentException('The first element of the pipeline must be of type MuxerBase')
         self.__components.append(component)
 
     def set_device(self, device: str):
@@ -49,9 +49,9 @@ class Pipeline:
             :exception InvalidComponentException if the first component in the pipeline is not a MuxerBase.
         """
         for component in components:
-            if not isinstance(component, ComponentBase):
-                self.__components = list()
-                raise TypeError(f'Expected {ComponentBase.__name__}, Actual {type(component)}')
+            #if not isinstance(component, ComponentBase):
+            #    self.__components = list()
+            #    raise TypeError(f'Expected {ComponentBase.__name__}, Actual {type(component)}')
             self.add(component)
 
     def run(self):
@@ -76,9 +76,9 @@ class Pipeline:
                 else:
                     job_time[comp_name] = (job_time[comp_name] * count + (
                             e_time - s_time)) / (count + 1)
-
-                if data.get_signal(Mode.__name__) == Mode.STOP:
-                    is_stopped = True
+                if data is not None:
+                    if data.get_signal(Mode.__name__) == Mode.STOP:
+                        is_stopped = True
 
             count += 1
 

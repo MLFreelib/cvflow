@@ -1,9 +1,12 @@
 import unittest
 
 import torch
+import sys
 
-from Meta import MetaFrame, MetaLabel, MetaBatch, MetaBBox, MetaMask
-from components.handler_component import Filter, Counter
+sys.path.append('../')
+
+from cvflow.Meta import MetaFrame, MetaLabel, MetaBatch, MetaBBox, MetaMask
+from cvflow.components.handler_component import Filter, Counter
 
 
 class FilterTest(unittest.TestCase):
