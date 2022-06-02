@@ -27,8 +27,6 @@ COCO_INSTANCE_CATEGORY_NAMES = ['person', 'bicycle', 'car', 'motorcycle', 'airpl
                                 'clock', 'vase', 'scissors', 'teddy bear', 'hair drier', 'toothbrush'
                                 ]
 
-VEHICLES_CLASSES = ['bus', 'car', 'cyclist', 'jeep', 'misc', 'pedestrian', 'truck', 'van']
-
 
 def get_usb_cam(path: str, name: str) -> CamReader:
     return CamReader(path, name)
