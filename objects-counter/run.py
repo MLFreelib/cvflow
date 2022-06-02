@@ -25,8 +25,8 @@ args = vars(argparser.parse_args())
 
 config = configparser.ConfigParser()
 config.read(args['config'])
-model = YOLO(clf_spec='vehicles')
-#model=YOLO()
+#model = YOLO(clf_spec='vehicles')
+model=YOLO()
 device = 'cpu'
 
 pipeline = Pipeline()
@@ -45,8 +45,8 @@ if file_srcs is not None:
         readers.append(get_videofile_reader(file_srcs, file_srcs))
 
 muxer = get_muxer(readers)
-#model_det = get_detection_model('detection', model, sources=readers, classes=COCO_INSTANCE_CATEGORY_NAMES)
-model_det = get_detection_model('detection', model, sources=readers, classes=VEHICLES_CLASSES)
+model_det = get_detection_model('detection', model, sources=readers, classes=COCO_INSTANCE_CATEGORY_NAMES)
+#model_det = get_detection_model('detection', model, sources=readers, classes=VEHICLES_CLASSES)
 lines_list = eval(config.get('Lines', 'values'))
 lines = []
 for line in lines_list:
