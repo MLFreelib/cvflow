@@ -7,6 +7,7 @@ sys.path.append('../')
 import torchvision
 from components.outer_component import DisplayComponent
 from components.painter_component import Tiler, BBoxPainter
+from dlib import correlation_tracker
 from pipeline import Pipeline
 from set_stream import *
 from yolo import YOLO
@@ -25,8 +26,8 @@ args = vars(argparser.parse_args())
 
 config = configparser.ConfigParser()
 config.read(args['config'])
-model = YOLO(clf_spec='vehicles')
-#model=YOLO()
+#model = YOLO(clf_spec='vehicles')
+model=YOLO()
 device = 'cpu'
 
 pipeline = Pipeline()
@@ -45,14 +46,14 @@ if file_srcs is not None:
         readers.append(get_videofile_reader(file_srcs, file_srcs))
 
 muxer = get_muxer(readers)
-#model_det = get_detection_model('detection', model, sources=readers, classes=COCO_INSTANCE_CATEGORY_NAMES)
-model_det = get_detection_model('detection', model, sources=readers, classes=VEHICLES_CLASSES)
+model_det = get_detection_model('detection', model, sources=readers, classes=COCO_INSTANCE_CATEGORY_NAMES)
+#model_det = get_detection_model('detection', model, sources=readers, classes=VEHICLES_CLASSES)
 lines_list = eval(config.get('Lines', 'values'))
 lines = []
 for line in lines_list:
     lines.append((line['points'][0], line['points'][1], line['color'], line['thickness']))
 
-#tracker = get_tracker('tracking', Tracker(), sources=readers, classes=COCO_INSTANCE_CATEGORY_NAMES, lines=lines)
+tracker = get_tracker('tracking', correlation_tracker(), sources=readers, classes=COCO_INSTANCE_CATEGORY_NAMES, lines=lines)
 line = [lines[0][0][0], lines[0][0][1], lines[0][1][0], lines[0][1][1]]
 counter = get_counter('counter', lines)
 bbox_painter = BBoxPainter('bboxer', font_path=args['font'])
@@ -62,6 +63,6 @@ tiler = get_tiler('tiler', tiler_size=(2, 2), frame_size=(1440, 2160))
 outer = DisplayComponent('display')
 
 pipeline.set_device('cpu')
-pipeline.add_all([muxer, model_det, counter, bbox_painter, tiler, outer])
+pipeline.add_all([muxer, model_det, tracker, counter, bbox_painter, tiler, outer])
 pipeline.compile()
 pipeline.run()

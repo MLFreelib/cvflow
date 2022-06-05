@@ -4,11 +4,11 @@ from typing import List
 
 import torch
 
-from cvflow.Meta import MetaBatch
-from cvflow.common.utils import Logger
-from cvflow.components.component_base import ComponentBase
-from cvflow.components.muxer_component import MuxerBase, SourceMuxer
-from cvflow.exceptions import InvalidComponentException
+from Meta import MetaBatch
+from common.utils import Logger
+from components.component_base import ComponentBase
+from components.muxer_component import MuxerBase, SourceMuxer
+from exceptions import InvalidComponentException
 
 
 class Pipeline:
@@ -59,7 +59,7 @@ class Pipeline:
         job_time = dict()
         all_time = time.time()
         count = 0
-
+        tracking_frames = 1
         is_stopped = False
         while not is_stopped:
             data = MetaBatch('pipe_batch')
@@ -67,8 +67,16 @@ class Pipeline:
             data.set_signal(Mode.__name__, Mode.PLAY)
             for i in range(len(self.__components)):
                 comp_name = self.__components[i].__class__.__name__
+                if comp_name == 'ModelDetection' and count % tracking_frames > 0:
+                    continue
+                if count % tracking_frames == 0 and comp_name == 'CorrelationBasedTrackerComponent':
+                    self.__components[i].update(data)
                 s_time = time.time()
                 data = self.__components[i].do(data)
+                try:
+                    print(comp_name, data.get_meta_frames_by_src_name(data.get_source_names()[0])[0].get_bbox_info().get_bbox())
+                except AttributeError:
+                    print(comp_name, None)
                 e_time = time.time()
 
                 if comp_name not in job_time.keys():
