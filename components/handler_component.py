@@ -174,25 +174,32 @@ class Counter(ComponentBase):
         frame = cv2.line(frame, self.__line[:2], self.__line[2:], color=(0, 255, 0), thickness=2)
         return torch.tensor(frame, device=self.get_device()).permute(2, 0, 1)
 
-    def __check_intersect(self, bbox: torch.Tensor, shape: Iterable[int]) -> bool:
+    def __check_intersect(self, bbox: torch.Tensor, line, shape: Iterable[int]) -> bool:
         r""" Checks whether the object crosses the line.
             :param bbox: torch.Tensor
                         bounding box.
             :param shape: tuple
                         shape of frame.
         """
-        cv_shape = (*shape[1:], shape[0])
-        self.__bbox_denormalize(torch.unsqueeze(bbox, dim=0), shape)
-        np_bbox = bbox.detach().cpu().numpy().astype(int)
-        check_line = cv2.line(np.zeros(cv_shape), self.__line[:2], self.__line[2:], thickness=1, color=(255, 255, 255))
-        check_bbox = cv2.rectangle(np.zeros(cv_shape), np_bbox[:2], np_bbox[2:], color=(255, 255, 255), thickness=-1)
-        dif = check_bbox - check_line
-        dif[dif < 0] = 0
-
-        if np.sum(check_bbox) != np.sum(dif):
+        t_line = np.array([*line[0], *line[1]])
+        bbox_ = bbox.clone()
+        self.__bbox_denormalize(torch.unsqueeze(bbox_, dim=0), shape)
+        np_bbox = bbox_.detach().cpu().numpy()
+        if self.__line_intersect(
+            np.array([np_bbox[0], np_bbox[[1], np_bbox[2], np_bbox[0]]]), t_line) or self.__line_intersect(
+            np.array([np_bbox[2], np_bbox[[1], np_bbox[2], np_bbox[3]]]), t_line) or self.__line_intersect(
+            np.array([np_bbox[0], np_bbox[[3], np_bbox[2], np_bbox[3]]]), t_line) or self.__line_intersect(
+            np.array([np_bbox[0], np_bbox[[1], np_bbox[0], np_bbox[3]]]), t_line):
             return True
-        else:
-            return False
+        return False
+
+    def __line_intersect(self, line1: np.ndarray, line2: np.ndarray):
+        def ccw(point1, point2, point3):
+            return (point3[1] - point1[1]) * (point2[0] - point1[0]) > (point2[1] - point1[1]) * (point3[0] - point1[0])
+
+        return ccw(line1[:2], line2[:2], line2[2:]) != \
+               ccw(line1[2:], line2[:2], line2[2:]) and ccw(line1[:2], line1[2:], line2[:2]) != \
+               ccw(line1[:2], line1[2:], line2[2:])
 
     def __bbox_denormalize(self, bboxes: torch.tensor, shape: torch.tensor):
         r""" Gets coordinates for bounding boxes.
