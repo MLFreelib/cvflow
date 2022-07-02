@@ -1,9 +1,9 @@
-from typing import List
+from typing import List, Iterator
 
 import numpy as np
 import torch
 
-from Meta import MetaBatch, MetaLabel, MetaBBox, MetaMask
+from Meta import MetaBatch, MetaLabel, MetaBBox, MetaMask, MetaDepth
 from components.component_base import ComponentBase
 
 
@@ -20,7 +20,6 @@ def _to_tensor(src_data: List[torch.tensor]):
                     belong to the first source, the next 2 frames belong to the second source, and the last 3 belong
                     to the last source.
     """
-
     batch = torch.cat(src_data, dim=0)
     size_frames = list()
     for frames in src_data:
@@ -49,6 +48,44 @@ def _to_model(connected_sources: List[str], data: MetaBatch, device: str, transf
         src_data.append(cloned_data)
     return src_data
 
+def _to_stereo_model(connected_sources: List[str], data: MetaBatch, device: str, transform, calib=1017) -> List[torch.tensor]:
+    r""" Returns a list of pairs of transformed frames from the MetaBatch.
+        :param connected_sources: list of sources names
+        :param data: MetaData
+        :param device: str - cuda or cpu
+        :param transform: list of transformations from torch.transform
+        :return: List[torch.tensor]
+    """
+    src_data = list()
+    if len(connected_sources)%2:
+        raise ValueError(f'Expected even number of sources, received {len(connected_sources)}')
+
+    def chunck(lst, n)->List[str]:
+        for i in range(0, len(lst), n):
+            yield lst[i:i + n]
+
+    connected_sources = list(chunck(connected_sources, 2))
+
+
+    def clone_data(needed_data):
+        cloned_data = needed_data.clone().to(dtype=torch.float, device=device)
+        cloned_data = transform(cloned_data)
+        cloned_data = cloned_data.div(255)
+        return cloned_data
+
+    for src_names in connected_sources:
+
+        needed_data_left = data.get_frames_by_src_name(src_names[0])
+        needed_data_right = data.get_frames_by_src_name(src_names[1])
+
+        if needed_data_left is None or needed_data_right is None:
+            continue
+
+        needed_data_left = clone_data(needed_data_left)
+        needed_data_right = clone_data(needed_data_right)
+
+        src_data.append((needed_data_left, needed_data_right, torch.tensor(calib)))
+    return src_data
 
 class ModelBase(ComponentBase):
     r""" Component of basic model. This class is necessary for implementing models using inheritance.
@@ -224,6 +261,7 @@ class ModelClassification(ModelBase):
                              device=self.get_device(),
                              transform=self._transform)
 
+
         batch, src_size = _to_tensor(src_data)
 
         with torch.no_grad():
@@ -286,3 +324,38 @@ class ModelSegmentation(ModelBase):
                 meta_frame.set_mask_info(meta_mask)
                 prob_i += 1
         return data
+
+
+class ModelDepth(ModelBase):
+    r""" Component for stereo models
+
+        :param name: str
+                name of component
+
+        :param model: torch.nn.Module
+                    stereo model, which returns dictionary with key "out" which contains tensor of shape
+                    [N, H, W], where N - batch size, H - mask height, W - mask width and
+                    values in the range from 0 to 1.
+    """
+
+    def __init__(self, name: str, model: torch.nn.Module):
+        super().__init__(name, model)
+
+
+
+    def do(self, data: MetaBatch) -> MetaBatch:
+        r""" Transmits data to the depth model. And adds the predicted masks with labels to the MetaFrame
+            in the MetaBatch. Masks in MetaMask and labels in MetaLabel, which are contained in MetaMask.
+        """
+        src_data = _to_stereo_model(connected_sources=self._source_names,
+                             data=data,
+                             device=self.get_device(),
+                             transform=self._transform)
+
+
+        for batch in src_data:
+            imgL, imgR, calib = batch
+            with torch.no_grad():
+                output = self._inference(imgL, imgR, calib)['out']
+
+        return output
