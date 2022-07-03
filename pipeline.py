@@ -76,7 +76,6 @@ class Pipeline:
                 else:
                     job_time[comp_name] = (job_time[comp_name] * count + (
                             e_time - s_time)) / (count + 1)
-
                 if data.get_signal(Mode.__name__) == Mode.STOP:
                     is_stopped = True
 

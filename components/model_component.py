@@ -48,7 +48,7 @@ def _to_model(connected_sources: List[str], data: MetaBatch, device: str, transf
         src_data.append(cloned_data)
     return src_data
 
-def _to_stereo_model(connected_sources: List[str], data: MetaBatch, device: str, transform, calib=1017) -> List[torch.tensor]:
+def _to_stereo_model(connected_sources: List[str], data: MetaBatch, device: str, transform, calib=1017.) -> List[torch.tensor]:
     r""" Returns a list of pairs of transformed frames from the MetaBatch.
         :param connected_sources: list of sources names
         :param data: MetaData
@@ -83,8 +83,9 @@ def _to_stereo_model(connected_sources: List[str], data: MetaBatch, device: str,
 
         needed_data_left = clone_data(needed_data_left)
         needed_data_right = clone_data(needed_data_right)
+        calib = torch.tensor(calib).float().to(dtype=torch.float, device=device)
 
-        src_data.append((needed_data_left, needed_data_right, torch.tensor(calib)))
+        src_data.append((needed_data_left, needed_data_right, calib))
     return src_data
 
 class ModelBase(ComponentBase):
@@ -356,6 +357,9 @@ class ModelDepth(ModelBase):
         for batch in src_data:
             imgL, imgR, calib = batch
             with torch.no_grad():
-                output = self._inference(imgL, imgR, calib)['out']
-
-        return output
+                output = self._inference(imgL, imgR, calib)
+                pred_depth = output.data.cpu().numpy()
+                print(pred_depth.shape)
+                import cv2
+                cv2.imwrite('/content/1.png', pred_depth[0][:,:])
+        return data
