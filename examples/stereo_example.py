@@ -48,7 +48,7 @@ def get_tiler(name: str, tiler_size: tuple, frame_size: tuple = (640, 1280)) -> 
 
 if __name__ == '__main__':
     model = stackhourglass(maxdepth=80, maxdisp=192, down=2)
-    checkpoint = torch.load("/Users/s70c3/Projects/cvflow/tests/test_data/ganet.pth.tar", map_location=torch.device('cpu'))
+    checkpoint = torch.load("/content/model_best.pth.tar")
     model.load_state_dict(checkpoint['state_dict'], strict=False)
     calib = 1017
 
@@ -63,11 +63,11 @@ if __name__ == '__main__':
     for file_srcs in file_srcs:
         readers.append(get_videofile_reader(file_srcs, file_srcs))
 
-    image_reader1 = ImageReader('/Users/s70c3/Projects/cvflow/tests/test_data/stereoLeft.png', 'left')
-    image_reader2 = ImageReader('/Users/s70c3/Projects/cvflow/tests/test_data/sterepRight.png', 'right')
+    image_reader1 = ImageReader('/content/cvflow/tests/test_data/stereoLeft.png', 'left')
+    image_reader2 = ImageReader('/content/cvflow//tests/test_data/stereoRight.png', 'right')
 
-    image_reader3 = ImageReader('/Users/s70c3/Projects/cvflow/tests/test_data/stereoLeft.png', 'left2')
-    image_reader4 = ImageReader('/Users/s70c3/Projects/cvflow/tests/test_data/sterepRight.png', 'right2')
+    image_reader3 = ImageReader('/content/cvflow/tests/test_data/stereoLeft.png', 'left2')
+    image_reader4 = ImageReader('/content/cvflow/tests/test_data/stereoRight.png', 'right2')
 
     readers.append(image_reader1)
     readers.append(image_reader2)
@@ -81,10 +81,9 @@ if __name__ == '__main__':
 
     outer = DisplayComponent('display')
 
-    filter_comp = Filter('filter', ['person'])
 
     pipeline.set_device(get_device())
-    pipeline.add_all([muxer, model_depth, filter_comp,  tiler, outer])
+    pipeline.add_all([muxer, model_depth,  tiler, outer])
     pipeline.compile()
     pipeline.run()
     pipeline.close()
