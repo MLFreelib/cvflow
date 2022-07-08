@@ -48,7 +48,8 @@ def _to_model(connected_sources: List[str], data: MetaBatch, device: str, transf
         src_data.append(cloned_data)
     return src_data
 
-def _to_stereo_model(connected_sources: List[str], data: MetaBatch, device: str, transform, calib=1017.) -> List[torch.tensor]:
+
+def _to_stereo_model(connected_sources: List[str], data: MetaBatch, device: str, transform, calib=1017.):
     r""" Returns a list of pairs of transformed frames from the MetaBatch.
         :param connected_sources: list of sources names
         :param data: MetaData
@@ -57,15 +58,15 @@ def _to_stereo_model(connected_sources: List[str], data: MetaBatch, device: str,
         :return: List[torch.tensor]
     """
     src_data = list()
-    if len(connected_sources)%2:
+    if len(connected_sources) % 2:
         raise ValueError(f'Expected even number of sources, received {len(connected_sources)}')
 
-    def chunck(lst, n)->List[str]:
+    def chunck(lst, n) -> List[str]:
         for i in range(0, len(lst), n):
             yield lst[i:i + n]
 
     connected_sources = list(chunck(connected_sources, 2))
-
+    size_frames = [0]*len(connected_sources)
 
     def clone_data(needed_data):
         cloned_data = needed_data.clone().to(dtype=torch.float, device=device)
@@ -73,11 +74,11 @@ def _to_stereo_model(connected_sources: List[str], data: MetaBatch, device: str,
         cloned_data = cloned_data.div(255)
         return cloned_data
 
-    for src_names in connected_sources:
+    for i, src_names in enumerate(connected_sources):
 
         needed_data_left = data.get_frames_by_src_name(src_names[0])
         needed_data_right = data.get_frames_by_src_name(src_names[1])
-
+        size_frames[i] = len(needed_data_right)
         if needed_data_left is None or needed_data_right is None:
             continue
 
@@ -86,7 +87,8 @@ def _to_stereo_model(connected_sources: List[str], data: MetaBatch, device: str,
         calib = torch.tensor(calib).float().to(dtype=torch.float, device=device)
 
         src_data.append((needed_data_left, needed_data_right, calib))
-    return src_data
+
+    return src_data, size_frames
 
 class ModelBase(ComponentBase):
     r""" Component of basic model. This class is necessary for implementing models using inheritance.
@@ -262,7 +264,6 @@ class ModelClassification(ModelBase):
                              device=self.get_device(),
                              transform=self._transform)
 
-
         batch, src_size = _to_tensor(src_data)
 
         with torch.no_grad():
@@ -342,24 +343,25 @@ class ModelDepth(ModelBase):
     def __init__(self, name: str, model: torch.nn.Module):
         super().__init__(name, model)
 
-
-
     def do(self, data: MetaBatch) -> MetaBatch:
         r""" Transmits data to the depth model. And adds the predicted masks with labels to the MetaFrame
             in the MetaBatch. Masks in MetaMask and labels in MetaLabel, which are contained in MetaMask.
         """
-        src_data = _to_stereo_model(connected_sources=self._source_names,
-                             data=data,
-                             device=self.get_device(),
-                             transform=self._transform)
-
-
+        src_data, src_size = _to_stereo_model(connected_sources=self._source_names,
+                                    data=data,
+                                    device=self.get_device(),
+                                    transform=self._transform)
+        output = []
         for batch in src_data:
             imgL, imgR, calib = batch
             with torch.no_grad():
-                output = self._inference(imgL, imgR, calib)
-                pred_depth = output.data.cpu().numpy()
-                print(pred_depth.shape)
-                import cv2
-                cv2.imwrite('/content/1.png', pred_depth[0][:,:])
+                output.append(self._inference(imgL, imgR, calib))
+        prob_i = 0
+        for i_src_name in range(len(self._source_names)):
+            for i in range(src_size[i_src_name]):
+                meta_frame = data.get_meta_frames_by_src_name(self._source_names[i_src_name])[i]
+                depth = output[prob_i]
+                meta_depth = MetaDepth(depth)
+                meta_frame.set_depth_info(meta_depth)
+                prob_i += 1
         return data
