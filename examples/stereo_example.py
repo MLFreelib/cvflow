@@ -41,20 +41,20 @@ def get_tiler(name: str, tiler_size: tuple, frame_size: tuple = (640, 1280)) -> 
 
 if __name__ == '__main__':
     model = stackhourglass(maxdisp=192, down=2)
-    # checkpoint = torch.load("/content/model_best.pth.tar")
-    # checkpoint = torch.load("/Users/s70c3/Projects/cvflow/tests/test_data/ganet.pth.tar")
-    # model.load_state_dict(checkpoint['state_dict'], strict=False)
+    checkpoint = torch.load("/content/model_best.pth.tar")
+    checkpoint = torch.load("/content/cvflow/tests/test_data/ganet.pth.tar")
+    model.load_state_dict(checkpoint['state_dict'], strict=False)
     calib = 1017.
 
     pipeline = Pipeline()
 
     readers = []
 
-    image_reader1 = ImageReader('/Users/s70c3/Projects/cvflow/tests/test_data/stereoLeft.png', 'left')
-    image_reader2 = ImageReader('/Users/s70c3/Projects/cvflow/tests/test_data/sterepRight.png', 'right')
+    image_reader1 = ImageReader('/content/cvflow/tests/test_data/stereoLeft.png', 'left')
+    image_reader2 = ImageReader('/content/cvflow/tests/test_data/sterepRight.png', 'right')
 
-    image_reader3 = ImageReader('/Users/s70c3/Projects/cvflow/tests/test_data/stereoLeft.png', 'left')
-    image_reader4 = ImageReader('/Users/s70c3/Projects/cvflow/tests/test_data/sterepRight.png', 'right')
+    image_reader3 = ImageReader('/content/cvflow/tests/test_data/stereoLeft.png', 'left')
+    image_reader4 = ImageReader('/content/cvflow/tests/test_data/sterepRight.png', 'right')
 
     readers.append(image_reader1)
     readers.append(image_reader2)
@@ -69,7 +69,7 @@ if __name__ == '__main__':
 
     outer = DisplayComponent('display')
 
-    pipeline.set_device('cpu')
+    pipeline.set_device('cuda')
     pipeline.add_all([muxer, model_depth,  tiler, outer])
     pipeline.compile()
     pipeline.run()
