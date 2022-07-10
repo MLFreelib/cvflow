@@ -357,7 +357,7 @@ class ModelDepth(ModelBase):
             with torch.no_grad():
                 output.append(self._inference(imgL, imgR, calib))
         prob_i = 0
-        for i_src_name in range(len(self._source_names)):
+        for i_src_name in range(0, len(self._source_names), 2):
             for i in range(src_size[i_src_name]):
                 meta_frame = data.get_meta_frames_by_src_name(self._source_names[i_src_name])[i]
                 depth = output[prob_i]

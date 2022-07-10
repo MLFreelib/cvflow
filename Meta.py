@@ -131,7 +131,7 @@ class MetaDepth:
         self.set_depth(depth)
 
     def get_depth(self) -> torch.tensor:
-        r""" Returns the batch of mask. """
+        r""" Returns the batch of depth. """
         return self.__depth
 
     def set_depth(self, depth: torch.tensor):
@@ -178,7 +178,7 @@ class MetaFrame:
             raise ValueError(f"Expected frame shape 3, but received {len(frame.shape)}")
 
         if frame.shape[0] != 3:
-            raise ValueError(f"Expected frame format [3, H, W], but received {frame.shape}")
+            raise ValueError(f"Expected frame format [3, H, W] or [1, H, W], but received {frame.shape}")
 
         self.__frame = frame
 
@@ -248,13 +248,13 @@ class MetaFrame:
             :exception TypeError if depth_info is not MetaMask.
         """
         if not isinstance(depth_info, MetaDepth):
-            raise TypeError(f'Expected type of mask_info a MetaMask, received {type(depth_info)}')
+            raise TypeError(f'Expected type of depth_info a MetaDepth, received {type(depth_info)}')
 
         self.__depth_info = depth_info
 
-    def get_mask_info(self) -> MetaMask:
-        r""" Returns the predicted masks for this frame. """
-        return self.__mask_info
+    def get_depth_info(self) -> MetaDepth:
+        r""" Returns the predicted depth for this frame. """
+        return self.__depth_info
 
 
 class MetaBatch:

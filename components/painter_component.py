@@ -304,3 +304,39 @@ class MaskPainter(Painter):
                 self.__colors[label_name] = _generate_color()
             colors.append(self.__colors[label_name])
         return colors
+
+class DepthPainter(Painter):
+    r"""A component for drawing masks on frames.
+        :param name: str
+                   name of component
+    """
+
+    def __init__(self, name: str):
+        super().__init__(name)
+        self.__colors = dict()
+        self.__alpha = 0.8
+
+    def set_alpha(self, alpha: float):
+        if isinstance(alpha, float):
+            if 0 <= alpha <= 1:
+                self.__alpha = alpha
+
+    def do(self, data: MetaBatch) -> MetaBatch:
+        r""" Draws masks on frames. """
+        for source in data.get_source_names()[::2]:
+            for meta_frame in data.get_meta_frames_by_src_name(source):
+                meta_depth = meta_frame.get_depth_info()
+                mask = meta_depth.get_depth()
+                frame = meta_frame.get_frame()
+                resized_mask = mask.detach().cpu()
+                resized_mask = np.round(resized_mask * 256).astype(np.uint16)
+                meta_frame.set_frame(resized_mask)
+        return data
+
+    def __get_colors(self, labels: List):
+        colors = list()
+        for label_name in labels:
+            if label_name not in self.__colors.keys():
+                self.__colors[label_name] = _generate_color()
+            colors.append(self.__colors[label_name])
+        return colors
