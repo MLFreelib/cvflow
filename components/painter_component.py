@@ -327,9 +327,7 @@ class DepthPainter(Painter):
             for meta_frame in data.get_meta_frames_by_src_name(source):
                 meta_depth = meta_frame.get_depth_info()
                 mask = meta_depth.get_depth()
-                frame = meta_frame.get_frame()
-                resized_mask = mask.detach().cpu()
-                resized_mask = np.round(resized_mask * 256).astype(np.uint16)
+                resized_mask = torch.mul(mask, 255).byte().repeat(3, 1, 1).detach().cpu()
                 meta_frame.set_frame(resized_mask)
         return data
 

@@ -39,7 +39,7 @@ def get_tiler(name: str, tiler_size: tuple, frame_size: tuple = (640, 1280)) -> 
 
 
 if __name__ == '__main__':
-    model = stackhourglass(maxdisp=192, down=2)
+    model = stackhourglass()
     checkpoint = torch.load("/content/model_best.pth.tar")
     # checkpoint = torch.load("/content/cvflow/tests/test_data/ganet.pth.tar")
     model.load_state_dict(checkpoint['state_dict'], strict=False)

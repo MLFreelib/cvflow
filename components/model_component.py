@@ -84,7 +84,7 @@ def _to_stereo_model(connected_sources: List[str], data: MetaBatch, device: str,
 
         needed_data_left = clone_data(needed_data_left)
         needed_data_right = clone_data(needed_data_right)
-        calib = torch.tensor(calib).float().to(dtype=torch.float, device=device)
+        calib = torch.tensor([calib]).float().to(dtype=torch.float, device=device)
 
         src_data.append((needed_data_left, needed_data_right, calib))
 
@@ -358,7 +358,7 @@ class ModelDepth(ModelBase):
                 output.append(self._inference(imgL, imgR, calib))
         prob_i = 0
         for i_src_name in range(0, len(self._source_names), 2):
-            for i in range(src_size[i_src_name]):
+            for i in range(src_size[i_src_name//2]):
                 meta_frame = data.get_meta_frames_by_src_name(self._source_names[i_src_name])[i]
                 depth = output[prob_i]
                 meta_depth = MetaDepth(depth)
