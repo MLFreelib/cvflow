@@ -5,6 +5,8 @@ import torch
 
 from Meta import MetaBatch, MetaLabel, MetaBBox, MetaMask
 from components.component_base import ComponentBase
+from models.blocks import OutputFormat
+import gc
 
 
 def _to_tensor(src_data: List[torch.tensor]):
@@ -20,7 +22,6 @@ def _to_tensor(src_data: List[torch.tensor]):
                     belong to the first source, the next 2 frames belong to the second source, and the last 3 belong
                     to the last source.
     """
-
     batch = torch.cat(src_data, dim=0)
     size_frames = list()
     for frames in src_data:
@@ -62,7 +63,6 @@ class ModelBase(ComponentBase):
         super().__init__(name)
         self.__transforms = list()
         self._inference: torch.nn.Module = model
-        self._inference.eval()
         self._confidence = 0.8
         self.__label_names = None
 
@@ -77,7 +77,13 @@ class ModelBase(ComponentBase):
 
     def start(self):
         r""" Specifies the device on which the model will be executed. """
-        self._inference.to(device=self.get_device())
+        self._inference.to(device=torch.device(self.get_device()))
+        self._inference.eval()
+
+    def stop(self):
+        del self._inference
+        gc.collect()
+        torch.cuda.empty_cache()
 
     def set_transforms(self, tensor_transforms: list):
         r""" Method of setting transformations for frames that are passed to the model.
@@ -154,6 +160,7 @@ class ModelDetection(ModelBase):
                              transform=self._transform)
 
         batch, src_size = _to_tensor(src_data)
+
         with torch.no_grad():
             preds = self._inference(batch)
 
@@ -228,7 +235,8 @@ class ModelClassification(ModelBase):
 
         with torch.no_grad():
             probabilities = self._inference(batch)
-        probabilities = torch.nn.functional.softmax(probabilities, dim=1)
+        probabilities = torch.nn.functional.softmax(probabilities[OutputFormat.CONFIDENCE.value]
+                                                    if isinstance(probabilities, dict) else probabilities, dim=1)
 
         prob_i = 0
         for i_src_name in range(len(self._source_names)):
