@@ -62,7 +62,7 @@ if __name__ == '__main__':
     muxer = get_muxer(readers)
 
     model_depth = get_depth_model('stereo', model, sources=readers)
-    model_depth.set_transforms([torchvision.transforms.Resize((960, 544)), torchvision.transforms.Normalize(mean=[0.485, 0.456, 0.406],
+    model_depth.set_transforms([torchvision.transforms.Resize((544, 960)), torchvision.transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                          std=[0.229, 0.224, 0.225])])
     depth_painter = DepthPainter('depth_painter')
     tiler = get_tiler('tiler', tiler_size=get_tsize(), frame_size=get_fsize())

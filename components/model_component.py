@@ -84,7 +84,7 @@ def _to_stereo_model(connected_sources: List[str], data: MetaBatch, device: str,
 
         needed_data_left = clone_data(needed_data_left)
         needed_data_right = clone_data(needed_data_right)
-        calib = torch.tensor([calib]).float().to(dtype=torch.float, device=device)
+        calib = torch.tensor([calib*0.54]).float().to(dtype=torch.float, device=device)
 
         src_data.append((needed_data_left, needed_data_right, calib))
 
