@@ -206,11 +206,12 @@ class hourglass(nn.Module):
 
 
 class PSMNet(nn.Module):
-    def __init__(self, maxdisp, down):
+    def __init__(self, maxdisp=192, maxdepth=80, down=2, scale=1):
         super(PSMNet, self).__init__()
         self.maxdisp = maxdisp
-
         self.down = down
+        self.maxdepth = maxdepth
+        self.scale = scale
 
         self.feature_extraction = feature_extraction()
 
@@ -242,14 +243,14 @@ class PSMNet(nn.Module):
                                       nn.Conv3d(32, 1, kernel_size=3, padding=1, stride=1, bias=False))
 
         self.semantic1 = nn.Sequential(convbn_3d(32, 32, 3, 1, 1),
-                                      nn.ReLU(inplace=True),
-                                      nn.Conv3d(32, 1, kernel_size=3, padding=1, stride=1, bias=False))
+                                       nn.ReLU(inplace=True),
+                                       nn.Conv3d(32, 1, kernel_size=3, padding=1, stride=1, bias=False))
         self.semantic2 = nn.Sequential(convbn_3d(32, 32, 3, 1, 1),
-                                      nn.ReLU(inplace=True),
-                                      nn.Conv3d(32, 1, kernel_size=3, padding=1, stride=1, bias=False))
+                                       nn.ReLU(inplace=True),
+                                       nn.Conv3d(32, 1, kernel_size=3, padding=1, stride=1, bias=False))
         self.semantic3 = nn.Sequential(convbn_3d(32, 32, 3, 1, 1),
-                                      nn.ReLU(inplace=True),
-                                      nn.Conv3d(32, 1, kernel_size=3, padding=1, stride=1, bias=False))
+                                       nn.ReLU(inplace=True),
+                                       nn.Conv3d(32, 1, kernel_size=3, padding=1, stride=1, bias=False))
 
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
@@ -267,20 +268,50 @@ class PSMNet(nn.Module):
             elif isinstance(m, nn.Linear):
                 m.bias.data.zero_()
 
-    def interpolate_value_disp(self, x, indices, maxdisp):
+    def warp(self, x, calib):
+        """
+        warp an image/tensor (im2) back to im1, according to the optical flow
+        x: [B, C, D, H, W] (im2)
+        flo: [B, 2, H, W] flow
+        """
+        # B,C,D,H,W to B,H,W,C,D
+        x = x.transpose(1, 3).transpose(2, 4)
+        B, H, W, C, D = x.size()
+        x = x.view(B, -1, C, D)
+        # mesh grid
+        print(calib, self.maxdepth)
+        xx = (calib / (self.down * 4.))[:, None] / torch.arange(1, 1 + self.maxdepth // self.down,device='cuda').float()[None, :]
+        new_D = int(self.maxdepth // self.down)
+        xx = xx.view(B, 1, new_D).repeat(1, C, 1)
+        xx = xx.view(B, C, new_D, 1)
+        yy = torch.arange(0, C, device='cuda').view(-1, 1).repeat(1, new_D).float()
+        yy = yy.view(1, C, new_D, 1).repeat(B, 1, 1, 1)
+        grid = torch.cat((xx, yy), -1).float()
+
+        vgrid = Variable(grid)
+
+        # scale grid to [-1,1]
+        vgrid[:, :, :, 0] = 2.0 * vgrid[:, :, :, 0] / max(D - 1, 1) - 1.0
+        vgrid[:, :, :, 1] = 2.0 * vgrid[:, :, :, 1] / max(C - 1, 1) - 1.0
+
+        output = nn.functional.grid_sample(x, vgrid).contiguous()
+        output = output.view(B, H, W, C, new_D).transpose(1, 3).transpose(2, 4)
+        return output.contiguous()
+
+    def interpolate_value(self, x, indices, maxdepth):
         """
         bilinear interpolate tensor x at sampled indices
         x: [B, D, H, W] (features)
-        indices: [B, H, W] sampled indices (0-indexed)
+        val: [B, H, W] sampled indices (1-indexed)
         """
 
         # B,D,H,W to B,H,W,D
-        x = x.permute(0,2,3,1)
-        indices = torch.unsqueeze(indices, -1)
+        x = x.permute(0, 2, 3, 1)
+        indices = torch.unsqueeze(indices - 1, -1)
 
-        indices = torch.clamp(indices, 0, maxdisp - 1)
+        indices = torch.clamp(indices, 0, maxdepth - 1)
         idx0 = torch.floor(indices).long()
-        idx1 = torch.min(idx0 + 1, (maxdisp - 1) * torch.ones_like(idx0))
+        idx1 = torch.min(idx0 + 1, (maxdepth - 1) * torch.ones_like(idx0))
         idx0 = torch.max(idx1 - 1, torch.zeros_like(idx0))
 
         y0 = torch.gather(x, -1, idx0)
@@ -292,17 +323,17 @@ class PSMNet(nn.Module):
         output = torch.squeeze(output, -1)
         return output
 
-    def off_regress(self, off):
-        "Regress offsets in [0, 1] range"
-        off = F.tanh(off) * 1.5
-        off = torch.clamp(off, min=-1, max=1)*0.5 + 0.5
-        return off
-
     # def off_regress(self, off):
     #     "Regress offsets in [0, 1] range"
-    #     off = F.tanh(off)
-    #     off = torch.clamp(off, min=-0.5, max=0.5) + 0.5
+    #     off = F.tanh(off) * 1.5
+    #     off = torch.clamp(off, min=-1, max=1)*0.5 + 0.5
     #     return off
+
+    def off_regress(self, off):
+        "Regress offsets in [0, 1] range"
+        off = F.tanh(off)
+        off = torch.clamp(off, min=-0.5, max=0.5) + 0.5
+        return off
 
     def forward(self, left, right, calib, out_std=False, out_cost_volume=False):
 
@@ -311,8 +342,9 @@ class PSMNet(nn.Module):
 
         # matching
         cost = Variable(
-            torch.cuda.FloatTensor(refimg_fea.size()[0], refimg_fea.size()[1] * 2, self.maxdisp // 4, refimg_fea.size()[2],
-                              refimg_fea.size()[3]).zero_())
+            torch.cuda.FloatTensor(refimg_fea.size()[0], refimg_fea.size()[1] * 2, self.maxdisp // 4,
+                                   refimg_fea.size()[2],
+                                   refimg_fea.size()[3]).zero_())
 
         for i in range(self.maxdisp // 4):
             if i > 0:
@@ -322,6 +354,7 @@ class PSMNet(nn.Module):
                 cost[:, :refimg_fea.size()[1], i, :, :] = refimg_fea
                 cost[:, refimg_fea.size()[1]:, i, :, :] = targetimg_fea
         cost = cost.contiguous()
+        cost = self.warp(cost, calib)
 
         cost0 = self.dres0(cost)
         cost0 = self.dres1(cost0) + cost0
@@ -347,11 +380,11 @@ class PSMNet(nn.Module):
             return cost3
 
         if self.training:
-            cost1 = F.upsample(cost1, [self.maxdisp // self.down, left.size()[2], left.size()[3]], mode='trilinear')
-            cost2 = F.upsample(cost2, [self.maxdisp // self.down, left.size()[2], left.size()[3]], mode='trilinear')
+            cost1 = F.upsample(cost1, [self.maxdepth // self.scale, left.size()[2], left.size()[3]], mode='trilinear')
+            cost2 = F.upsample(cost2, [self.maxdepth // self.scale, left.size()[2], left.size()[3]], mode='trilinear')
 
-            off1 = F.upsample(off1, [self.maxdisp // self.down, left.size()[2], left.size()[3]], mode='trilinear')
-            off2 = F.upsample(off2, [self.maxdisp // self.down, left.size()[2], left.size()[3]], mode='trilinear')
+            off1 = F.upsample(off1, [self.maxdepth // self.scale, left.size()[2], left.size()[3]], mode='trilinear')
+            off2 = F.upsample(off2, [self.maxdepth // self.scale, left.size()[2], left.size()[3]], mode='trilinear')
 
             cost1 = torch.squeeze(cost1, 1)
             off1 = torch.squeeze(off1, 1)
@@ -373,8 +406,8 @@ class PSMNet(nn.Module):
             # pred2_out = pred2_out.float() + 1  # Make 1-indexed
             # off2 = self.interpolate_value(off2, pred2_out)
 
-        cost3 = F.upsample(cost3, [self.maxdisp // self.down, left.size()[2], left.size()[3]], mode='trilinear')
-        off3 = F.upsample(off3, [self.maxdisp // self.down, left.size()[2], left.size()[3]], mode='trilinear')
+        cost3 = F.upsample(cost3, [self.maxdepth // self.scale, left.size()[2], left.size()[3]], mode='trilinear')
+        off3 = F.upsample(off3, [self.maxdepth // self.scale, left.size()[2], left.size()[3]], mode='trilinear')
 
         cost3 = torch.squeeze(cost3, 1)
         off3 = torch.squeeze(off3, 1)
@@ -386,13 +419,10 @@ class PSMNet(nn.Module):
         # while 'softmax(-c)' learned 'matching cost' as mentioned in the paper.
         # However, 'c' or '-c' do not affect the performance because feature-based cost volume provided flexibility.
 
-        if self.training:
-            return pred1, pred2, pred3, off1, off2, off3
-        else:
-            _, pred3_out = torch.max(pred3, 1)
-            pred3_out = pred3_out.float()
-            off3_out = self.interpolate_value_disp(off3, pred3_out, maxdisp=self.maxdisp // self.down)
+        _, pred3_out = torch.max(pred3, 1)
+        pred3_out = pred3_out.float() + 1  # Make 1-indexed
+        off3_out = self.interpolate_value(off3, pred3_out, maxdepth=self.maxdepth // self.scale)
 
-            if out_std:
-                return (pred3_out + off3_out) * self.down, off3_out * self.down
-            return (pred3_out + off3_out) * self.down
+        if out_std:
+            return (pred3_out + off3_out) * self.scale, off3_out * self.scale
+        return (pred3_out + off3_out) * self.scale
