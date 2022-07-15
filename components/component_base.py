@@ -2,7 +2,7 @@ from typing import Union, List
 
 import torch
 
-from cvflow.Meta import MetaBatch, MetaFrame
+from Meta import MetaBatch, MetaFrame
 
 
 class ComponentBase:

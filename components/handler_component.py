@@ -1,3 +1,4 @@
+from random import randrange
 from typing import List, Iterable
 
 import cv2
@@ -282,24 +283,23 @@ class DistanceCalculator(ComponentBase):
         h_dist_left = (left_s_h - left_e_h)
         v_dist_left = (left_s_v - left_e_v)
 
+        dist = (h_dist_left**2 + v_dist_left**2)**0.5
+
         frame = frame.detach().cpu()
         frame = frame.permute(1, 2, 0).numpy()
         frame = np.ascontiguousarray(frame)
+        color = (randrange(0, 255), randrange(0, 255), randrange(0, 255))
 
-        cv2.line(frame, (left_s_h, left_s_v), (left_e_h, left_e_v), color=(0, 0, 255), thickness=1)
+        cv2.line(frame, (left_s_h, left_s_v), (left_e_h, left_e_v), color=color, thickness=1)
 
-        frame = cv2.putText(frame, str(h_dist_left), color=(0, 255, 0), fontScale=0.5, thickness=1,
+        frame = cv2.putText(frame, str(round(dist)), color=color, fontScale=1, thickness=1,
                             fontFace=cv2.FONT_HERSHEY_SIMPLEX,
-                            org=(left_s_h - 10, (left_s_v + left_e_v) // 2))
-        frame = cv2.putText(frame, str(v_dist_left), color=(0, 255, 0), fontScale=0.5, thickness=1,
-                            fontFace=cv2.FONT_HERSHEY_SIMPLEX,
-                            org=((left_s_h + left_e_h) // 2, left_e_v + 10))
+                            org=((left_s_h + left_e_h) // 2, (left_s_v + left_e_v) // 2))
 
         frame = torch.tensor(frame, device=self.get_device()).permute(2, 0, 1)
 
         meta_frame.set_frame(frame)
         return meta_frame
-
 
     def __bbox_denormalize(self, bboxes: torch.tensor, shape: torch.tensor):
         r""" Gets coordinates for bounding boxes.
