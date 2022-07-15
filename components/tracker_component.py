@@ -166,7 +166,7 @@ class ManualROICorrelationBasedTracker(TrackerBase):
             shape = data.get_frames_by_src_name(src_name).shape
             for meta_frame in meta_frames:
                 boxes = []
-                frame = meta_frame.get_frame().clone()
+                frame = meta_frame.get_frame().clone().cpu()
                 frame *= 255
                 frame = torch.permute(frame, (1, 2, 0))
                 frame = np.array(frame, dtype=np.uint8)
@@ -204,7 +204,7 @@ class ManualROICorrelationBasedTracker(TrackerBase):
             box_id += 1
             self.ids.append(box_id)
             rect = dlib.rectangle(*box)
-            frame = first_frame.get_frame().clone()
+            frame = first_frame.get_frame().clone().cpu()
             frame *= 255
             frame = torch.permute(frame, (1, 2, 0))
             frame = np.array(frame, dtype=np.uint8)

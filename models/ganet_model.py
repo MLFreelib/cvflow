@@ -279,7 +279,6 @@ class PSMNet(nn.Module):
         B, H, W, C, D = x.size()
         x = x.view(B, -1, C, D)
         # mesh grid
-        print(calib, self.maxdepth)
         xx = (calib / (self.down * 4.))[:, None] / torch.arange(1, 1 + self.maxdepth // self.down,device='cuda').float()[None, :]
         new_D = int(self.maxdepth // self.down)
         xx = xx.view(B, 1, new_D).repeat(1, C, 1)

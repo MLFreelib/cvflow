@@ -83,11 +83,9 @@ class FileWriterComponent(OuterComponent):
         full_batch = data.get_meta_frames_all()
         for key in self._source_names:
             frames = full_batch[key]
-            print(len(frames))
             for i in range(len(frames)):
                 frame = frames[i].get_frame()
                 frame = frame.permute(1, 2, 0).cpu().detach().numpy()
-                print(frame.shape)
                 if self._video_writer is None:
                     res = frame.shape[:2]
                     self._video_writer = cv2.VideoWriter(self.__path, self.__fcc, self.__fps, (res[1], res[0]))

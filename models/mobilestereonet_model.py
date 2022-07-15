@@ -209,7 +209,7 @@ def disparity_regression(x, maxdisp):
 
 
 class MSNet2D(nn.Module):
-    def __init__(self, maxdisp):
+    def __init__(self, maxdisp=192):
 
         super(MSNet2D, self).__init__()
 

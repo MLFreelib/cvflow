@@ -320,6 +320,3 @@ class DistanceCalculator(ComponentBase):
         """
         bboxes[:, (0, 2)] = bboxes[:, (0, 2)].div(shape[2])
         bboxes[:, (1, 3)] = bboxes[:, (1, 3)].div(shape[1])
-
-    def stop(self):
-        print(self.__label_count)

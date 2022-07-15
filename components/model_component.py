@@ -49,7 +49,7 @@ def _to_model(connected_sources: List[str], data: MetaBatch, device: str, transf
     return src_data
 
 
-def _to_stereo_model(connected_sources: List[str], data: MetaBatch, device: str, transform, calib=1017.):
+def _to_stereo_model(connected_sources: List[str], data: MetaBatch, device: str, transform, calib=1017., need_calib = False):
     r""" Returns a list of pairs of transformed frames from the MetaBatch.
         :param connected_sources: list of sources names
         :param data: MetaData
@@ -84,9 +84,11 @@ def _to_stereo_model(connected_sources: List[str], data: MetaBatch, device: str,
 
         needed_data_left = clone_data(needed_data_left)
         needed_data_right = clone_data(needed_data_right)
-        calib = torch.tensor([calib*0.54]).float().to(dtype=torch.float, device=device)
-
-        src_data.append((needed_data_left, needed_data_right, calib))
+        if need_calib:
+          calib = torch.tensor([calib*0.54]).float().to(dtype=torch.float, device=device)
+          src_data.append((needed_data_left, needed_data_right, calib))
+        else:
+          src_data.append((needed_data_left, needed_data_right))
 
     return src_data, size_frames
 
@@ -353,14 +355,18 @@ class ModelDepth(ModelBase):
                                     transform=self._transform)
         output = []
         for batch in src_data:
-            imgL, imgR, calib = batch
+            imgL, imgR = batch
+            # imgL, imgR, calib = batch
             with torch.no_grad():
-                output.append(self._inference(imgL, imgR, calib))
+                # output.append(self._inference(imgL, imgR, calib))
+                output.append(self._inference(imgL, imgR))
         prob_i = 0
         for i_src_name in range(0, len(self._source_names), 2):
             for i in range(src_size[i_src_name//2]):
                 meta_frame = data.get_meta_frames_by_src_name(self._source_names[i_src_name])[i]
-                depth = output[prob_i]
+                depth = output[prob_i][-1]
+                print(depth)
+                np.save('test.npy', np.array(depth.detach().cpu().byte(), dtype=np.uint8))
                 meta_depth = MetaDepth(depth)
                 meta_frame.set_depth_info(meta_depth)
                 prob_i += 1
