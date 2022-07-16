@@ -54,7 +54,8 @@ def get_tiler(name: str, tiler_size: tuple, frame_size: tuple = (640, 1280)) -> 
 
 if __name__ == '__main__':
     model = depth_model()
-    checkpoint = torch.load(os.path.join(os.getcwd(), "/content/cvflow/MSNet2D_SF.ckpt"))
+    model = torch.nn.DataParallel(model)
+    checkpoint = torch.load(os.path.join(os.getcwd(), "/content/cvflow/best.ckpt"))
     # model.load_state_dict(checkpoint['state_dict'], strict=False)
     model.load_state_dict(checkpoint['model'], strict=False)
 
@@ -65,8 +66,8 @@ if __name__ == '__main__':
     # image_reader1 = VideoReader('../top_l.mov', 'left')
     # image_reader2 = VideoReader('../top_r.mov', 'right')
 
-    image_reader1 = ImageReader("/content/cvflow/tests/test_data/stereoLeft.png", "left")
-    image_reader2 = ImageReader("/content/cvflow/tests/test_data/sterepRight.png", "right")
+    image_reader1 = ImageReader("/content/cvflow/70_50_1l.png", "left")
+    image_reader2 = ImageReader("/content/cvflow/70_50_1r.png", "right")
     readers.append(image_reader1)
     readers.append(image_reader2)
 
@@ -84,7 +85,7 @@ if __name__ == '__main__':
     model_depth = get_depth_model('stereo', model, sources=readers)
     #
     model_depth.set_transforms(
-        [torchvision.transforms.Resize((544, 960)),torchvision.transforms.Normalize(mean=[0.485, 0.456, 0.406],
+        [torchvision.transforms.Resize((512, 960)), torchvision.transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                                                                      std=[0.229, 0.224, 0.225])])
     tracker = get_tracker('tracking', sources=readers, classes=["object"], boxes=bboxes)
     dist = DistanceCalculator('distance')
@@ -93,7 +94,7 @@ if __name__ == '__main__':
     bbox_painter = BBoxPainter('bboxer', font_path="../fonts/OpenSans-VariableFont_wdth,wght.ttf")
     tiler = get_tiler('tiler', tiler_size=get_tsize(), frame_size=get_fsize())
 
-    outer = FileWriterComponent('file', 'file.avi')
+    outer = FileWriterComponent('file', '/content/file.avi')
 
     pipeline.set_device('cuda')
     pipeline.add_all([muxer, model_depth, depth_painter, tiler, outer])
