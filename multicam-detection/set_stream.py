@@ -11,6 +11,8 @@ from components.muxer_component import SourceMuxer
 from components.handler_component import Counter, Filter
 from components.painter_component import Tiler, BBoxPainter
 from components.reader_component import CamReader, VideoReader, ReaderBase
+from backend.config.config import Config
+from components.tracker_component import CorrelationBasedTrackerComponent
 
 COCO_INSTANCE_CATEGORY_NAMES = ['person', 'bicycle', 'car', 'motorcycle', 'airplane', 'bus',
                                 'train', 'truck', 'boat', 'traffic light', 'fire hydrant', 'N/A', 'stop sign',
@@ -46,7 +48,8 @@ def get_muxer(readers: List[ReaderBase]) -> SourceMuxer:
 def get_detection_model(name: str, model: torch.nn.Module, sources: List[ReaderBase], classes: List[str],
                         transforms: list = None,
                         confidence: float = 0.25) -> ModelDetection:
-    model_det = ModelDetection(name, model)
+    print('GET_DET_MODEL')
+    model_det = ModelDetection(name, model, multicam=True)
     model_det.set_labels(classes)
     for src in sources:
         model_det.add_source(src.get_name())
@@ -55,13 +58,13 @@ def get_detection_model(name: str, model: torch.nn.Module, sources: List[ReaderB
     return model_det
 
 
-'''def get_tracker(name: str, model: torch.nn.Module, sources: List[ReaderBase],
-                classes: List[str], lines=None) -> ModelTracking:
-    tracker = RusalCorrelationBasedTrackerComponent(name, lines)
+def get_tracker(name: str, sources: List[ReaderBase],
+                classes: List[str], lines=None):
+    tracker = CorrelationBasedTrackerComponent(name)
     tracker.set_labels(classes)
     for src in sources:
         tracker.add_source(src.get_name())
-    return tracker'''
+    return tracker
 
 
 def get_counter(name: str, lines) -> Counter:
@@ -73,3 +76,11 @@ def get_tiler(name: str, tiler_size: tuple, frame_size: tuple = (640, 1280)) -> 
     tiler = Tiler(name=name, tiler_size=tiler_size)
     tiler.set_size(frame_size)
     return tiler
+
+
+def get_config():
+    config = Config()
+    config.host = 'localhost'
+    config.port = 4000
+    config.detector_type = 'COCO-InstanceSegmentation/mask_rcnn_R_101_FPN_3x'
+    return config

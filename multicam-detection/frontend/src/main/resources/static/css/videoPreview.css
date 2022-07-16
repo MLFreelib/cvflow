@@ -1,0 +1,56 @@
+.video {
+    border: 1px solid black;
+    height: 100%;
+}
+
+#videoPreview {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.videoPreviewBlock {
+    text-align: center;
+    width: 600px;
+    height: 300px;
+    margin-bottom: 70px;
+    margin-left: 10px;
+    margin-right: 10px;
+}
+
+.videoBlock {
+    height: 100%;
+}
+
+.addVideoButton {
+    border: 1px solid black;
+    border-radius: 5px;
+    height: 100px;
+    width: 100px;
+    text-align: center;
+    align-self: center;
+    font-size: 85px;
+    margin: 100px 260px 170px;
+    cursor:pointer;
+}
+
+.calibration-required-notice {
+    border: 1px solid #730d0f;
+    width: 100%;
+    border-radius: 5px;
+    background: #ff2125;
+    display: block;
+    text-decoration: none;
+    color: black;
+}
+
+video {
+    width: 100%;
+    height: 100%;
+}
+
+.draw-over-video-canvas {
+    border: 1px solid red;
+    position: absolute;
+}

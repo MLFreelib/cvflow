@@ -1,0 +1,2 @@
+class EndOfVideoException(Exception):
+    pass

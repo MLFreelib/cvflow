@@ -1,0 +1,27 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>CCTV Video Projector</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+
+    <link rel="stylesheet" href="/css/login.css">
+</head>
+<body id="preview">
+<div id="loginDiv">
+    <form id="loginForm" method="post" action="/login">
+        <div class="loginFormElement">
+            <label for="loginLogin" class="loginFormLabel" th:text="#{login.login}"></label>
+            <input id="loginLogin" class="loginFormInput" type="text" name="login">
+        </div>
+        <div class="loginFormElement">
+            <label for="loginPassword" class="loginFormLabel" th:text="#{login.password}"></label>
+            <input id="loginPassword" class="loginFormInput" type="password" name="password">
+        </div>
+        <div id="loginFormSubmit">
+            <button type="submit" th:text="#{login.submit}"></button>
+        </div>
+    </form>
+</div>
+<th:block th:include="message :: template"></th:block>
+</body>
+</html>

@@ -1,0 +1,19 @@
+<html xmlns:th="http://www.thymeleaf.org">
+
+<th:block th:fragment="template">
+    <header>
+        <div id="headerNavigatorDiv">
+            <div class="headerNavigatorVideoDropbox">
+                <div class="headerNavigatorElementDiv headerNavigatorVideoElement"
+                     th:text="#{header.navigator.video}"></div>
+                <div class="headerNavigatorVideoDropboxContext">
+                    <a href="/video/preview?type=camera" class="headerNavigatorVideoDropboxContextElement"
+                       th:text="#{header.navigator.video.camera}"></a>
+
+                    <a href="/video/preview?type=file" class="headerNavigatorVideoDropboxContextElement"
+                       th:text="#{header.navigator.video.file}"></a>
+                </div>
+            </div>
+        </div>
+    </header>
+</th:block>

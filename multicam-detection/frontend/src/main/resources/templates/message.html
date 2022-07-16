@@ -1,0 +1,80 @@
+<html xmlns:th="http://www.thymeleaf.org">
+
+<th:block th:fragment="template">
+    <div id="messageDiv"></div>
+    <th:block th:include=":: messageScript"></th:block>
+</th:block>
+
+<div class="messageBlock">
+    <div class="messageBlockTitle"></div>
+
+    <div class="messageBlockMessage"></div>
+</div>
+
+<th:block th:fragment="messageScript">
+    <!--suppress JSValidateTypes -->
+    <script th:inline="javascript">
+        /*<![CDATA[*/
+        // noinspection JSIncompatibleTypesComparison
+        const messages = [[${messages}]]
+
+        handleMessage()
+
+        function handleMessage() {
+            if (messages.length !== 0) {
+                const message = messages.shift()
+
+                const messageBlock = document.createElement("div")
+                messageBlock.className = "messageBlock"
+
+                const blockTitle = document.createElement("div")
+                blockTitle.className = "messageBlockTitle"
+                blockTitle.innerText = message.title
+                messageBlock.appendChild(blockTitle)
+
+                if (message.message !== "" && message.message != null) {
+                    const blockMessage = document.createElement("div")
+                    blockMessage.className = "messageBlockMessage"
+                    blockMessage.innerText = message.message
+                    messageBlock.appendChild(blockMessage)
+                }
+
+                // noinspection JSUnreachableSwitchBranches
+                switch (message.messageType) {
+                    case "SUCCESS":
+                        messageBlock.style.background = "#0ccb00"
+                        break
+
+                    case "WARNING":
+                        messageBlock.style.background = "#f9ac00"
+                        break
+
+                    case "INFO":
+                        messageBlock.style.background = "#bcdfeb"
+                        break
+
+                    case "ERROR":
+                        messageBlock.style.background = "#ff6767"
+                        break
+
+                }
+
+                messageBlock.addEventListener("mouseover", () => {
+                    messageBlock.style.animationDelay = "-1.0s"
+                })
+
+                messageBlock.addEventListener("animationend", () => {
+                    document.getElementById("messageDiv").removeChild(messageBlock)
+                })
+
+                document.getElementById("messageDiv").appendChild(messageBlock)
+
+                setTimeout(
+                    handleMessage,
+                    2500
+                )
+            }
+        }
+        /*]]>*/
+    </script>
+</th:block>

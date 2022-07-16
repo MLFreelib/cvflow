@@ -1,0 +1,28 @@
+#addVideoDiv {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    height: 400px;
+    justify-content: center;
+}
+
+#addVideoForm {
+    width: 400px;
+    display: flex;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    justify-content: center;
+    align-items: center;
+}
+
+.addVideoFormBlock {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    margin: 10px;
+}
+
+#uploadingText {
+    width: 100%;
+    text-align: center;
+}

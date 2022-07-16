@@ -1,0 +1,7 @@
+opencv-python
+websockets
+ffmpeg-python
+dlib
+Pillow
+numpy
+requests

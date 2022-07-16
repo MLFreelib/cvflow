@@ -1,0 +1,54 @@
+<!DOCTYPE HTML>
+<!--suppress XmlDuplicatedId -->
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>CCTV Video Projector</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+
+    <link rel="stylesheet" href="/css/base.css">
+    <link rel="stylesheet" href="/css/addVideo.css">
+    <link rel="stylesheet" href="/css/videoPreview.css">
+</head>
+<body>
+<th:block th:include="header :: template"></th:block>
+
+<th:block th:switch="${activeSession}">
+    <th:block th:case="null">
+        <h1 th:text="#{message.session.doesnt.exist.title}"></h1>
+    </th:block>
+    <th:block th:case="*">
+        <div id="addVideoDiv">
+            <form id="addVideoForm" action="/video/add" method="post" enctype="multipart/form-data">
+                <input type="hidden" name="type" th:value="${param.get('type')}">
+
+                <div class="addVideoFormBlock">
+                    <label for="addVideoName" th:text="#{video.add.form.name}"></label>
+                    <input id="addVideoName" type="text" name="name">
+                </div>
+
+                <div class="addVideoFormBlock">
+                    <th:block th:if="${param.get('type').toString()} == 'camera'">
+                        <label for="addVideoUri" th:text="#{video.add.form.uri}"></label>
+                        <input id="addVideoUri" type="url" name="uri">
+                    </th:block>
+
+                    <th:block th:if="${param.get('type').toString()} == 'file'">
+                        <label for="addVideoUri" th:text="#{video.add.form.uri}"></label>
+                        <input id="addVideoUri" type="file" multiple="multiple" name="file" accept="video/*">
+                    </th:block>
+                </div>
+                <button type="submit" th:text="#{video.add.form.submit}" onclick="onUpload()"></button>
+            </form>
+        </div>
+    </th:block>
+    <div id="uploadingText" style="display: none" th:text="#{video.add.uploading}"></div>
+</th:block>
+<th:block th:include="message :: template"></th:block>
+
+<script>
+    function onUpload() {
+        document.getElementById("uploadingText").style.display = "block"
+    }
+</script>
+</body>
+</html>
