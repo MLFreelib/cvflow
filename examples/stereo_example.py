@@ -54,7 +54,6 @@ def get_tiler(name: str, tiler_size: tuple, frame_size: tuple = (640, 1280)) -> 
 
 if __name__ == '__main__':
     model = depth_model()
-    print(os.getcwd())
     checkpoint = torch.load(os.path.join(os.getcwd(), "/content/cvflow/MSNet2D_SF.ckpt"))
     # model.load_state_dict(checkpoint['state_dict'], strict=False)
     model.load_state_dict(checkpoint['model'], strict=False)
@@ -83,8 +82,10 @@ if __name__ == '__main__':
     muxer = get_muxer(readers)
 
     model_depth = get_depth_model('stereo', model, sources=readers)
+    #
     model_depth.set_transforms(
-        [torchvision.transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
+        [torchvision.transforms.Resize((544, 960)),torchvision.transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                                                                     std=[0.229, 0.224, 0.225])])
     tracker = get_tracker('tracking', sources=readers, classes=["object"], boxes=bboxes)
     dist = DistanceCalculator('distance')
 

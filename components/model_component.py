@@ -70,8 +70,8 @@ def _to_stereo_model(connected_sources: List[str], data: MetaBatch, device: str,
 
     def clone_data(needed_data):
         cloned_data = needed_data.clone().to(dtype=torch.float, device=device)
-        cloned_data = transform(cloned_data)
         cloned_data = cloned_data.div(255)
+        cloned_data = transform(cloned_data)
         return cloned_data
 
     for i, src_names in enumerate(connected_sources):

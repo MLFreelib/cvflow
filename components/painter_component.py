@@ -327,7 +327,7 @@ class DepthPainter(Painter):
             for meta_frame in data.get_meta_frames_by_src_name(source):
                 meta_depth = meta_frame.get_depth_info()
                 mask = meta_depth.get_depth()
-                resized_mask = mask.repeat(3, 1, 1).detach().cpu()
+                resized_mask = mask.repeat(3, 1, 1).detach().cpu().byte()
                 meta_frame.set_frame(resized_mask)
         return data
 
