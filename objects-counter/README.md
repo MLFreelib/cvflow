@@ -1,9 +1,32 @@
-# Running config creator
+# Objects flows counter
+Module for counting objects in the flow. Consists of YOLOv5 detector and correlational tracker.
+## Metrics
+|Model|IoU|F1(day)|F1(night)|F1(rain)|Precision(day)|Precision(night)|Precision(rain)|Recall(day)|Recall(night)|Recall(rain)|
+|-----|---|--|---------|------|---|---|---|---|---|---|
+|YOLOv5 Small|0.5|...|...|...|...|...|...|...|...|...|
+|YOLOv5 Small|0.75|...|...|...|...|...|...|...|...|...|
+|YOLOv5 Small|0.9|...|...|...|...|...|...|...|...|...|
+|YOLOv5 Medium|0.5|...|...|...|...|...|...|...|...|...|
+|YOLOv5 Medium|0.75|...|...|...|...|...|...|...|...|...|
+|YOLOv5 Medium|0.9|...|...|...|...|...|...|...|...|...|
+|YOLOv5 Large|0.5|...|...|...|...|...|...|...|...|...|
+|YOLOv5 Large|0.75|...|...|...|...|...|...|...|...|...|
+|YOLOv5 Large|0.9|...|...|...|...|...|...|...|...|...|
+
+
+## Running config creator
 ```
 python3 config_gui.py --video <path_to_video> -n <config_file_name>
 ```
 
-# Running counter
+## Running counter
+running parameters:
+- --usbcam
+- --videofile
+- -c, --config - path to the configuration file
+- -t, --tracking_frames - number of frames without detection
+- -w, --width - video frame width
+- -f, --font
 ```
 python3 run.py --videofile <path_to_video> -f <path_to_fonts> -c <path_to_config_file>
 ```
