@@ -5,6 +5,7 @@ import cv2
 import numpy as np
 import pandas as pd
 import torch
+import torchvision
 
 from Meta import MetaBatch, MetaFrame, MetaLabel, MetaBBox
 from components.component_base import ComponentBase
@@ -274,16 +275,18 @@ class DistanceCalculator(ComponentBase):
         shape = meta_frame.get_frame().detach().cpu().numpy().shape
         cv_shape = (*shape[1:], shape[0])
 
+
         np_bbox1 = bbox1.detach().cpu().numpy().astype(int)
         np_bbox2 = bbox2.detach().cpu().numpy().astype(int)
         s_h, s_v = (int(np_bbox1[0] + np_bbox1[2])) // 2, int((np_bbox1[1] + np_bbox1[3])) // 2
         e_h, e_v = (int(np_bbox2[0] + np_bbox2[2])) // 2, (int(np_bbox2[1] + np_bbox2[3])) // 2,
 
         h_dist = s_h - e_h
-
         v_dist = s_v - e_v
         if meta_frame.get_depth_info():
-            depth = meta_frame.get_depth_info().get_depth().detach().cpu().numpy()
+            depth = meta_frame.get_depth_info().get_depth().clone()
+            depth = torchvision.transforms.Resize((cv_shape[:2]))(depth)
+            depth = depth.permute(1, 2, 0).detach().cpu().numpy()
             depth_bbox1 = np.mean(depth[np_bbox1[1]:np_bbox1[3], np_bbox1[0]:np_bbox1[2]])
             depth_bbox2 = np.mean(depth[np_bbox2[1]:np_bbox2[3], np_bbox2[0]:np_bbox2[2]])
             depth = 1017./((depth_bbox2+depth_bbox1)//2)
@@ -291,7 +294,7 @@ class DistanceCalculator(ComponentBase):
             h_dist = h_dist * 53 * (depth - 1) / 28
             v_dist = v_dist * 45 * (depth - 1) / 28
 
-        dist = h_dist**2 + v_dist**2**0.5
+        dist = (h_dist**2 + v_dist**2)**0.5
 
         frame = frame.detach().cpu()
         frame = frame.permute(1, 2, 0).numpy()
@@ -299,7 +302,6 @@ class DistanceCalculator(ComponentBase):
         color = (randrange(0, 255), randrange(0, 255), randrange(0, 255))
 
         cv2.line(frame, (s_h, s_v), (e_h, e_v), color=color, thickness=1)
-
         frame = cv2.putText(frame, str(round(dist)), color=color, fontScale=1, thickness=1,
                             fontFace=cv2.FONT_HERSHEY_SIMPLEX,
                             org=((s_h + e_h) // 2, (s_v + e_v) // 2))
