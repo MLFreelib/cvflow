@@ -1,12 +1,11 @@
 # Objects flows counter
 Module for counting objects in the flow. Consists of YOLOv5 detector and correlational tracker.
 ## Metrics
-|Model|IoU|F1(day)|F1(night)|F1(rain)|Precision(day)|Precision(night)|Precision(rain)|Recall(day)|Recall(night)|Recall(rain)|
-|-----|---|--|---------|------|---|---|---|---|---|---|
-|YOLOv5 Large|0.5|0.7716|...|...|0.8977|...|...|0.6766|...|...|
-|YOLOv5 Large|0.75|...|...|...|...|...|...|...|...|...|
-|YOLOv5 Large|0.9|...|...|...|...|...|...|...|...|...|
-
+|Model|IoU|F1|Precision|Recall|
+|-----|---|--|---------|------|
+|YOLOv5 Large|0.5|0.7716|0.8977|0.6766|
+|YOLOv5 Large|0.75|...|...|...|
+|YOLOv5 Large|0.9|...|...|...|
 
 ## Running config creator
 ```
