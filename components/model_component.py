@@ -365,8 +365,6 @@ class ModelDepth(ModelBase):
             for i in range(src_size[i_src_name//2]):
                 meta_frame = data.get_meta_frames_by_src_name(self._source_names[i_src_name])[i]
                 depth = output[prob_i][-1]
-
-                np.save('test.npy', np.array(depth.detach().cpu().byte(), dtype=np.uint8))
                 meta_depth = MetaDepth(depth)
                 meta_frame.set_depth_info(meta_depth)
                 prob_i += 1
