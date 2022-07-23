@@ -525,7 +525,6 @@ class AutoShape(nn.Module):
             imgs[i] = im  # if im.data.contiguous else np.ascontiguousarray(im)  # update
             x = torch.cat((x, letterbox(im)[0].unsqueeze(0)))
         shape1 = [make_divisible(x, self.stride) for x in np.stack(shape1, 0).max(0)]  # inference shape
-        print('SHAPES 01', shape0, shape1)
         x = torch.permute(x, (0, 3, 1, 2))
         t.append(time_sync())
         with amp.autocast(enabled=autocast):
