@@ -45,92 +45,6 @@ class TrackerBase(ComponentBase):
         return data
 
 
-class CorrelationBasedTrackerComponent(TrackerBase):
-    def __init__(self, name: str):
-        super().__init__(name)
-        #self.tracker = Tracker()
-        self.tracker = correlation_tracker()
-        self.trackers = []
-        self.ids = []
-        self.boxes = None
-        self.counted = 0
-
-    def set_labels(self, labels: List[str]):
-        self.__label_names = labels
-
-    def do(self, data: MetaBatch) -> MetaBatch:
-        print('DO')
-        for src_name in data.get_source_names():
-            meta_frames = data.get_meta_frames_by_src_name(src_name)
-            shape = data.get_frames_by_src_name(src_name).shape
-            for meta_frame in meta_frames:
-                boxes = []
-                frame = meta_frame.get_frame().clone()
-                frame *= 255
-                frame = torch.permute(frame, (1, 2, 0))
-                frame = np.array(frame, dtype=np.uint8)
-                for tracker in self.trackers:
-                    tracker['tracker'].update(frame)
-                    pos = tracker['tracker'].get_position()
-                    box = [pos.left(), pos.top(), pos.right(), pos.bottom()]
-                    boxes.append(box)
-                self.boxes = torch.tensor(boxes)
-                labels = ['object'] * len(self.ids)
-                scores = [1] * len(self.ids)
-                meta_labels = MetaLabel(labels, scores)
-                if self.boxes.shape == 1:
-                    self.update(data)
-                #print('BOXES SHAPE-------', self.boxes.shape)
-                meta_box = MetaBBox(self.boxes, meta_labels)
-                meta_frame.set_bbox_info(meta_box)
-                meta_frame.get_bbox_info().get_label_info().set_object_id(self.ids)
-                #print('GET BBOX', meta_frame.get_bbox_info().get_bbox())
-                meta_bbox = meta_frame.get_bbox_info()
-                meta_label = meta_bbox.get_label_info()
-                data.get_meta_frames_by_src_name(src_name)[0].set_label_info(meta_labels)
-                #('GET BBOX2', data.get_meta_frames_by_src_name(src_name)[0].get_bbox_info().get_bbox())
-                meta_label.set_object_id(self.ids)
-                #print('IDS', self.ids)
-        return data
-
-    def update(self, data: MetaBatch):
-        print('UPDATE')
-        box_id = 0
-        self.trackers = []
-        self.ids = []
-        for src_name in data.get_source_names():
-            for meta_frame in data.get_meta_frames_by_src_name(src_name):
-                if meta_frame.get_bbox_info() is None:
-                    boxes = torch.tensor([[0, 0, 0, 0]])
-                    labels = ['', ]
-                    scores = [0, ]
-                    meta_labels = MetaLabel(labels, scores)
-                    meta_box = MetaBBox(boxes, meta_labels)
-                    meta_frame.set_bbox_info(meta_box)
-                else:
-                    boxes = meta_frame.get_bbox_info().get_bbox()
-                self.boxes = boxes
-                shape = meta_frame.get_frame().shape
-                self.boxes[:, (0, 2)] = self.boxes[:, (0, 2)] * shape[2]
-                self.boxes[:, (1, 3)] = self.boxes[:, (1, 3)] * shape[1]
-
-                for box in boxes:
-                    box_id += 1
-                    self.ids.append(box_id)
-                    rect = dlib.rectangle(*box)
-                    frame = meta_frame.get_frame().clone()
-                    frame *= 255
-                    frame = torch.permute(frame, (1, 2, 0))
-                    frame = np.array(frame, dtype=np.uint8)
-                    print(type(frame), type(rect))
-                    tracker = correlation_tracker()
-                    tracker.start_track(frame, rect)
-                    print('TRCAKEER', tracker)
-                    checked = False
-                    self.trackers.append({'tracker': tracker, 'checked': checked})
-                meta_frame.get_bbox_info().get_label_info().set_object_id(self.ids)
-
-
 class ManualROICorrelationBasedTracker(TrackerBase):
     r""" Gets bboxes, tracks objects and calculate distance between. """
 
@@ -179,21 +93,17 @@ class ManualROICorrelationBasedTracker(TrackerBase):
                 labels = ['object'] * len(self.ids)
                 scores = [1] * len(self.ids)
                 meta_labels = MetaLabel(labels, scores)
-                # print('BOXES SHAPE-------', self.boxes.shape)
                 meta_box = MetaBBox(boxes, meta_labels)
                 meta_frame.set_bbox_info(meta_box)
                 meta_frame.get_bbox_info().get_label_info().set_object_id(self.ids)
-                # print('GET BBOX', meta_frame.get_bbox_info().get_bbox())
                 meta_bbox = meta_frame.get_bbox_info()
                 meta_label = meta_bbox.get_label_info()
                 data.get_meta_frames_by_src_name(src_name)[0].set_label_info(meta_labels)
-                # ('GET BBOX2', data.get_meta_frames_by_src_name(src_name)[0].get_bbox_info().get_bbox())
                 meta_label.set_object_id(self.ids)
-                # print('IDS', self.ids)
+
         return data
 
     def set_trackers(self, data):
-        print('setting trackers')
         box_id = 0
         self.trackers = []
         self.ids = []

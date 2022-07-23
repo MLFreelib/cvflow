@@ -27,8 +27,8 @@ class Pipeline:
             :param component: ComponentBase.
             :exception InvalidComponentException if the first component in the pipeline is not a MuxerBase.
         """
-        #if not isinstance(component, MuxerBase) and len(self.__components) == 0:
-        #    raise InvalidComponentException('The first element of the pipeline must be of type MuxerBase')
+        if not isinstance(component, MuxerBase) and len(self.__components) == 0:
+            raise InvalidComponentException('The first element of the pipeline must be of type MuxerBase')
         self.__components.append(component)
 
     def set_device(self, device: str):
@@ -49,9 +49,9 @@ class Pipeline:
             :exception InvalidComponentException if the first component in the pipeline is not a MuxerBase.
         """
         for component in components:
-            #if not isinstance(component, ComponentBase):
-            #    self.__components = list()
-            #    raise TypeError(f'Expected {ComponentBase.__name__}, Actual {type(component)}')
+            if not isinstance(component, ComponentBase):
+                self.__components = list()
+                raise TypeError(f'Expected {ComponentBase.__name__}, Actual {type(component)}')
             self.add(component)
 
     def run(self):
@@ -59,7 +59,7 @@ class Pipeline:
         job_time = dict()
         all_time = time.time()
         count = 0
-        tracking_frames = 1
+
         is_stopped = False
         while not is_stopped:
             data = MetaBatch('pipe_batch')
@@ -67,16 +67,8 @@ class Pipeline:
             data.set_signal(Mode.__name__, Mode.PLAY)
             for i in range(len(self.__components)):
                 comp_name = self.__components[i].__class__.__name__
-                if comp_name == 'ModelDetection' and count % tracking_frames > 0:
-                    continue
-                if count % tracking_frames == 0 and comp_name == 'CorrelationBasedTrackerComponent':
-                    self.__components[i].update(data)
                 s_time = time.time()
                 data = self.__components[i].do(data)
-                try:
-                    print(comp_name, data.get_meta_frames_by_src_name(data.get_source_names()[0])[0].get_bbox_info().get_bbox())
-                except AttributeError:
-                    print(comp_name, None)
                 e_time = time.time()
 
                 if comp_name not in job_time.keys():
@@ -84,9 +76,9 @@ class Pipeline:
                 else:
                     job_time[comp_name] = (job_time[comp_name] * count + (
                             e_time - s_time)) / (count + 1)
-                if data is not None:
-                    if data.get_signal(Mode.__name__) == Mode.STOP:
-                        is_stopped = True
+
+                if data.get_signal(Mode.__name__) == Mode.STOP:
+                    is_stopped = True
 
             count += 1
 

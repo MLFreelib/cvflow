@@ -142,27 +142,23 @@ class Counter(ComponentBase):
         checked_ids = list()
         bboxes = meta_bbox.get_bbox()
         label_info = meta_bbox.get_label_info()
-        object_ids = [i for i in range(len(label_info.get_labels()))]
-        #object_ids = label_info.get_object_ids()
+        object_ids = label_info.get_object_ids()
         labels = label_info.get_labels()
         for i in range(bboxes.shape[0]):
-            for line in self.__lines:
-                is_intersect = self.__check_intersect(bboxes[i].clone(), line, shape)
-                if is_intersect:
-                    print('INTERSECT')
-                    print('\a')
-                    object_id = object_ids[i]
-                    label = labels[i]
-                    if label not in list(self.__label_count[source]['labels'].keys()):
-                        self.__label_count[source]['labels'][label] = 0
-                    if object_id not in list(self.__checked_ids[source].keys()):
-                        self.__label_count[source]['ids'][object_id] = 1
-                        self.__label_count[source]['labels'][label] += 1
-                    elif not self.__checked_ids[source][object_id]:
-                        self.__label_count[source]['ids'][object_id] += 1
-                        self.__label_count[source]['labels'][label] += 1
-                    self.__checked_ids[source][object_id] = True
-                    checked_ids.append(object_id)
+            is_intersect = self.__check_intersect(bboxes[i].clone(), shape)
+            if is_intersect:
+                object_id = object_ids[i]
+                label = labels[i]
+                if label not in list(self.__label_count[source]['labels'].keys()):
+                    self.__label_count[source]['labels'][label] = 0
+                if object_id not in list(self.__checked_ids[source].keys()):
+                    self.__label_count[source]['ids'][object_id] = 1
+                    self.__label_count[source]['labels'][label] += 1
+                elif not self.__checked_ids[source][object_id]:
+                    self.__label_count[source]['ids'][object_id] += 1
+                    self.__label_count[source]['labels'][label] += 1
+                self.__checked_ids[source][object_id] = True
+                checked_ids.append(object_id)
 
         for object_id in list(self.__checked_ids[source].keys()):
             if object_id not in checked_ids:
@@ -170,18 +166,17 @@ class Counter(ComponentBase):
 
     def __draw_line(self, frame: torch.Tensor):
         r""" Draws a line along which objects are counted.
+
             :param frame: torch.Tensor
                         the frame on which the line will be drawn.
         """
         frame = frame.detach().cpu()
         frame = frame.permute(1, 2, 0).numpy()
         frame = np.ascontiguousarray(frame)
-        for line in self.__lines:
-            print(line)
-            frame = cv2.line(frame, line[0], line[1], color=line[2], thickness=line[3])
+        frame = cv2.line(frame, self.__line[:2], self.__line[2:], color=(0, 255, 0), thickness=2)
         return torch.tensor(frame, device=self.get_device()).permute(2, 0, 1)
 
-    def __check_intersect(self, bbox: torch.Tensor, line, shape: Iterable[int]) -> bool:
+    def __check_intersect(self, bbox: torch.Tensor, shape: Iterable[int]) -> bool:
         r""" Checks whether the object crosses the line.
             :param bbox: torch.Tensor
                         bounding box.
@@ -191,9 +186,8 @@ class Counter(ComponentBase):
         cv_shape = (*shape[1:], shape[0])
         self.__bbox_denormalize(torch.unsqueeze(bbox, dim=0), shape)
         np_bbox = bbox.detach().cpu().numpy().astype(int)
-        check_line = cv2.line(np.zeros(cv_shape), line[0], line[1], thickness=line[3], color=(255, 255, 255))
-        # check_bbox = cv2.rectangle(np.zeros(cv_shape), np_bbox[:2], np_bbox[2:], color=(255, 255, 255), thickness=-1)
-        check_bbox = cv2.line(np.zeros(cv_shape), (np_bbox[0], np_bbox[3]), (np_bbox[2], np_bbox[3]), color=(255, 255, 255), thickness=5)
+        check_line = cv2.line(np.zeros(cv_shape), self.__line[:2], self.__line[2:], thickness=1, color=(255, 255, 255))
+        check_bbox = cv2.rectangle(np.zeros(cv_shape), np_bbox[:2], np_bbox[2:], color=(255, 255, 255), thickness=-1)
         dif = check_bbox - check_line
         dif[dif < 0] = 0
 
@@ -217,7 +211,7 @@ class Counter(ComponentBase):
 
 
 class DistanceCalculator(ComponentBase):
-    r""" Draws a line and counts objects by ID that intersect this line. """
+    r""" Calcucate distance in mm using depth. ."""
 
     def __init__(self, name: str):
         r"""
@@ -321,7 +315,7 @@ class DistanceCalculator(ComponentBase):
         bboxes[:, (1, 3)] = bboxes[:, (1, 3)].mul(shape[1])
 
     def __bbox_normalize(self, bboxes: torch.tensor, shape: torch.tensor):
-        r""" Gets coordinates for bounding boxes.
+        r""" Normalizing coordinates for bounding boxes.
             :param bboxes: torch.tensor
                         bounding boxes. shape: [N, 4]
             :param shape: torch.tensor
