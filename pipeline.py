@@ -54,12 +54,11 @@ class Pipeline:
             #    raise TypeError(f'Expected {ComponentBase.__name__}, Actual {type(component)}')
             self.add(component)
 
-    def run(self):
+    def run(self, tracking_frames=1):
         r""" Starts the pipeline. """
         job_time = dict()
         all_time = time.time()
         count = 0
-        tracking_frames = 1
         is_stopped = False
         while not is_stopped:
             data = MetaBatch('pipe_batch')
@@ -72,11 +71,7 @@ class Pipeline:
                 if count % tracking_frames == 0 and comp_name == 'CorrelationBasedTrackerComponent':
                     self.__components[i].update(data)
                 s_time = time.time()
-                data = self.__components[i].do(data)
-                try:
-                    print(comp_name, data.get_meta_frames_by_src_name(data.get_source_names()[0])[0].get_bbox_info().get_bbox())
-                except AttributeError:
-                    print(comp_name, None)
+                data = self.__components[int(i)].do(data)
                 e_time = time.time()
 
                 if comp_name not in job_time.keys():

@@ -1,6 +1,6 @@
 import torch
-from vehicles_classifier import SuperModel, classes
-
+#from vehicles_classifier import SuperModel, classes
+#from yolov5.models.common import DetectMultiBackend, AutoShape
 
 class YOLO(torch.nn.Module):
     def __init__(self, clf_spec=None):
@@ -15,17 +15,20 @@ class YOLO(torch.nn.Module):
             cls_num = 1
             cls_model_name = cls_cfgs[cls_num].split('/')[-2]
             chkpnt = root_path + 'logs/classifiers/' + cls_model_name + '/latest.pth'
-            supermodel = SuperModel(classes, 'CPU')
-            supermodel._init_cls_inference(cls_cfgs[cls_num], chkpnt)
-            self.cls_model = supermodel
+            #supermodel = SuperModel(classes, 'CPU')
+            #supermodel._init_cls_inference(cls_cfgs[cls_num], chkpnt)
+            #self.cls_model = supermodel
         else:
             self.cls_model = None
         self.model = torch.hub.load('ultralytics/yolov5', 'yolov5l', pretrained=True)
+        #dmb = DetectMultiBackend(weights='yolov5l.pt', device='cpu')
+        #self.model = AutoShape(dmb)
         self.boxes = []
 
     def forward(self, x):
         nx = x.cpu().detach().numpy() * 255
         res = self.model(nx[0]).xyxy[0]
+        #res = self.model(x).xyxy[0]
         self.boxes = res[..., :4]
         if self.cls_model:
             labels = torch.tensor(self.cls_model.one_image_result(nx, res[..., :4]))

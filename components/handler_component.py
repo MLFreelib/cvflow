@@ -5,8 +5,8 @@ import numpy as np
 import pandas as pd
 import torch
 
-from cvflow.Meta import MetaBatch, MetaFrame, MetaLabel, MetaBBox
-from cvflow.components.component_base import ComponentBase
+from Meta import MetaBatch, MetaFrame, MetaLabel, MetaBBox
+from components.component_base import ComponentBase
 
 
 class Filter(ComponentBase):

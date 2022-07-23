@@ -2,12 +2,10 @@ from typing import List
 
 from Meta import MetaBatch, MetaLabel, MetaBBox
 from components.component_base import ComponentBase
-#from tracker import Tracker
 from dlib import correlation_tracker
 import numpy as np
 import dlib
 import torch
-import cv2
 
 
 class TrackerBase(ComponentBase):
@@ -27,7 +25,6 @@ class TrackerBase(ComponentBase):
 
     def start(self):
         pass
-        # self._inference.to(device=self.get_device())
 
     def set_transforms(self, tensor_transforms: list):
         self.__transforms = tensor_transforms
@@ -48,57 +45,60 @@ class TrackerBase(ComponentBase):
 class CorrelationBasedTrackerComponent(TrackerBase):
     def __init__(self, name: str):
         super().__init__(name)
-        #self.tracker = Tracker()
         self.tracker = correlation_tracker()
-        self.trackers = []
+        self.trackers = {}
         self.ids = []
+        self.labels = None
+        self.scores = None
         self.boxes = None
         self.counted = 0
+        self.prev_boxes = []
 
     def set_labels(self, labels: List[str]):
         self.__label_names = labels
 
     def do(self, data: MetaBatch) -> MetaBatch:
-        print('DO')
         for src_name in data.get_source_names():
             meta_frames = data.get_meta_frames_by_src_name(src_name)
-            shape = data.get_frames_by_src_name(src_name).shape
             for meta_frame in meta_frames:
                 boxes = []
                 frame = meta_frame.get_frame().clone()
                 frame *= 255
                 frame = torch.permute(frame, (1, 2, 0))
                 frame = np.array(frame, dtype=np.uint8)
-                for tracker in self.trackers:
+                for box_id in self.trackers[src_name]:
+                    tracker = self.trackers[src_name][box_id]
                     tracker['tracker'].update(frame)
                     pos = tracker['tracker'].get_position()
                     box = [pos.left(), pos.top(), pos.right(), pos.bottom()]
                     boxes.append(box)
                 self.boxes = torch.tensor(boxes)
-                labels = ['object'] * len(self.ids)
-                scores = [1] * len(self.ids)
+                shape = meta_frame.get_frame().shape
+                self.boxes[:, (0, 2)] = self.boxes[:, (0, 2)] / shape[2]
+                self.boxes[:, (1, 3)] = self.boxes[:, (1, 3)] / shape[1]
+                labels = self.labels
+                scores = self.scores
                 meta_labels = MetaLabel(labels, scores)
                 if self.boxes.shape == 1:
                     self.update(data)
-                #print('BOXES SHAPE-------', self.boxes.shape)
                 meta_box = MetaBBox(self.boxes, meta_labels)
                 meta_frame.set_bbox_info(meta_box)
+                self.ids = [i for i in range(len(self.boxes))]
                 meta_frame.get_bbox_info().get_label_info().set_object_id(self.ids)
-                #print('GET BBOX', meta_frame.get_bbox_info().get_bbox())
                 meta_bbox = meta_frame.get_bbox_info()
                 meta_label = meta_bbox.get_label_info()
                 data.get_meta_frames_by_src_name(src_name)[0].set_label_info(meta_labels)
-                #('GET BBOX2', data.get_meta_frames_by_src_name(src_name)[0].get_bbox_info().get_bbox())
                 meta_label.set_object_id(self.ids)
-                #print('IDS', self.ids)
         return data
 
     def update(self, data: MetaBatch):
-        print('UPDATE')
         box_id = 0
-        self.trackers = []
-        self.ids = []
+        self.old_trackers = self.trackers
+        self.trackers = {}
         for src_name in data.get_source_names():
+            self.ids = []
+            if src_name not in self.trackers:
+                self.trackers[src_name] = {}
             for meta_frame in data.get_meta_frames_by_src_name(src_name):
                 if meta_frame.get_bbox_info() is None:
                     boxes = torch.tensor([[0, 0, 0, 0]])
@@ -109,23 +109,57 @@ class CorrelationBasedTrackerComponent(TrackerBase):
                     meta_frame.set_bbox_info(meta_box)
                 else:
                     boxes = meta_frame.get_bbox_info().get_bbox()
+                    try:
+                        self.labels = meta_frame.get_bbox_info().get_label_info().get_labels()
+                        self.scores = meta_frame.get_bbox_info().get_label_info().get_confidence()
+                    except AttributeError:
+                        self.labels = ['N/A'] * len(self.boxes)
+                        self.scores = [0] * len(self.boxes)
                 self.boxes = boxes
                 shape = meta_frame.get_frame().shape
                 self.boxes[:, (0, 2)] = self.boxes[:, (0, 2)] * shape[2]
                 self.boxes[:, (1, 3)] = self.boxes[:, (1, 3)] * shape[1]
-
-                for box in boxes:
+                frame = meta_frame.get_frame().clone()
+                frame *= 255
+                frame = torch.permute(frame, (1, 2, 0))
+                frame = np.array(frame, dtype=np.uint8)
+                for box in self.boxes:
                     box_id += 1
-                    self.ids.append(box_id)
+                    existing_box_id = self.find_box(box, src_name, 0.6)
+                    checked = False
+                    if existing_box_id:
+                        self.ids.append(existing_box_id)
+                        try:
+                            checked = self.old_trackers[src_name][existing_box_id]['checked']
+                        except KeyError:
+                            checked = False
+                    else:
+                        self.ids.append(box_id)
                     rect = dlib.rectangle(*box)
-                    frame = meta_frame.get_frame().clone()
-                    frame *= 255
-                    frame = torch.permute(frame, (1, 2, 0))
-                    frame = np.array(frame, dtype=np.uint8)
-                    print(type(frame), type(rect))
                     tracker = correlation_tracker()
                     tracker.start_track(frame, rect)
-                    print('TRCAKEER', tracker)
-                    checked = False
-                    self.trackers.append({'tracker': tracker, 'checked': checked})
+                    self.trackers[src_name][box_id] = {'tracker': tracker, 'box': box, 'checked': checked}
                 meta_frame.get_bbox_info().get_label_info().set_object_id(self.ids)
+
+    def find_box(self, box, src_name, threshold):
+        try:
+            trackers = self.old_trackers[src_name]
+        except KeyError:
+            trackers = self.trackers[src_name]
+        for box_id in trackers:
+            cur_box = trackers[box_id]['box']
+            intersection = [max(box[0], cur_box[0]),
+                            max(box[1], cur_box[1]),
+                            min(box[2], cur_box[2]),
+                            min(box[3], cur_box[3])]
+            intersection_w = intersection[2] - intersection[0]
+            intersection_h = intersection[3] - intersection[1]
+            box_w = box[2] - box[0]
+            box_h = box[3] - box[1]
+            if intersection_w <= 0 or intersection_h <= 0:
+                continue
+            box_area = box_w * box_h
+            intersection_area = (intersection_w * intersection_h / box_area) ** 0.5
+            if intersection_area >= threshold:
+                return box_id
+        return None
