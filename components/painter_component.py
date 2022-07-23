@@ -118,7 +118,10 @@ class BBoxPainter(Painter):
                         full_labels = [f'{obj_id} {label} {round(conf * 100)}%' for label, conf, obj_id in
                                        meta_objects_info]
                     frame = meta_frame.get_frame().cpu()
+                    if self.__resolution is None:
+                        self.__resolution = frame.shape[-2:]
 
+                    frame = torchvision.transforms.Resize(self.__resolution)(frame)
                     bboxes_frame = draw_bounding_boxes(frame,
                                                        boxes=bbox,
                                                        width=self.__font_width,
@@ -304,3 +307,33 @@ class MaskPainter(Painter):
                 self.__colors[label_name] = _generate_color()
             colors.append(self.__colors[label_name])
         return colors
+
+class DepthPainter(Painter):
+    r"""A component for drawing masks on frames.
+        :param name: str
+                   name of component
+    """
+
+    def __init__(self, name: str):
+        super().__init__(name)
+        self.__colors = dict()
+        self.__alpha = 0.8
+
+    #TBD: added drawing depth with alpha
+    def set_alpha(self, alpha: float):
+        if isinstance(alpha, float):
+            if 0 <= alpha <= 1:
+                self.__alpha = alpha
+
+    def do(self, data: MetaBatch) -> MetaBatch:
+        r""" Draws masks on frames. """
+        for source in data.get_source_names()[::2]:
+            for meta_frame in data.get_meta_frames_by_src_name(source):
+                if meta_frame.get_depth_info() is not None:
+                    meta_depth = meta_frame.get_depth_info()
+                    mask = meta_depth.get_depth()
+                    mask = mask.repeat(3, 1, 1).detach().cpu().byte()
+                else:
+                    mask = meta_frame.get_frame().detach().cpu()
+                meta_frame.set_frame(mask)
+        return data

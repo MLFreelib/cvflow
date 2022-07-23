@@ -120,6 +120,27 @@ class MetaMask:
         self.__label_info: MetaLabel = label_info
 
 
+class MetaDepth:
+    r""" Container for storing information about depth
+        :param depth: torch.tensor
+                    batch of depth masks.
+    """
+
+    def __init__(self, depth: torch.tensor):
+        self.__depth = None
+        self.set_depth(depth)
+
+    def get_depth(self) -> torch.tensor:
+        r""" Returns the batch of depth. """
+        return self.__depth
+
+    def set_depth(self, depth: torch.tensor):
+        if len(depth.shape) != 3:
+            raise ValueError(f"Expected mask shape 3, but received {len(depth.shape)}")
+
+        self.__depth: torch.tensor = depth
+
+
 class MetaFrame:
     r""" Container for storing a frame information.
         :param source_name: str
@@ -134,6 +155,7 @@ class MetaFrame:
         self.__labels_info: Union[MetaLabel, None] = None
         self.__mask_info: Union[MetaMask, None] = None
         self.__bbox_info: Union[MetaBBox, None] = None
+        self.__depth_info: Union[MetaDepth, None] = None
         self.__custom_meta = dict()
         self.timestamp = time.time()
         self.__source_name = source_name
@@ -155,8 +177,8 @@ class MetaFrame:
         if len(frame.shape) != 3:
             raise ValueError(f"Expected frame shape 3, but received {len(frame.shape)}")
 
-        if frame.shape[0] != 3:
-            raise ValueError(f"Expected frame format [3, H, W], but received {frame.shape}")
+        if frame.shape[0] != 3 or frame.shape[0] != 1:
+            raise ValueError(f"Expected frame format [3, H, W] or [1, H, W], but received {frame.shape}")
 
         self.__frame = frame
 
@@ -219,6 +241,20 @@ class MetaFrame:
     def get_bbox_info(self) -> MetaBBox:
         r""" Returns the predicted bounding boxes for this frame. """
         return self.__bbox_info
+
+    def set_depth_info(self, depth_info: MetaDepth):
+        r""" Sets information about predicted depth for this frame.
+            :param depth_info: MetaDepth.
+            :exception TypeError if depth_info is not MetaMask.
+        """
+        if not isinstance(depth_info, MetaDepth):
+            raise TypeError(f'Expected type of depth_info a MetaDepth, received {type(depth_info)}')
+
+        self.__depth_info = depth_info
+
+    def get_depth_info(self) -> MetaDepth:
+        r""" Returns the predicted depth for this frame. """
+        return self.__depth_info
 
 
 class MetaBatch:
@@ -284,7 +320,7 @@ class MetaBatch:
             :param frames: torch.tensor.
             :exception TypeError if frames is not tensor.
         """
-        if not isinstance(frames, torch.Tensor):
+        if not isinstance(frames , torch.Tensor):
             raise TypeError(f'Expected type of frames a torch.Tensor, received {type(frames)}')
 
         if name in self.__frames.keys():

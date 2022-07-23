@@ -1,9 +1,11 @@
+from random import randrange
 from typing import List, Iterable
 
 import cv2
 import numpy as np
 import pandas as pd
 import torch
+import torchvision
 
 from Meta import MetaBatch, MetaFrame, MetaLabel, MetaBBox
 from components.component_base import ComponentBase
@@ -97,7 +99,7 @@ class Filter(ComponentBase):
 class Counter(ComponentBase):
     r""" Draws a line and counts objects by ID that intersect this line. """
 
-    def __init__(self, name: str, line: List[int]):
+    def __init__(self, name: str, lines: List[int]):
         r"""
             :param name: str
                     name of component.
@@ -105,7 +107,7 @@ class Counter(ComponentBase):
                     the line along which the objects will be counted. Format: [x_min, y_min, x_max, y_max]
         """
         super().__init__(name)
-        self.__line = line
+        self.__lines = lines
         self.__label_count = dict()
         self.__checked_ids = dict()
 
@@ -174,32 +176,25 @@ class Counter(ComponentBase):
         frame = cv2.line(frame, self.__line[:2], self.__line[2:], color=(0, 255, 0), thickness=2)
         return torch.tensor(frame, device=self.get_device()).permute(2, 0, 1)
 
-    def __check_intersect(self, bbox: torch.Tensor, line, shape: Iterable[int]) -> bool:
+    def __check_intersect(self, bbox: torch.Tensor, shape: Iterable[int]) -> bool:
         r""" Checks whether the object crosses the line.
             :param bbox: torch.Tensor
                         bounding box.
             :param shape: tuple
                         shape of frame.
         """
-        t_line = np.array([*line[0], *line[1]])
-        bbox_ = bbox.clone()
-        self.__bbox_denormalize(torch.unsqueeze(bbox_, dim=0), shape)
-        np_bbox = bbox_.detach().cpu().numpy()
-        if self.__line_intersect(
-            np.array([np_bbox[0], np_bbox[[1], np_bbox[2], np_bbox[0]]]), t_line) or self.__line_intersect(
-            np.array([np_bbox[2], np_bbox[[1], np_bbox[2], np_bbox[3]]]), t_line) or self.__line_intersect(
-            np.array([np_bbox[0], np_bbox[[3], np_bbox[2], np_bbox[3]]]), t_line) or self.__line_intersect(
-            np.array([np_bbox[0], np_bbox[[1], np_bbox[0], np_bbox[3]]]), t_line):
+        cv_shape = (*shape[1:], shape[0])
+        self.__bbox_denormalize(torch.unsqueeze(bbox, dim=0), shape)
+        np_bbox = bbox.detach().cpu().numpy().astype(int)
+        check_line = cv2.line(np.zeros(cv_shape), self.__line[:2], self.__line[2:], thickness=1, color=(255, 255, 255))
+        check_bbox = cv2.rectangle(np.zeros(cv_shape), np_bbox[:2], np_bbox[2:], color=(255, 255, 255), thickness=-1)
+        dif = check_bbox - check_line
+        dif[dif < 0] = 0
+
+        if np.sum(check_bbox) != np.sum(dif):
             return True
-        return False
-
-    def __line_intersect(self, line1: np.ndarray, line2: np.ndarray):
-        def ccw(point1, point2, point3):
-            return (point3[1] - point1[1]) * (point2[0] - point1[0]) > (point2[1] - point1[1]) * (point3[0] - point1[0])
-
-        return ccw(line1[:2], line2[:2], line2[2:]) != \
-               ccw(line1[2:], line2[:2], line2[2:]) and ccw(line1[:2], line1[2:], line2[:2]) != \
-               ccw(line1[:2], line1[2:], line2[2:])
+        else:
+            return False
 
     def __bbox_denormalize(self, bboxes: torch.tensor, shape: torch.tensor):
         r""" Gets coordinates for bounding boxes.
@@ -213,3 +208,118 @@ class Counter(ComponentBase):
 
     def stop(self):
         print(self.__label_count)
+
+
+class DistanceCalculator(ComponentBase):
+    r""" Calcucate distance in mm using depth. ."""
+
+    def __init__(self, name: str):
+        r"""
+            :param name: str
+                    name of component.
+        """
+        super().__init__(name)
+        self.__distances = dict()
+        self.__checked_ids = dict()
+
+    def do(self, data: MetaBatch) -> MetaBatch:
+        r""" Counts objects. """
+        for src_name in data.get_source_names():
+            meta_frames = data.get_meta_frames_by_src_name(src_name)
+            for meta_frame in meta_frames:
+                frame = meta_frame.get_frame()
+                meta_frame.set_frame(frame)
+                if meta_frame.get_bbox_info() is not None:
+                    self.__update(meta_frame,
+                                  meta_frame.get_frame().detach().cpu().numpy().shape, src_name)
+        return data
+
+    def __update(self, meta_frame: MetaFrame, shape: Iterable[int], source: str):
+        r""" Updates the current number of counted objects.
+            :param meta_bbox: MetaBBox
+                            metadata about the bounding boxes for the frame.
+            :param shape: Iterable[int]
+                            shape of frame.
+            :param source: str
+                            the source from which the frame was received.
+        """
+        if source not in list(self.__checked_ids.keys()):
+            self.__checked_ids[source] = dict()
+            self.__distances[source] = {'bboxes': dict(), 'distance': dict()}
+
+        meta_bbox = meta_frame.get_bbox_info()
+        bboxes = meta_bbox.get_bbox()
+        for bbox in bboxes:
+            self.__bbox_denormalize(torch.unsqueeze(bbox, dim=0), meta_frame.get_frame().detach().cpu().numpy().shape)
+        for i in range(bboxes.shape[0]):
+            for j in range(i, bboxes.shape[0]):
+                if i!=j:
+                    meta_frame = self.__calculate_distance(bbox1=bboxes[i], bbox2=bboxes[j], meta_frame=meta_frame)
+        for bbox in bboxes:
+            self.__bbox_normalize(torch.unsqueeze(bbox, dim=0), meta_frame.get_frame().detach().cpu().numpy().shape)
+
+    def __calculate_distance(self, bbox1: torch.Tensor, bbox2: torch.Tensor, meta_frame: MetaFrame) -> MetaFrame:
+        r""" Checks whether the object crosses the line.
+            :param bbox: torch.Tensor
+                        bounding box.
+            :param shape: tuple
+                        shape of frame.
+        """
+        frame = meta_frame.get_frame()
+        shape = meta_frame.get_frame().detach().cpu().numpy().shape
+        cv_shape = (*shape[1:], shape[0])
+
+        np_bbox1 = bbox1.detach().cpu().numpy().astype(int)
+        np_bbox2 = bbox2.detach().cpu().numpy().astype(int)
+        s_h, s_v = (int(np_bbox1[0] + np_bbox1[2])) // 2, int((np_bbox1[1] + np_bbox1[3])) // 2
+        e_h, e_v = (int(np_bbox2[0] + np_bbox2[2])) // 2, (int(np_bbox2[1] + np_bbox2[3])) // 2,
+
+        h_dist = s_h - e_h
+        v_dist = s_v - e_v
+        if meta_frame.get_depth_info():
+            depth = meta_frame.get_depth_info().get_depth().clone()
+            depth = torchvision.transforms.Resize((cv_shape[:2]))(depth)
+            depth = depth.permute(1, 2, 0).detach().cpu().numpy()
+            depth_bbox1 = np.mean(depth[np_bbox1[1]:np_bbox1[3], np_bbox1[0]:np_bbox1[2]])
+            depth_bbox2 = np.mean(depth[np_bbox2[1]:np_bbox2[3], np_bbox2[0]:np_bbox2[2]])
+            depth = 1017./((depth_bbox2+depth_bbox1)//2)
+
+            h_dist = h_dist * 53 * (depth - 1) / 28
+            v_dist = v_dist * 45 * (depth - 1) / 28
+
+        dist = (h_dist**2 + v_dist**2)**0.5
+
+        frame = frame.detach().cpu()
+        frame = frame.permute(1, 2, 0).numpy()
+        frame = np.ascontiguousarray(frame)
+        color = (randrange(0, 255), randrange(0, 255), randrange(0, 255))
+
+        cv2.line(frame, (s_h, s_v), (e_h, e_v), color=color, thickness=1)
+        frame = cv2.putText(frame, str(round(dist)), color=color, fontScale=1, thickness=1,
+                            fontFace=cv2.FONT_HERSHEY_SIMPLEX,
+                            org=((s_h + e_h) // 2, (s_v + e_v) // 2))
+
+        frame = torch.tensor(frame, device=self.get_device()).permute(2, 0, 1)
+
+        meta_frame.set_frame(frame)
+        return meta_frame
+
+    def __bbox_denormalize(self, bboxes: torch.tensor, shape: torch.tensor):
+        r""" Gets coordinates for bounding boxes.
+            :param bboxes: torch.tensor
+                        bounding boxes. shape: [N, 4]
+            :param shape: torch.tensor
+                        frame resolution
+        """
+        bboxes[:, (0, 2)] = bboxes[:, (0, 2)].mul(shape[2])
+        bboxes[:, (1, 3)] = bboxes[:, (1, 3)].mul(shape[1])
+
+    def __bbox_normalize(self, bboxes: torch.tensor, shape: torch.tensor):
+        r""" Normalizing coordinates for bounding boxes.
+            :param bboxes: torch.tensor
+                        bounding boxes. shape: [N, 4]
+            :param shape: torch.tensor
+                        frame resolution
+        """
+        bboxes[:, (0, 2)] = bboxes[:, (0, 2)].div(shape[2])
+        bboxes[:, (1, 3)] = bboxes[:, (1, 3)].div(shape[1])
