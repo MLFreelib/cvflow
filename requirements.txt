@@ -12,5 +12,5 @@ mmcv~=1.6.0
 mmdet~=2.25.0
 mmcls~=0.23.1
 scikit-image~=0.19.3
-ipython~=8.2.0
+ipython~=7.34.0
 tqdm~=4.64.0
