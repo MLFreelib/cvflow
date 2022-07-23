@@ -97,7 +97,7 @@ if __name__ == '__main__':
     outer = FileWriterComponent('file', 'file.avi')
 
     pipeline.set_device('cuda')
-    pipeline.add_all([muxer, model_depth, depth_painter, tiler, outer])
+    pipeline.add_all([muxer, model_depth,tracker, dist, depth_painter, bbox_painter, tiler, outer])
     pipeline.compile()
     pipeline.run()
     pipeline.close()
