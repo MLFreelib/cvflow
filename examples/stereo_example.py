@@ -55,24 +55,24 @@ def get_tiler(name: str, tiler_size: tuple, frame_size: tuple = (640, 1280)) -> 
 if __name__ == '__main__':
     model = depth_model()
     model = torch.nn.DataParallel(model)
-    checkpoint = torch.load(os.path.join(os.getcwd(), "/content/cvflow/best.ckpt"))
-    # model.load_state_dict(checkpoint['state_dict'], strict=False)
+    checkpoint = torch.load(os.path.join(os.path.dirname(__file__), '..', 'tests', 'test_data', 'best.ckpt'))
     model.load_state_dict(checkpoint['model'], strict=False)
 
     pipeline = Pipeline()
 
     readers = []
 
-    # image_reader1 = VideoReader('../top_l.mov', 'left')
-    # image_reader2 = VideoReader('../top_r.mov', 'right')
+    image_reader1 = VideoReader(os.path.join(os.path.dirname(__file__), '..', 'tests', 'test_data', 'top_l.mov'), 'left')
+    image_reader2 = VideoReader(os.path.join(os.path.dirname(__file__), '..', 'tests', 'test_data', 'top_r.mov'),
+                                'right')
 
-    image_reader1 = ImageReader("/content/cvflow/70_50_1l.png", "left")
-    image_reader2 = ImageReader("/content/cvflow/70_50_1r.png", "right")
+    # image_reader1 = ImageReader("/content/cvflow/70_50_1l.png", "left")
+    # image_reader2 = ImageReader("/content/cvflow/70_50_1r.png", "right")
     readers.append(image_reader1)
     readers.append(image_reader2)
 
     config = configparser.ConfigParser()
-    config.read("../conf.txt")
+    config.read(os.path.join(os.path.dirname(__file__), '..', 'tests', 'test_data', 'conf.txt'))
     bboxes_list = eval(config.get('bboxes', 'values'))
     bboxes = []
     for bb in bboxes_list:
@@ -91,10 +91,10 @@ if __name__ == '__main__':
     dist = DistanceCalculator('distance')
 
     depth_painter = DepthPainter('depth_painter')
-    bbox_painter = BBoxPainter('bboxer', font_path="../fonts/OpenSans-VariableFont_wdth,wght.ttf")
+    bbox_painter = BBoxPainter('bboxer', font_path=os.path.join(os.path.dirname(__file__), '..', 'fonts', "OpenSans-VariableFont_wdth,wght.ttf"))
     tiler = get_tiler('tiler', tiler_size=get_tsize(), frame_size=get_fsize())
 
-    outer = FileWriterComponent('file', '/content/file.avi')
+    outer = FileWriterComponent('file', 'file.avi')
 
     pipeline.set_device('cuda')
     pipeline.add_all([muxer, model_depth, depth_painter, tiler, outer])
