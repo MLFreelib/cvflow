@@ -118,7 +118,10 @@ class BBoxPainter(Painter):
                         full_labels = [f'{obj_id} {label} {round(conf * 100)}%' for label, conf, obj_id in
                                        meta_objects_info]
                     frame = meta_frame.get_frame().cpu()
+                    if self.__resolution is None:
+                        self.__resolution = frame.shape[-2:]
 
+                    frame = torchvision.transforms.Resize(self.__resolution)(frame)
                     bboxes_frame = draw_bounding_boxes(frame,
                                                        boxes=bbox,
                                                        width=self.__font_width,

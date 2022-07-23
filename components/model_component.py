@@ -232,7 +232,7 @@ class ModelDetection(ModelBase):
             if np.any(true_conf):
                 conf = conf[true_conf]
                 boxes = boxes[true_conf]
-                label_names = [self.get_labels()[int(ind)] for ind in labels[true_conf]]
+                label_names = [self.get_labels()[ind] for ind in labels[true_conf]]
 
                 self.__bbox_normalize(boxes, shape)
                 meta_frame = data.get_meta_frames_by_src_name(src_name)[i]
