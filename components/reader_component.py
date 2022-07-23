@@ -140,10 +140,6 @@ class ImageReader(ReaderBase):
         else:
             last_file = max(self.__last_file - 1, 0)
         path = os.path.join(self._path, self.__files[last_file])
-        # from PIL import Image
-        # frame = Image.open(path).convert('RGB')
-        # crop_w, crop_h = 960, 512
-        # frame = frame.resize((crop_w, crop_h))
         frame = cv2.imread(path)
         self.__last_file = self.__last_file + 1 if self.__last_file + 1 < len(self.__files) else self.__last_file
         self.__last_iter = time.time()

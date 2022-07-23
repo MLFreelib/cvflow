@@ -316,6 +316,7 @@ class DepthPainter(Painter):
         self.__colors = dict()
         self.__alpha = 0.8
 
+    #TBD: added drawing depth with alpha
     def set_alpha(self, alpha: float):
         if isinstance(alpha, float):
             if 0 <= alpha <= 1:
@@ -325,16 +326,11 @@ class DepthPainter(Painter):
         r""" Draws masks on frames. """
         for source in data.get_source_names()[::2]:
             for meta_frame in data.get_meta_frames_by_src_name(source):
-                meta_depth = meta_frame.get_depth_info()
-                mask = meta_depth.get_depth()
-                resized_mask = mask.repeat(3, 1, 1).detach().cpu().byte()
-                meta_frame.set_frame(resized_mask)
+                if meta_frame.get_depth_info() is not None:
+                    meta_depth = meta_frame.get_depth_info()
+                    mask = meta_depth.get_depth()
+                    mask = mask.repeat(3, 1, 1).detach().cpu().byte()
+                else:
+                    mask = meta_frame.get_frame().detach().cpu()
+                meta_frame.set_frame(mask)
         return data
-
-    def __get_colors(self, labels: List):
-        colors = list()
-        for label_name in labels:
-            if label_name not in self.__colors.keys():
-                self.__colors[label_name] = _generate_color()
-            colors.append(self.__colors[label_name])
-        return colors

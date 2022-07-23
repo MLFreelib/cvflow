@@ -99,7 +99,7 @@ class Filter(ComponentBase):
 class Counter(ComponentBase):
     r""" Draws a line and counts objects by ID that intersect this line. """
 
-    def __init__(self, name: str, lines):
+    def __init__(self, name: str, lines: List[int]):
         r"""
             :param name: str
                     name of component.
@@ -274,7 +274,6 @@ class DistanceCalculator(ComponentBase):
         frame = meta_frame.get_frame()
         shape = meta_frame.get_frame().detach().cpu().numpy().shape
         cv_shape = (*shape[1:], shape[0])
-
 
         np_bbox1 = bbox1.detach().cpu().numpy().astype(int)
         np_bbox2 = bbox2.detach().cpu().numpy().astype(int)

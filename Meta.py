@@ -177,7 +177,7 @@ class MetaFrame:
         if len(frame.shape) != 3:
             raise ValueError(f"Expected frame shape 3, but received {len(frame.shape)}")
 
-        if frame.shape[0] != 3:
+        if frame.shape[0] != 3 or frame.shape[0] != 1:
             raise ValueError(f"Expected frame format [3, H, W] or [1, H, W], but received {frame.shape}")
 
         self.__frame = frame
