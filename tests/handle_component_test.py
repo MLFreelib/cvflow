@@ -112,33 +112,33 @@ class FilterTest(unittest.TestCase):
         return returned_meta_label
 
 
-# class CounterTest(unittest.TestCase):
-#
-#     def setUp(self):
-#         self.frame = torch.zeros([3, 100, 100])
-#         self.line = [0, 0, 50, 50]
-#         self.bbox_in = torch.tensor([0.3, 0.3, 0.4, 0.4])
-#         self.bbox_out = torch.tensor([0.0, 0.9, 0.1, 1])
-#         self.labels = [f'test_label_{i}' for i in range(3)]
-#         self.confs = [i / 10 for i in range(3)]
-#         self.ids = [i for i in range(3)]
-#
-#     def test_do_for_one_in(self):
-#         src_name = 'test_src'
-#         counter = Counter('counter', self.line)
-#         returned_meta_batch = None
-#         label_num = 0
-#         for _ in range(3):
-#             meta_batch = self.__get_meta_batch(src_name, self.bbox_in, label_id=label_num)
-#             returned_meta_batch = counter.do(meta_batch)
-#
-#         label_count = returned_meta_batch.get_meta_frames_by_src_name(src_name)[0].get_meta_info('counter')
-#
-#         self.assertEqual(1, label_count['labels'][self.labels[label_num]])
-#         self.assertEqual(1, label_count['ids'][self.ids[label_num]])
-#
-#     def test_do_zero_in(self):
-#         src_name = 'test_src'
+class CounterTest(unittest.TestCase):
+
+    def setUp(self):
+        self.frame = torch.zeros([3, 100, 100])
+        self.line = [0, 0, 50, 50]
+        self.bbox_in = torch.tensor([0.3, 0.3, 0.4, 0.4])
+        self.bbox_out = torch.tensor([0.0, 0.9, 0.1, 1])
+        self.labels = [f'test_label_{i}' for i in range(3)]
+        self.confs = [i / 10 for i in range(3)]
+        self.ids = [i for i in range(3)]
+
+    def test_do_for_one_in(self):
+        src_name = 'test_src'
+        counter = Counter('counter', self.line)
+        returned_meta_batch = None
+        label_num = 0
+        for _ in range(3):
+            meta_batch = self.__get_meta_batch(src_name, self.bbox_in, label_id=label_num)
+            returned_meta_batch = counter.do(meta_batch)
+
+        label_count = returned_meta_batch.get_meta_frames_by_src_name(src_name)[0].get_meta_info('counter')
+
+        self.assertEqual(1, label_count['labels'][self.labels[label_num]])
+        self.assertEqual(1, label_count['ids'][self.ids[label_num]])
+
+    def test_do_zero_in(self):
+        src_name = 'test_src'
 #         counter = Counter('counter', self.line)
 #         returned_meta_batch = None
 #         label_num = 0
