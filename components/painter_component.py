@@ -121,7 +121,7 @@ class BBoxPainter(Painter):
                     if self.__resolution is None:
                         self.__resolution = frame.shape[-2:]
 
-                    frame = torchvision.transforms.Resize(self.__resolution)
+                    frame = torchvision.transforms.Resize(self.__resolution)(frame)
                     bboxes_frame = draw_bounding_boxes(frame,
                                                        boxes=bbox,
                                                        width=self.__font_width,
