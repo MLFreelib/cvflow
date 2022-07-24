@@ -1,0 +1,6 @@
+[bboxes]
+values = [
+    	{'points': ((427, 258), (108, 114)), 'color': (21, 212, 34), 'thickness': 2},
+	{'points': ((220, 85), (125, 96)), 'color': (108, 173, 117), 'thickness': 2},
+	{'points': ((124, 347), (127, 98)), 'color': (252, 253, 152), 'thickness': 2},
+	]

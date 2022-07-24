@@ -9,7 +9,7 @@ from components.reader_component import VideoReader
 class SourceMuxerTest(unittest.TestCase):
 
     def setUp(self):
-        self.reader = VideoReader('tests/test_data/Lion Animal.mp4', 'reader')
+        self.reader = VideoReader(os.path.join(os.path.dirname(__file__), 'test_data', 'Lion Animal.mp4'), 'reader')
 
     def test_add_source_TypeError_exception(self):
         muxer = SourceMuxer('muxer')

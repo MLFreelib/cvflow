@@ -28,8 +28,8 @@ class Pipeline:
             :param component: ComponentBase.
             :exception InvalidComponentException if the first component in the pipeline is not a MuxerBase.
         """
-        #if not isinstance(component, MuxerBase) and len(self.__components) == 0:
-        #    raise InvalidComponentException('The first element of the pipeline must be of type MuxerBase')
+        if not isinstance(component, MuxerBase) and len(self.__components) == 0:
+            raise InvalidComponentException('The first element of the pipeline must be of type MuxerBase')
         self.__components.append(component)
 
     def set_device(self, device: str):
@@ -50,9 +50,9 @@ class Pipeline:
             :exception InvalidComponentException if the first component in the pipeline is not a MuxerBase.
         """
         for component in components:
-            #if not isinstance(component, ComponentBase):
-            #    self.__components = list()
-            #    raise TypeError(f'Expected {ComponentBase.__name__}, Actual {type(component)}')
+            if not isinstance(component, ComponentBase):
+                self.__components = list()
+                raise TypeError(f'Expected {ComponentBase.__name__}, Actual {type(component)}')
             self.add(component)
 
     def run(self):
@@ -68,16 +68,18 @@ class Pipeline:
             for i in range(len(self.__components)):
                 comp_name = self.__components[i].__class__.__name__
                 s_time = time.time()
-                data = self.__components[int(i)].do(data)
+                data = self.__components[i].do(data)
                 e_time = time.time()
                 if comp_name not in job_time.keys():
                     job_time[comp_name] = e_time - s_time
                 else:
                     job_time[comp_name] = (job_time[comp_name] * count + (
                             e_time - s_time)) / (count + 1)
+                            
                 if data is not None:
                     if data.get_signal(Mode.__name__) == Mode.STOP:
                         is_stopped = True
+
             count += 1
 
         all_time = time.time() - all_time

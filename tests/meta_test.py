@@ -2,7 +2,7 @@ import unittest
 
 import torch
 
-from Meta import MetaLabel, MetaBBox, MetaMask, MetaFrame, MetaBatch
+from Meta import MetaLabel, MetaBBox, MetaMask, MetaFrame, MetaBatch, MetaDepth
 
 
 class TestMetaLabel(unittest.TestCase):
@@ -105,10 +105,28 @@ class TestMetaMask(unittest.TestCase):
         self.assertEqual(self.labels, meta_mask.get_label_info().get_labels())
 
 
+class TestMetaDepth(unittest.TestCase):
+
+    def setUp(self):
+        self.depth = torch.ones((1, 240, 240))
+
+    def test_points_ValueError_exception_init_masks(self):
+        try:
+            MetaDepth(self.depth[0])
+            self.assertTrue(False)
+        except ValueError:
+            self.assertTrue(True)
+
+    def test_get_depth(self) -> torch.tensor:
+        meta_mask = MetaDepth(self.depth)
+        self.assertEqual(self.depth.detach().tolist(), meta_mask.get_depth().detach().tolist())
+
+
 class TestMetaFrame(unittest.TestCase):
 
     def setUp(self):
         self.masks = torch.ones((1, 25, 240, 240))
+        self.depth = torch.ones((1, 240, 240))
         self.labels = [f'label_{i}' for i in range(25)]
         self.confs = [i / 10 for i in range(25)]
         self.meta_label = MetaLabel(self.labels, self.confs)
@@ -151,6 +169,12 @@ class TestMetaFrame(unittest.TestCase):
         meta_frame.set_bbox_info(meta_bbox)
         self.assertListEqual(self.points.detach().tolist(), meta_frame.get_bbox_info().get_bbox().detach().tolist())
 
+    def test_get_depth_info(self):
+        meta_frame = MetaFrame('test_src', self.frame)
+        meta_depth = MetaDepth(self.depth)
+        meta_frame.set_depth_info(meta_depth)
+        self.assertListEqual(self.depth.detach().tolist(), meta_frame.get_depth_info().get_depth().detach().tolist())
+
     def test_set_bbox_info_TypeError_exception(self):
         meta_frame = MetaFrame('test_src', self.frame)
         self.assertRaises(TypeError, meta_frame.set_bbox_info, 'mock')
@@ -173,7 +197,7 @@ class TestMetaFrame(unittest.TestCase):
 
     def test_set_frame_ValueError_exception_channels(self):
         meta_frame = MetaFrame('test_src', self.frame)
-        self.assertRaises(ValueError, meta_frame.set_frame, self.frame[[0]])
+        self.assertRaises(ValueError, meta_frame.set_frame, self.frame[[0, 1]])
 
 
 class TestMetaBatch(unittest.TestCase):

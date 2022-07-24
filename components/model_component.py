@@ -1,9 +1,9 @@
-from typing import List
+from typing import List, Iterator
 
 import numpy as np
 import torch
 
-from Meta import MetaBatch, MetaLabel, MetaBBox, MetaMask
+from Meta import MetaBatch, MetaLabel, MetaBBox, MetaMask, MetaDepth
 from components.component_base import ComponentBase
 from models.blocks import OutputFormat
 import gc
@@ -50,6 +50,49 @@ def _to_model(connected_sources: List[str], data: MetaBatch, device: str, transf
         src_data.append(cloned_data)
     return src_data
 
+
+def _to_stereo_model(connected_sources: List[str], data: MetaBatch, device: str, transform, calib=1017., need_calib = False):
+    r""" Returns a list of pairs of transformed frames from the MetaBatch.
+        :param connected_sources: list of sources names
+        :param data: MetaData
+        :param device: str - cuda or cpu
+        :param transform: list of transformations from torch.transform
+        :return: List[torch.tensor]
+    """
+    src_data = list()
+    if len(connected_sources) % 2:
+        raise ValueError(f'Expected even number of sources, received {len(connected_sources)}')
+
+    def chunck(lst, n) -> List[str]:
+        for i in range(0, len(lst), n):
+            yield lst[i:i + n]
+
+    connected_sources = list(chunck(connected_sources, 2))
+    size_frames = [0]*len(connected_sources)
+
+    def clone_data(needed_data):
+        cloned_data = needed_data.clone().to(dtype=torch.float, device=device)
+        cloned_data = cloned_data.div(255)
+        cloned_data = transform(cloned_data)
+        return cloned_data
+
+    for i, src_names in enumerate(connected_sources):
+
+        needed_data_left = data.get_frames_by_src_name(src_names[0])
+        needed_data_right = data.get_frames_by_src_name(src_names[1])
+        size_frames[i] = len(needed_data_right)
+        if needed_data_left is None or needed_data_right is None:
+            continue
+
+        needed_data_left = clone_data(needed_data_left)
+        needed_data_right = clone_data(needed_data_right)
+        if need_calib:
+          calib = torch.tensor([calib*0.54]).float().to(dtype=torch.float, device=device)
+          src_data.append((needed_data_left, needed_data_right, calib))
+        else:
+          src_data.append((needed_data_left, needed_data_right))
+
+    return src_data, size_frames
 
 class ModelBase(ComponentBase):
     r""" Component of basic model. This class is necessary for implementing models using inheritance.
@@ -298,5 +341,46 @@ class ModelSegmentation(ModelBase):
                 mask = mask[None, :]
                 meta_mask = MetaMask(mask, MetaLabel(self.get_labels(), normalized_mask))
                 meta_frame.set_mask_info(meta_mask)
+                prob_i += 1
+        return data
+
+
+class ModelDepth(ModelBase):
+    r""" Component for stereo models
+
+        :param name: str
+                name of component
+
+        :param model: torch.nn.Module
+                    stereo model, which returns dictionary with key "out" which contains tensor of shape
+                    [N, H, W], where N - batch size, H - mask height, W - mask width and
+                    values in the range from 0 to 1.
+    """
+
+    def __init__(self, name: str, model: torch.nn.Module):
+        super().__init__(name, model)
+
+    def do(self, data: MetaBatch) -> MetaBatch:
+        r""" Transmits data to the depth model. And adds the predicted masks with labels to the MetaFrame
+            in the MetaBatch. Masks in MetaMask and labels in MetaLabel, which are contained in MetaMask.
+        """
+        src_data, src_size = _to_stereo_model(connected_sources=self._source_names,
+                                    data=data,
+                                    device=self.get_device(),
+                                    transform=self._transform)
+        output = []
+        for batch in src_data:
+            imgL, imgR = batch
+            # imgL, imgR, calib = batch
+            with torch.no_grad():
+                # output.append(self._inference(imgL, imgR, calib))
+                output.append(self._inference(imgL, imgR))
+        prob_i = 0
+        for i_src_name in range(0, len(self._source_names), 2):
+            for i in range(src_size[i_src_name//2]):
+                meta_frame = data.get_meta_frames_by_src_name(self._source_names[i_src_name])[i]
+                depth = output[prob_i][-1]
+                meta_depth = MetaDepth(depth)
+                meta_frame.set_depth_info(meta_depth)
                 prob_i += 1
         return data
