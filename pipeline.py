@@ -54,7 +54,7 @@ class Pipeline:
             #    raise TypeError(f'Expected {ComponentBase.__name__}, Actual {type(component)}')
             self.add(component)
 
-    def run(self, tracking_frames=1):
+        def run(self):
         r""" Starts the pipeline. """
         job_time = dict()
         all_time = time.time()
@@ -66,14 +66,9 @@ class Pipeline:
             data.set_signal(Mode.__name__, Mode.PLAY)
             for i in range(len(self.__components)):
                 comp_name = self.__components[i].__class__.__name__
-                if comp_name == 'ModelDetection' and count % tracking_frames > 0:
-                    continue
-                if count % tracking_frames == 0 and comp_name == 'CorrelationBasedTrackerComponent':
-                    self.__components[i].update(data)
                 s_time = time.time()
                 data = self.__components[int(i)].do(data)
                 e_time = time.time()
-
                 if comp_name not in job_time.keys():
                     job_time[comp_name] = e_time - s_time
                 else:
@@ -82,7 +77,6 @@ class Pipeline:
                 if data is not None:
                     if data.get_signal(Mode.__name__) == Mode.STOP:
                         is_stopped = True
-
             count += 1
 
         all_time = time.time() - all_time
