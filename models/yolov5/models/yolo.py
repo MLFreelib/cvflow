@@ -1,35 +1,37 @@
-import torch
+# YOLOv5 🚀 by Ultralytics, GPL-3.0 license
+"""
+YOLO-specific modules
+
+Usage:
+    $ python path/to/yolo_models/yolo_wrapper.py --cfg yolov5s.yaml
+"""
+
+import argparse
+import os
+import platform
 import sys
-from torch import nn
-sys.path.append('yolo_models/yolov5')
-from models.yolov5.models.common import DetectMultiBackend, AutoShape
-from models_.common import *
-from models_.experimental import *
-from utils.autoanchor import check_anchor_order
-from utils.general import LOGGER, check_version, check_yaml, make_divisible, print_args
-from utils.plots import feature_visualization
-from utils.torch_utils import (fuse_conv_and_bn, initialize_weights, model_info, profile, scale_img, select_device,
+from copy import deepcopy
+from pathlib import Path
+
+FILE = Path(__file__).resolve()
+ROOT = FILE.parents[1]  # YOLOv5 root directory
+if str(ROOT) not in sys.path:
+    sys.path.append(str(ROOT))  # add ROOT to PATH
+if platform.system() != 'Windows':
+    ROOT = Path(os.path.relpath(ROOT, Path.cwd()))  # relative
+
+from models.yolov5.models.common import *
+from models.yolov5.models.experimental import *
+from models.yolov5.utils.autoanchor import check_anchor_order
+from models.yolov5.utils.general import LOGGER, check_version, check_yaml, make_divisible, print_args
+from models.yolov5.utils.plots import feature_visualization
+from models.yolov5.utils.torch_utils import (fuse_conv_and_bn, initialize_weights, model_info, profile, scale_img, select_device,
                                time_sync)
 
-class YOLO(torch.nn.Module):
-    def __init__(self, clf_spec=None):
-        super().__init__()
-        self.cls_model = None
-        dmb = DetectMultiBackend(weights='yolov5l.pt', device='cpu')
-        self.model = AutoShape(dmb)
-        self.boxes = []
-
-    def forward(self, x):
-        res = self.model(x).xyxy[0]
-        self.boxes = res[..., :4]
-        if self.cls_model:
-            labels = torch.tensor(self.cls_model.one_image_result(nx, res[..., :4]))
-        else:
-            labels = res[..., 5]
-        out = [{'boxes': res[..., :4],
-                'labels': labels,
-                'scores': res[..., 4]}, ]
-        return out
+try:
+    import thop  # for FLOPs computation
+except ImportError:
+    thop = None
 
 
 class Detect(nn.Module):
@@ -197,6 +199,8 @@ class Model(nn.Module):
         if m == self.model[0]:
             LOGGER.info(f"{'time (ms)':>10s} {'GFLOPs':>10s} {'params':>10s}  module")
         LOGGER.info(f'{dt[-1]:10.2f} {o:10.2f} {m.np:10.0f}  {m.type}')
+        if c:
+            LOGGER.info(f"{sum(dt):10.2f} {'-':>10s} {'-':>10s}  Total")
 
     def _initialize_biases(self, cf=None):  # initialize biases into Detect(), cf is class frequency
         # https://arxiv.org/abs/1708.02002 section 3.3
@@ -212,6 +216,8 @@ class Model(nn.Module):
         m = self.model[-1]  # Detect() module
         for mi in m.m:  # from
             b = mi.bias.detach().view(m.na, -1).T  # conv.bias(255) to (3,85)
+            LOGGER.info(
+                ('%6g Conv2d.bias:' + '%10.3g' * 6) % (mi.weight.shape[1], *b[:5].mean(1).tolist(), b[5:].mean()))
 
     # def _print_weights(self):
     #     for m in self.model.modules():
@@ -219,6 +225,7 @@ class Model(nn.Module):
     #             LOGGER.info('%10.3g' % (m.w.detach().sigmoid() * 2))  # shortcut weights
 
     def fuse(self):  # fuse model Conv2d() + BatchNorm2d() layers
+        LOGGER.info('Fusing layers... ')
         for m in self.model.modules():
             if isinstance(m, (Conv, DWConv)) and hasattr(m, 'bn'):
                 m.conv = fuse_conv_and_bn(m.conv, m.bn)  # update conv
@@ -243,6 +250,7 @@ class Model(nn.Module):
 
 
 def parse_model(d, ch):  # model_dict, input_channels(3)
+    LOGGER.info(f"\n{'':>3}{'from':>18}{'n':>3}{'params':>10}  {'module':<40}{'arguments':<30}")
     anchors, nc, gd, gw = d['anchors'], d['nc'], d['depth_multiple'], d['width_multiple']
     na = (len(anchors[0]) // 2) if isinstance(anchors, list) else anchors  # number of anchors
     no = na * (nc + 5)  # number of outputs = anchors * (classes + 5)
@@ -319,8 +327,8 @@ if __name__ == '__main__':
     elif opt.profile:  # profile forward-backward
         results = profile(input=im, ops=[model], n=3)
 
-    elif opt.test:  # test all models
-        for cfg in Path(ROOT / 'models').rglob('yolo*.yaml'):
+    elif opt.test:  # test all yolo_models
+        for cfg in Path(ROOT / 'yolo_models').rglob('yolo*.yaml'):
             try:
                 _ = Model(cfg)
             except Exception as e:
