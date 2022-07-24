@@ -4,13 +4,3 @@ torch==1.11.0
 torchvision==0.12.0
 opencv-python~=4.5.5.64
 dlib~=19.24.0
-future~=0.18.2
-Pillow~=9.1.0
-seaborn~=0.11.2
-matplotlib~=3.5.1
-mmcv~=1.6.0
-mmdet~=2.25.0
-mmcls~=0.23.1
-scikit-image~=0.19.3
-ipython~=7.34.0
-tqdm~=4.64.0

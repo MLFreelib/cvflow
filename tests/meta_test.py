@@ -197,7 +197,7 @@ class TestMetaFrame(unittest.TestCase):
 
     def test_set_frame_ValueError_exception_channels(self):
         meta_frame = MetaFrame('test_src', self.frame)
-        self.assertRaises(ValueError, meta_frame.set_frame, self.frame[[0]])
+        self.assertRaises(ValueError, meta_frame.set_frame, self.frame[[0, 1]])
 
 
 class TestMetaBatch(unittest.TestCase):

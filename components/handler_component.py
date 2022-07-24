@@ -107,7 +107,7 @@ class Counter(ComponentBase):
                     the line along which the objects will be counted. Format: [x_min, y_min, x_max, y_max]
         """
         super().__init__(name)
-        self.__lines = lines
+        self.__line = lines
         self.__label_count = dict()
         self.__checked_ids = dict()
 
