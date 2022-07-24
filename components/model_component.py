@@ -52,7 +52,7 @@ def _to_model(connected_sources: List[str], data: MetaBatch, device: str, transf
 
 
 class ModelBase(ComponentBase):
-    r""" Component of basic model. This class is necessary for implementing models using inheritance.
+    r""" Component of basic model. This class is necessary for implementing yolo_models using inheritance.
 
         :param name: str
                 name of component.
@@ -74,6 +74,8 @@ class ModelBase(ComponentBase):
             self._confidence = 1
         elif conf < 0:
             self._confidence = 0
+        else:
+            self._confidence = conf
 
     def start(self):
         r""" Specifies the device on which the model will be executed. """
@@ -124,7 +126,7 @@ class ModelBase(ComponentBase):
 
 
 class ModelDetection(ModelBase):
-    r""" Component for detection models.
+    r""" Component for detection yolo_models.
         The model must have a forward method that returns a dictionary with the keys:
             - boxes - [N, 4]
             - labels - [N]
@@ -172,6 +174,7 @@ class ModelDetection(ModelBase):
                            src_name=src_name)
             i_point += src_size[i_src_name]
 
+
         return data
 
     def __to_meta(self, data: MetaBatch, preds: list, shape: torch.Tensor, src_name: str):
@@ -181,7 +184,9 @@ class ModelDetection(ModelBase):
             :param shape: torch.tensor - image resolution.
             :param src_name: str - source name
         """
+        print('TO_META', preds)
         for i in range(len(preds)):
+            print('I', self._confidence)
             boxes = preds[i]['boxes'].cpu()
             labels = preds[i]['labels'].cpu().detach().numpy()
             conf = preds[i]['scores'].cpu().detach().numpy()
@@ -196,6 +201,7 @@ class ModelDetection(ModelBase):
                 meta_label = MetaLabel(labels=label_names, confidence=conf)
 
                 meta_frame.set_bbox_info(MetaBBox(boxes, meta_label))
+                print('MODEL', meta_frame.get_bbox_info())
 
     def __bbox_normalize(self, bboxes: torch.tensor, shape: torch.tensor):
         r""" Normalization of bounding box values in the range from 0 to 1.
@@ -209,7 +215,7 @@ class ModelDetection(ModelBase):
 
 
 class ModelClassification(ModelBase):
-    r""" Component for classification models
+    r""" Component for classification yolo_models
 
         :param name: str
                     name of component
@@ -251,7 +257,7 @@ class ModelClassification(ModelBase):
 
 
 class ModelSegmentation(ModelBase):
-    r""" Component for segmentation models
+    r""" Component for segmentation yolo_models
 
         :param name: str
                 name of component
