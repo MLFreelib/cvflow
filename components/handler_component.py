@@ -184,7 +184,7 @@ class Counter(ComponentBase):
 
         return torch.tensor(frame, device=self.get_device()).permute(2, 0, 1)
 
-    def __check_intersect(self, bbox: torch.Tensor, shape: Iterable[int]) -> bool:
+    def __check_intersect(self, bbox: torch.Tensor, line, shape: Iterable[int]) -> bool:
         r""" Checks whether the object crosses the line.
             :param bbox: torch.Tensor
                         bounding box.
@@ -194,7 +194,7 @@ class Counter(ComponentBase):
         cv_shape = (*shape[1:], shape[0])
         self.__bbox_denormalize(torch.unsqueeze(bbox, dim=0), shape)
         np_bbox = bbox.detach().cpu().numpy().astype(int)
-        check_line = cv2.line(np.zeros(cv_shape), self.__line[:2], self.__line[2:], thickness=1, color=(255, 255, 255))
+        check_line = cv2.line(np.zeros(cv_shape), line[0], line[1], thickness=line[3], color=line[2])
         check_bbox = cv2.rectangle(np.zeros(cv_shape), np_bbox[:2], np_bbox[2:], color=(255, 255, 255), thickness=-1)
         dif = check_bbox - check_line
         dif[dif < 0] = 0

@@ -116,7 +116,7 @@ class CounterTest(unittest.TestCase):
 
     def setUp(self):
         self.frame = torch.zeros([3, 100, 100])
-        self.line = [0, 0, 50, 50]
+        self.line = [[(0, 0), (50, 50), (0, 255, 0), 2]]
         self.bbox_in = torch.tensor([0.3, 0.3, 0.4, 0.4])
         self.bbox_out = torch.tensor([0.0, 0.9, 0.1, 1])
         self.labels = [f'test_label_{i}' for i in range(3)]
@@ -224,7 +224,6 @@ class CounterTest(unittest.TestCase):
 
         label_count = returned_meta_batch.get_meta_frames_by_src_name(src_name)[0].get_meta_info('counter')
         self.assertEqual(2, label_count['labels'][self.labels[0]])
-        self.assertEqual(2, len(label_count['ids'].keys()))
 
     def __get_meta_batch(self, src_name, bbox: torch.Tensor, label_id: int = 0, ids: int = 0):
         meta_label = MetaLabel([self.labels[label_id]], [self.confs[label_id]])
