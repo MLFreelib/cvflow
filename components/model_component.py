@@ -52,7 +52,7 @@ def _to_model(connected_sources: List[str], data: MetaBatch, device: str, transf
 
 
 class ModelBase(ComponentBase):
-    r""" Component of basic model. This class is necessary for implementing yolo_models using inheritance.
+    r""" Component of basic model. This class is necessary for implementing models using inheritance.
 
         :param name: str
                 name of component.
@@ -126,7 +126,7 @@ class ModelBase(ComponentBase):
 
 
 class ModelDetection(ModelBase):
-    r""" Component for detection yolo_models.
+    r""" Component for detection models.
         The model must have a forward method that returns a dictionary with the keys:
             - boxes - [N, 4]
             - labels - [N]
@@ -215,7 +215,7 @@ class ModelDetection(ModelBase):
 
 
 class ModelClassification(ModelBase):
-    r""" Component for classification yolo_models
+    r""" Component for classification models
 
         :param name: str
                     name of component
@@ -257,7 +257,7 @@ class ModelClassification(ModelBase):
 
 
 class ModelSegmentation(ModelBase):
-    r""" Component for segmentation yolo_models
+    r""" Component for segmentation models
 
         :param name: str
                 name of component
