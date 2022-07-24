@@ -111,7 +111,6 @@ class FilterTest(unittest.TestCase):
         returned_meta_label = returned_meta_frame.get_labels_info()
         return returned_meta_label
 
-<<<<<<< HEAD
 
 class CounterTest(unittest.TestCase):
 
