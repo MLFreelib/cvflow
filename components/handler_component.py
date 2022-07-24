@@ -42,7 +42,7 @@ class Filter(ComponentBase):
         return data
 
     def __filter_labels(self, meta_frame: MetaFrame):
-        r""" Filters labels for classification yolo_models.
+        r""" Filters labels for classification models.
             :param: meta_frame: MetaFrame
                         metadata about frame.
         """
@@ -57,7 +57,7 @@ class Filter(ComponentBase):
             meta_frame.set_label_info(MetaLabel(list(sr_labels.index[sr_labels.values]), torch.unsqueeze(confs, dim=0)))
 
     def __filter_bboxes(self, meta_frame: MetaFrame):
-        r""" Filters labels and bboxes for detection yolo_models.
+        r""" Filters labels and bboxes for detection models.
             :param: meta_frame: MetaFrame
                         metadata about frame.
         """
@@ -78,7 +78,7 @@ class Filter(ComponentBase):
             meta_frame.set_bbox_info(new_meta_bbox)
 
     def __filter_masks(self, meta_frame: MetaFrame):
-        r""" Filters labels and masks for segmentation yolo_models.
+        r""" Filters labels and masks for segmentation models.
             :param: meta_frame: MetaFrame
                         metadata about frame.
         """
@@ -117,7 +117,6 @@ class Counter(ComponentBase):
                 frame = meta_frame.get_frame()
                 frame = self.__draw_line(frame)
                 meta_frame.set_frame(frame)
-                print('counter', meta_frame.get_bbox_info())
                 if meta_frame.get_bbox_info() is not None:
                     self.__update(meta_frame.get_bbox_info(),
                                   meta_frame.get_frame().detach().cpu().numpy().shape, src_name)
