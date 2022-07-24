@@ -55,11 +55,7 @@ class Pipeline:
             #    raise TypeError(f'Expected {ComponentBase.__name__}, Actual {type(component)}')
             self.add(component)
 
-<<<<<<< HEAD
     def run(self):
-=======
-        def run(self):
->>>>>>> 48456e215508bd74ed9d1f0a181c384b703056f6
         r""" Starts the pipeline. """
         job_time = dict()
         all_time = time.time()
