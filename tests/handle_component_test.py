@@ -140,106 +140,103 @@ class CounterTest(unittest.TestCase):
 
     def test_do_zero_in(self):
         src_name = 'test_src'
-#         counter = Counter('counter', self.line)
-#         returned_meta_batch = None
-#         label_num = 0
-#         for _ in range(3):
-#             meta_batch = self.__get_meta_batch(src_name, self.bbox_out, label_id=label_num)
-#             returned_meta_batch = counter.do(meta_batch)
-#
-#         label_count = returned_meta_batch.get_meta_frames_by_src_name(src_name)[0].get_meta_info('counter')
-#         self.assertEqual(0, len(label_count['labels'].keys()))
-#         self.assertEqual(0, len(label_count['ids'].keys()))
-#
-#     def test_do_one_in_one_out(self):
-#         src_name = 'test_src'
-#         counter = Counter('counter', self.line)
-#         returned_meta_batch = None
-#         for _ in range(2):
-#             meta_batch = self.__get_meta_batch(src_name, self.bbox_in, label_id=0, ids=0)
-#             returned_meta_batch = counter.do(meta_batch)
-#
-#         for _ in range(2):
-#             meta_batch = self.__get_meta_batch(src_name, self.bbox_out, label_id=0, ids=1)
-#             returned_meta_batch = counter.do(meta_batch)
-#
-#         label_count = returned_meta_batch.get_meta_frames_by_src_name(src_name)[0].get_meta_info('counter')
-#         self.assertEqual(1, label_count['labels'][self.labels[0]])
-#         self.assertEqual(1, label_count['ids'][self.ids[0]])
-#
-#     def test_do_one_in_out_in(self):
-#         src_name = 'test_src'
-#         counter = Counter('counter', self.line)
-#         returned_meta_batch = None
-#         for _ in range(2):
-#             meta_batch = self.__get_meta_batch(src_name, self.bbox_in, label_id=0, ids=0)
-#             returned_meta_batch = counter.do(meta_batch)
-#
-#         for _ in range(2):
-#             meta_batch = self.__get_meta_batch(src_name, self.bbox_out, label_id=0, ids=0)
-#             returned_meta_batch = counter.do(meta_batch)
-#
-#         for _ in range(2):
-#             meta_batch = self.__get_meta_batch(src_name, self.bbox_in, label_id=0, ids=0)
-#             returned_meta_batch = counter.do(meta_batch)
-#
-#         label_count = returned_meta_batch.get_meta_frames_by_src_name(src_name)[0].get_meta_info('counter')
-#         self.assertEqual(2, label_count['labels'][self.labels[0]])
-#         self.assertEqual(2, label_count['ids'][self.ids[0]])
-#
-#     def test_do_one_in_out_in_with_different_label(self):
-#         src_name = 'test_src'
-#         counter = Counter('counter', self.line)
-#         returned_meta_batch = None
-#         for _ in range(2):
-#             meta_batch = self.__get_meta_batch(src_name, self.bbox_in, label_id=0, ids=0)
-#             returned_meta_batch = counter.do(meta_batch)
-#
-#         for _ in range(2):
-#             meta_batch = self.__get_meta_batch(src_name, self.bbox_out, label_id=0, ids=0)
-#             returned_meta_batch = counter.do(meta_batch)
-#
-#         for _ in range(2):
-#             meta_batch = self.__get_meta_batch(src_name, self.bbox_in, label_id=1, ids=0)
-#             returned_meta_batch = counter.do(meta_batch)
-#
-#         label_count = returned_meta_batch.get_meta_frames_by_src_name(src_name)[0].get_meta_info('counter')
-#         self.assertEqual(2, len(label_count['labels'].keys()))
-#         self.assertEqual(2, label_count['ids'][self.ids[0]])
-#
-#     def test_do_one_in_out_in_with_different_id(self):
-#         src_name = 'test_src'
-#         counter = Counter('counter', self.line)
-#         returned_meta_batch = None
-#         for _ in range(2):
-#             meta_batch = self.__get_meta_batch(src_name, self.bbox_in, label_id=0, ids=0)
-#             returned_meta_batch = counter.do(meta_batch)
-#
-#         for _ in range(2):
-#             meta_batch = self.__get_meta_batch(src_name, self.bbox_out, label_id=0, ids=0)
-#             returned_meta_batch = counter.do(meta_batch)
-#
-#         for _ in range(2):
-#             meta_batch = self.__get_meta_batch(src_name, self.bbox_in, label_id=0, ids=1)
-#             returned_meta_batch = counter.do(meta_batch)
-#
-#         label_count = returned_meta_batch.get_meta_frames_by_src_name(src_name)[0].get_meta_info('counter')
-#         self.assertEqual(2, label_count['labels'][self.labels[0]])
-#         self.assertEqual(2, len(label_count['ids'].keys()))
-#
-#     def __get_meta_batch(self, src_name, bbox: torch.Tensor, label_id: int = 0, ids: int = 0):
-#         meta_label = MetaLabel([self.labels[label_id]], [self.confs[label_id]])
-#         meta_label.set_object_id([self.ids[ids]])
-#         meta_bbox = MetaBBox(torch.unsqueeze(bbox, dim=0), meta_label)
-#         meta_frame = MetaFrame(src_name, self.frame)
-#         meta_frame.set_bbox_info(meta_bbox)
-#         meta_batch = MetaBatch('mock')
-#         meta_batch.add_meta_frame(meta_frame)
-#         meta_batch.set_source_names([src_name])
-#         return meta_batch
+        counter = Counter('counter', self.line)
+        returned_meta_batch = None
+        label_num = 0
+        for _ in range(3):
+            meta_batch = self.__get_meta_batch(src_name, self.bbox_out, label_id=label_num)
+            returned_meta_batch = counter.do(meta_batch)
 
+        label_count = returned_meta_batch.get_meta_frames_by_src_name(src_name)[0].get_meta_info('counter')
+        self.assertEqual(0, len(label_count['labels'].keys()))
+        self.assertEqual(0, len(label_count['ids'].keys()))
 
-=======
->>>>>>> 48456e215508bd74ed9d1f0a181c384b703056f6
+    def test_do_one_in_one_out(self):
+        src_name = 'test_src'
+        counter = Counter('counter', self.line)
+        returned_meta_batch = None
+        for _ in range(2):
+            meta_batch = self.__get_meta_batch(src_name, self.bbox_in, label_id=0, ids=0)
+            returned_meta_batch = counter.do(meta_batch)
+
+        for _ in range(2):
+            meta_batch = self.__get_meta_batch(src_name, self.bbox_out, label_id=0, ids=1)
+            returned_meta_batch = counter.do(meta_batch)
+
+        label_count = returned_meta_batch.get_meta_frames_by_src_name(src_name)[0].get_meta_info('counter')
+        self.assertEqual(1, label_count['labels'][self.labels[0]])
+        self.assertEqual(1, label_count['ids'][self.ids[0]])
+
+    def test_do_one_in_out_in(self):
+        src_name = 'test_src'
+        counter = Counter('counter', self.line)
+        returned_meta_batch = None
+        for _ in range(2):
+            meta_batch = self.__get_meta_batch(src_name, self.bbox_in, label_id=0, ids=0)
+            returned_meta_batch = counter.do(meta_batch)
+
+        for _ in range(2):
+            meta_batch = self.__get_meta_batch(src_name, self.bbox_out, label_id=0, ids=0)
+            returned_meta_batch = counter.do(meta_batch)
+
+        for _ in range(2):
+            meta_batch = self.__get_meta_batch(src_name, self.bbox_in, label_id=0, ids=0)
+            returned_meta_batch = counter.do(meta_batch)
+
+        label_count = returned_meta_batch.get_meta_frames_by_src_name(src_name)[0].get_meta_info('counter')
+        self.assertEqual(2, label_count['labels'][self.labels[0]])
+        self.assertEqual(2, label_count['ids'][self.ids[0]])
+
+    def test_do_one_in_out_in_with_different_label(self):
+        src_name = 'test_src'
+        counter = Counter('counter', self.line)
+        returned_meta_batch = None
+        for _ in range(2):
+            meta_batch = self.__get_meta_batch(src_name, self.bbox_in, label_id=0, ids=0)
+            returned_meta_batch = counter.do(meta_batch)
+
+        for _ in range(2):
+            meta_batch = self.__get_meta_batch(src_name, self.bbox_out, label_id=0, ids=0)
+            returned_meta_batch = counter.do(meta_batch)
+
+        for _ in range(2):
+            meta_batch = self.__get_meta_batch(src_name, self.bbox_in, label_id=1, ids=0)
+            returned_meta_batch = counter.do(meta_batch)
+
+        label_count = returned_meta_batch.get_meta_frames_by_src_name(src_name)[0].get_meta_info('counter')
+        self.assertEqual(2, len(label_count['labels'].keys()))
+        self.assertEqual(2, label_count['ids'][self.ids[0]])
+
+    def test_do_one_in_out_in_with_different_id(self):
+        src_name = 'test_src'
+        counter = Counter('counter', self.line)
+        returned_meta_batch = None
+        for _ in range(2):
+            meta_batch = self.__get_meta_batch(src_name, self.bbox_in, label_id=0, ids=0)
+            returned_meta_batch = counter.do(meta_batch)
+
+        for _ in range(2):
+            meta_batch = self.__get_meta_batch(src_name, self.bbox_out, label_id=0, ids=0)
+            returned_meta_batch = counter.do(meta_batch)
+
+        for _ in range(2):
+            meta_batch = self.__get_meta_batch(src_name, self.bbox_in, label_id=0, ids=1)
+            returned_meta_batch = counter.do(meta_batch)
+
+        label_count = returned_meta_batch.get_meta_frames_by_src_name(src_name)[0].get_meta_info('counter')
+        self.assertEqual(2, label_count['labels'][self.labels[0]])
+        self.assertEqual(2, len(label_count['ids'].keys()))
+
+    def __get_meta_batch(self, src_name, bbox: torch.Tensor, label_id: int = 0, ids: int = 0):
+        meta_label = MetaLabel([self.labels[label_id]], [self.confs[label_id]])
+        meta_label.set_object_id([self.ids[ids]])
+        meta_bbox = MetaBBox(torch.unsqueeze(bbox, dim=0), meta_label)
+        meta_frame = MetaFrame(src_name, self.frame)
+        meta_frame.set_bbox_info(meta_bbox)
+        meta_batch = MetaBatch('mock')
+        meta_batch.add_meta_frame(meta_frame)
+        meta_batch.set_source_names([src_name])
+        return meta_batch
+
 if __name__ == '__main__':
     unittest.main()
