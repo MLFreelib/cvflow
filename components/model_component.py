@@ -227,9 +227,7 @@ class ModelDetection(ModelBase):
             :param shape: torch.tensor - image resolution.
             :param src_name: str - source name
         """
-        print('TO_META', preds)
         for i in range(len(preds)):
-            print('I', self._confidence)
             boxes = preds[i]['boxes'].cpu()
             labels = preds[i]['labels'].cpu().detach().numpy()
             conf = preds[i]['scores'].cpu().detach().numpy()
@@ -244,7 +242,6 @@ class ModelDetection(ModelBase):
                 meta_label = MetaLabel(labels=label_names, confidence=conf)
 
                 meta_frame.set_bbox_info(MetaBBox(boxes, meta_label))
-                print('MODEL', meta_frame.get_bbox_info())
 
     def __bbox_normalize(self, bboxes: torch.tensor, shape: torch.tensor):
         r""" Normalization of bounding box values in the range from 0 to 1.
@@ -329,15 +326,13 @@ class ModelSegmentation(ModelBase):
             output = self._inference(batch)['out']
 
         normalized_masks = torch.nn.functional.softmax(output, dim=1)
-        normalized_masks[normalized_masks < self._confidence] = 0
-
         prob_i = 0
         for i_src_name in range(len(self._source_names)):
             for i in range(src_size[i_src_name]):
                 meta_frame = data.get_meta_frames_by_src_name(self._source_names[i_src_name])[i]
                 normalized_mask = normalized_masks[prob_i]
                 mask = torch.zeros(normalized_mask.shape, dtype=torch.bool, device=self.get_device())
-                mask[normalized_mask > self._confidence] = True
+                mask[normalized_mask >= self._confidence] = True
                 mask = mask[None, :]
                 meta_mask = MetaMask(mask, MetaLabel(self.get_labels(), normalized_mask))
                 meta_frame.set_mask_info(meta_mask)

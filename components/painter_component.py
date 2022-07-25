@@ -81,9 +81,9 @@ class BBoxPainter(Painter):
                     font width
     """
 
-    def __init__(self, name: str, font_path: str, font_size: int = 20, font_width: int = 3):
+    def __init__(self, name: str, font_size: int = 20, font_width: int = 3):
         super().__init__(name)
-        self.__font_path = font_path
+        self.__font_path = os.path.join(os.path.dirname(__file__), '..', 'fonts', 'OpenSans-VariableFont_wdth,wght.ttf')
         self.__font_size = font_size
         self.__font_width = font_width
         self.__colors = dict()
@@ -92,6 +92,10 @@ class BBoxPainter(Painter):
     def set_font_size(self, font_size: int):
         if isinstance(font_size, int):
             self.__font_size = font_size
+
+    def set_font(self, font_path: str):
+        if isinstance(font_path, str):
+            self.__font_path = font_path
 
     def set_font_width(self, font_width: int):
         if isinstance(font_width, int):
@@ -122,6 +126,11 @@ class BBoxPainter(Painter):
                         self.__resolution = frame.shape[-2:]
 
                     frame = torchvision.transforms.Resize(self.__resolution)(frame)
+                    print(self.__font_width)
+                    print(full_labels)
+                    print(self.__font_size)
+                    print(self.__font_path)
+                    print(self.__get_colors(labels))
                     bboxes_frame = draw_bounding_boxes(frame,
                                                        boxes=bbox,
                                                        width=self.__font_width,
@@ -292,11 +301,10 @@ class MaskPainter(Painter):
                 masks = meta_mask.get_mask()
                 frame = meta_frame.get_frame()
                 colors = self.__get_colors(meta_mask.get_label_info().get_labels())
-                for mask in masks:
-                    resized_mask = torchvision.transforms.Resize((frame.shape[-2:]))(mask)
-                    frame = draw_segmentation_masks(frame.detach().cpu(), resized_mask.detach().cpu(),
-                                                    alpha=self.__alpha,
-                                                    colors=colors)
+                resized_mask = torchvision.transforms.Resize((frame.shape[-2:]))(masks[0])
+                frame = draw_segmentation_masks(frame.detach().cpu(), resized_mask.detach().cpu(),
+                                                alpha=self.__alpha,
+                                                colors=colors)
                 meta_frame.set_frame(frame)
         return data
 
@@ -307,6 +315,7 @@ class MaskPainter(Painter):
                 self.__colors[label_name] = _generate_color()
             colors.append(self.__colors[label_name])
         return colors
+
 
 class DepthPainter(Painter):
     r"""A component for drawing masks on frames.
@@ -319,7 +328,7 @@ class DepthPainter(Painter):
         self.__colors = dict()
         self.__alpha = 0.8
 
-    #TBD: added drawing depth with alpha
+    # TBD: added drawing depth with alpha
     def set_alpha(self, alpha: float):
         if isinstance(alpha, float):
             if 0 <= alpha <= 1:
