@@ -117,6 +117,8 @@ class ModelBase(ComponentBase):
             self._confidence = 1
         elif conf < 0:
             self._confidence = 0
+        else:
+            self._confidence = conf
 
     def start(self):
         r""" Specifies the device on which the model will be executed. """
@@ -215,6 +217,7 @@ class ModelDetection(ModelBase):
                            src_name=src_name)
             i_point += src_size[i_src_name]
 
+
         return data
 
     def __to_meta(self, data: MetaBatch, preds: list, shape: torch.Tensor, src_name: str):
@@ -232,7 +235,7 @@ class ModelDetection(ModelBase):
             if np.any(true_conf):
                 conf = conf[true_conf]
                 boxes = boxes[true_conf]
-                label_names = [self.get_labels()[ind] for ind in labels[true_conf]]
+                label_names = [self.get_labels()[int(ind)] for ind in labels[true_conf]]
 
                 self.__bbox_normalize(boxes, shape)
                 meta_frame = data.get_meta_frames_by_src_name(src_name)[i]
@@ -323,15 +326,13 @@ class ModelSegmentation(ModelBase):
             output = self._inference(batch)['out']
 
         normalized_masks = torch.nn.functional.softmax(output, dim=1)
-        normalized_masks[normalized_masks < self._confidence] = 0
-
         prob_i = 0
         for i_src_name in range(len(self._source_names)):
             for i in range(src_size[i_src_name]):
                 meta_frame = data.get_meta_frames_by_src_name(self._source_names[i_src_name])[i]
                 normalized_mask = normalized_masks[prob_i]
                 mask = torch.zeros(normalized_mask.shape, dtype=torch.bool, device=self.get_device())
-                mask[normalized_mask > self._confidence] = True
+                mask[normalized_mask >= self._confidence] = True
                 mask = mask[None, :]
                 meta_mask = MetaMask(mask, MetaLabel(self.get_labels(), normalized_mask))
                 meta_frame.set_mask_info(meta_mask)

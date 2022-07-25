@@ -5,6 +5,7 @@ from typing import List
 import torch
 
 from Meta import MetaBatch
+
 from common.utils import Logger
 from components.component_base import ComponentBase
 from components.muxer_component import MuxerBase, SourceMuxer
@@ -59,7 +60,6 @@ class Pipeline:
         job_time = dict()
         all_time = time.time()
         count = 0
-
         is_stopped = False
         while not is_stopped:
             data = MetaBatch('pipe_batch')
@@ -70,15 +70,15 @@ class Pipeline:
                 s_time = time.time()
                 data = self.__components[i].do(data)
                 e_time = time.time()
-
                 if comp_name not in job_time.keys():
                     job_time[comp_name] = e_time - s_time
                 else:
                     job_time[comp_name] = (job_time[comp_name] * count + (
                             e_time - s_time)) / (count + 1)
-
-                if data.get_signal(Mode.__name__) == Mode.STOP:
-                    is_stopped = True
+                            
+                if data is not None:
+                    if data.get_signal(Mode.__name__) == Mode.STOP:
+                        is_stopped = True
 
             count += 1
 
