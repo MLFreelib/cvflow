@@ -279,17 +279,28 @@ class SPP(nn.Module):
         return self.cv2(torch.cat([x1, y1, y2, self.m(y2)], 1))
 
 class YOLOLayer(Block):
-    def __init__(self, in_channels, out_channels, k=3, s=2, p=1, bottlenecks_n=3):
+    def __init__(self, in_channels, out_channels, k=3, s=2, p=1,
+                 bottlenecks_n=3, upsample=None):
         super().__init__(in_channels, out_channels)
         # 'We perform downsampling directly by convolutional layers that have a stride of 2.'
         downsampling = 2 if in_channels != out_channels else 1
-
-        self._block = nn.Sequential(
-            YOLOConv(in_channels, out_channels, k=k, s=s, p=p),
-            CSPBottleneck(out_channels, out_channels,
-                          bottlenecks_n=bottlenecks_n,
-                          downsampling=downsampling)
-        )
+        if upsample:
+            self._block = nn.Sequential(
+                YOLOConv(in_channels, out_channels, k=k, s=s, p=p),
+                nn.Upsample(scale_factor=upsample, mode='nearest'),
+                CSPBottleneck(out_channels,
+                              out_channels,
+                              bottlenecks_n=bottlenecks_n,
+                              downsampling=downsampling)
+            )
+        else:
+            self._block = nn.Sequential(
+                YOLOConv(in_channels, out_channels, k=k, s=s, p=p),
+                CSPBottleneck(out_channels,
+                              out_channels,
+                              bottlenecks_n=bottlenecks_n,
+                              downsampling=downsampling)
+            )
 
 class CSPDarknet(Block):
     def __init__(self, in_channels, out_channels, in_kernel=6, in_stride=2,
@@ -307,7 +318,19 @@ class CSPDarknet(Block):
             SPP(out_channels, out_channels)
         )
 
-class PANet(nn.Module):
-    def __init__(self, blocks_sizes=(64, 128, 256, 512), deep=(2, 2, 2, 2),
-                 activation=nn.ReLU, block=ResNetBasicBlock, *args, **kwargs):
-        super().__init__()
+    def forward(self, x):
+        return self._block(x)
+
+class PANet(Block):
+    def __init__(self, in_channels, out_channels, blocks_sizes=(512, 256, 256),
+                 kernels=(3, 3, 3, 3), strides=(2, 2, 2, 2),
+                 paddings=(1, 1, 1, 1), bottlenecks=(3, 6, 9, 3),
+                 upsamplings=(2, 2, None, None), block=YOLOLayer):
+        super().__init__(in_channels, out_channels)
+        c1_sizes = [in_channels, *blocks_sizes]
+        c2_sizes = list(blocks_sizes[:])
+        c2_sizes.append(out_channels)
+        self._block = nn.Sequential(
+            *[block(i[0], i[1], k=i[2], s=i[3], p=i[4], bottlenecks_n=i[5], upsample=i[6])
+              for i in zip(c1_sizes, c2_sizes, kernels, strides, paddings, bottlenecks, upsamplings)],
+        )
