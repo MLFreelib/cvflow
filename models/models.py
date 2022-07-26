@@ -62,3 +62,11 @@ def resnet152(in_channels, n_classes):
         backbone=ResNetBackbone(deep=(3, 8, 36, 3), block=ResNetBottleNeckBlock),
         output_block=ClassificationOutput(4096, n_classes)
     )
+
+
+def yolo(in_channels):
+    return ModelBuilder(
+        input_block=,
+        backbone=,
+        output_block=
+    )

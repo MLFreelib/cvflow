@@ -1,0 +1,194 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="BranchesTreeState">
+    <expand>
+      <path>
+        <item name="ROOT" type="e8cecc67:BranchNodeDescriptor" />
+        <item name="LOCAL_ROOT" type="e8cecc67:BranchNodeDescriptor" />
+      </path>
+      <path>
+        <item name="ROOT" type="e8cecc67:BranchNodeDescriptor" />
+        <item name="REMOTE_ROOT" type="e8cecc67:BranchNodeDescriptor" />
+      </path>
+      <path>
+        <item name="ROOT" type="e8cecc67:BranchNodeDescriptor" />
+        <item name="REMOTE_ROOT" type="e8cecc67:BranchNodeDescriptor" />
+        <item name="GROUP_NODE:origin" type="e8cecc67:BranchNodeDescriptor" />
+      </path>
+      <path>
+        <item name="ROOT" type="e8cecc67:BranchNodeDescriptor" />
+        <item name="REMOTE_ROOT" type="e8cecc67:BranchNodeDescriptor" />
+        <item name="GROUP_NODE:origin" type="e8cecc67:BranchNodeDescriptor" />
+        <item name="GROUP_NODE:feature" type="e8cecc67:BranchNodeDescriptor" />
+      </path>
+    </expand>
+    <select>
+      <path>
+        <item name="ROOT" type="e8cecc67:BranchNodeDescriptor" />
+        <item name="LOCAL_ROOT" type="e8cecc67:BranchNodeDescriptor" />
+        <item name="BRANCH:objects-counter" type="e8cecc67:BranchNodeDescriptor" />
+      </path>
+    </select>
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="923dc110-0930-408b-832c-a103e981f341" name="Default Changelist" comment="">
+      <change beforePath="$PROJECT_DIR$/models/blocks.py" beforeDir="false" afterPath="$PROJECT_DIR$/models/blocks.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/models/models.py" beforeDir="false" afterPath="$PROJECT_DIR$/models/models.py" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Python Script" />
+      </list>
+    </option>
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+    <option name="RESET_MODE" value="MIXED" />
+  </component>
+  <component name="JupyterTrust" id="f2de5ba2-719c-4b57-9d2f-46c5a283be3d" />
+  <component name="ProjectId" id="29Cmv4ccsepwBjxwjJgh9gnzDXD" />
+  <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+    <option name="showMembers" value="true" />
+  </component>
+  <component name="PropertiesComponent">
+    <property name="RunOnceActivity.OpenProjectViewOnStart" value="true" />
+    <property name="WebServerToolWindowFactoryState" value="false" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$/models" />
+    <property name="settings.editor.selected.configurable" value="com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable" />
+  </component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/models" />
+      <recent name="$PROJECT_DIR$/examples/objects-counter/yolov5" />
+      <recent name="$PROJECT_DIR$/examples" />
+      <recent name="$PROJECT_DIR$/models/yolov5/models" />
+      <recent name="$PROJECT_DIR$/objects-counter/yolov5/models" />
+    </key>
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/objects-counter" />
+      <recent name="$PROJECT_DIR$" />
+    </key>
+  </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="923dc110-0930-408b-832c-a103e981f341" name="Default Changelist" comment="" />
+      <created>1652625668916</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1652625668916</updated>
+      <workItem from="1652625670136" duration="47928000" />
+      <workItem from="1652875112145" duration="47090000" />
+      <workItem from="1653840835340" duration="185647000" />
+      <workItem from="1656862725137" duration="5663000" />
+      <workItem from="1657023921510" duration="6703000" />
+      <workItem from="1657104201107" duration="60991000" />
+      <workItem from="1657545323146" duration="59246000" />
+      <workItem from="1658245258283" duration="23272000" />
+      <workItem from="1658619310801" duration="15987000" />
+    </task>
+    <task id="LOCAL-00001" summary="squash! copied gitignore">
+      <created>1658678427075</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1658678427075</updated>
+    </task>
+    <option name="localTasksCounter" value="2" />
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State>
+              <option name="FILTERS">
+                <map>
+                  <entry key="branch">
+                    <value>
+                      <list>
+                        <option value="objects-counter" />
+                      </list>
+                    </value>
+                  </entry>
+                </map>
+              </option>
+            </State>
+          </value>
+        </entry>
+      </map>
+    </option>
+    <option name="oldMeFiltersMigrated" value="true" />
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="squash! copied gitignore" />
+    <option name="LAST_COMMIT_MESSAGE" value="squash! copied gitignore" />
+  </component>
+  <component name="WindowStateProjectService">
+    <state x="270" y="243" key="#com.intellij.fileTypes.FileTypeChooser" timestamp="1657806470194">
+      <screen x="0" y="25" width="1440" height="826" />
+    </state>
+    <state x="270" y="243" key="#com.intellij.fileTypes.FileTypeChooser/0.25.1440.826@0.25.1440.826" timestamp="1657806470194" />
+    <state x="458" y="189" key="#com.intellij.refactoring.safeDelete.UnsafeUsagesDialog" timestamp="1655756962893">
+      <screen x="0" y="25" width="1440" height="827" />
+    </state>
+    <state x="458" y="189" key="#com.intellij.refactoring.safeDelete.UnsafeUsagesDialog/0.25.1440.827@0.25.1440.827" timestamp="1655756962893" />
+    <state x="304" y="25" width="831" height="824" key="CommitChangelistDialog2" timestamp="1658678426825">
+      <screen x="0" y="25" width="1440" height="824" />
+    </state>
+    <state x="304" y="25" width="831" height="824" key="CommitChangelistDialog2/0.25.1440.824@0.25.1440.824" timestamp="1658678426825" />
+    <state x="100" y="125" width="1240" height="624" key="DiffContextDialog" timestamp="1657719760257">
+      <screen x="0" y="25" width="1440" height="826" />
+    </state>
+    <state x="100" y="125" width="1240" height="624" key="DiffContextDialog/0.25.1440.826@0.25.1440.826" timestamp="1657719760257" />
+    <state x="229" y="73" key="SettingsEditor" timestamp="1658005307978">
+      <screen x="0" y="25" width="1440" height="826" />
+    </state>
+    <state x="229" y="73" key="SettingsEditor/0.25.1440.826@0.25.1440.826" timestamp="1658005307978" />
+    <state x="320" y="175" key="Vcs.Push.Dialog.v2" timestamp="1658666841434">
+      <screen x="0" y="25" width="1440" height="824" />
+    </state>
+    <state x="320" y="175" key="Vcs.Push.Dialog.v2/0.25.1440.824@0.25.1440.824" timestamp="1658666841434" />
+    <state x="320" y="175" key="Vcs.Push.Dialog.v2/0.25.1440.826@0.25.1440.826" timestamp="1657829248420" />
+    <state x="320" y="176" key="Vcs.Push.Dialog.v2/0.25.1440.829@0.25.1440.829" timestamp="1652628980306" />
+    <state x="86" y="25" width="1011" height="620" key="dock-window-1" timestamp="1657393952663">
+      <screen x="0" y="25" width="1440" height="824" />
+    </state>
+    <state x="86" y="25" width="1011" height="620" key="dock-window-1/0.25.1440.824@0.25.1440.824" timestamp="1657393952663" />
+    <state x="385" y="177" width="670" height="674" key="search.everywhere.popup" timestamp="1658006385659">
+      <screen x="0" y="25" width="1440" height="826" />
+    </state>
+    <state x="385" y="177" width="670" height="672" key="search.everywhere.popup/0.25.1440.824@0.25.1440.824" timestamp="1656922847401" />
+    <state x="385" y="177" width="670" height="674" key="search.everywhere.popup/0.25.1440.826@0.25.1440.826" timestamp="1658006385659" />
+    <state x="385" y="178" width="670" height="676" key="search.everywhere.popup/0.25.1440.829@0.25.1440.829" timestamp="1654547071750" />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/multicam-detection/backend/video/processor/video_processor.py</url>
+          <line>110</line>
+          <option name="timeStamp" value="2" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/models/yolov5/utils/plots.py</url>
+          <line>5</line>
+          <option name="timeStamp" value="3" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
+  </component>
+</project>

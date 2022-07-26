@@ -3,6 +3,7 @@ from enum import Enum
 from functools import partial
 
 from torch import nn
+import torch
 
 from models.layers import Conv2dAuto
 
@@ -28,7 +29,6 @@ class ResNetInputBlock(Block):
             activation(),
             nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
         )
-
 
 # Output blocks
 
@@ -195,3 +195,119 @@ class ResNetBackbone(nn.Module):
 #             results.append(prev)
 #
 #         return results
+
+
+# YOLO Blocks
+
+class YOLOConv(nn.Module):
+    def __init__(self, c1, c2, k=1, s=1, p=1, g=1, save_copy=None):
+        super().__init__()
+        self.save_copy = save_copy
+        self.layers = nn.Sequential(
+            nn.Conv2d(c1, c2, kernel_size=k, stride=s, padding=p, bias=False, groups=g),
+            nn.SiLU(inplace=True)
+        )
+
+    def forward(self, x):
+        out = self.layers(x)
+        if self.save_copy is not None:
+            self.save_copy.append(out)
+        return out
+
+class Bottleneck(nn.Module):
+    def __init__(self, c1, c2, shortcut=True, g=1, downsampling=2):
+        super().__init__()
+        h = int(c2 / downsampling)  # hidden channels
+        self.h = h
+        self.c1 = c1
+        self.cv1 = YOLOConv(c1, h, 1, 1, p=0)
+        self.cv2 = YOLOConv(h, c2, 3, 1, g=g)
+        self.layers = nn.Sequential(
+            self.cv1,
+            self.cv2
+        )
+        self.add = shortcut and c1 == c2
+
+    def forward(self, x):
+        self.add = True
+        if self.add:
+            sx = self.cv1(x)
+            sx = self.cv2(sx)
+            out = x + sx
+        else:
+            out = self.layers(x)
+        return out
+
+class CSPBottleneck(nn.Module):
+    def __init__(self, c1, c2, bottlenecks_n=1, downsampling=1, save_copy=None, pre_save=True):
+        super().__init__()
+        h = int(c2 / downsampling)
+        self.cv1 = YOLOConv(c1, h, 1, 1, p=0)
+        self.cv2 = YOLOConv(c1, h, 1, 1, p=0)
+        self.cv3 = YOLOConv(2 * h, c2, 1, p=0)
+        self.save_copy = save_copy
+        self.pre_save = pre_save
+        self.bn = bottlenecks_n
+        self.m = nn.Sequential(*(Bottleneck(h, h, downsampling=1) for _ in range(bottlenecks_n)))
+
+    def forward(self, x):
+        x1 = self.cv1(x)
+        m = self.m(x1)
+        x2 = self.cv2(x)
+        x_cat = torch.cat((m, x2), dim=1)
+        out = self.cv3(x_cat)
+        if self.save_copy is not None:
+            if self.pre_save:
+                self.save_copy.append(x)
+            else:
+                self.save_copy.append(out)
+        return out
+
+class SPP(nn.Module):
+    # Spatial Pyramid Pooling - Fast (SPPF) layer for YOLOv5 by Glenn Jocher
+    def __init__(self, c1, c2, k=5):
+        super().__init__()
+        h = c1 // 2
+        self.cv1 = YOLOConv(c1, h, 1, 1, p=0)
+        self.cv2 = YOLOConv(h * 4, c2, 1, 1, p=0)
+        self.m = nn.MaxPool2d(kernel_size=k, stride=1, padding=k//2)
+
+    def forward(self, x):
+        x1 = self.cv1(x)
+        y1 = self.m(x1)
+        y2 = self.m(y1)
+        return self.cv2(torch.cat([x1, y1, y2, self.m(y2)], 1))
+
+class YOLOLayer(Block):
+    def __init__(self, in_channels, out_channels, k=3, s=2, p=1, bottlenecks_n=3):
+        super().__init__(in_channels, out_channels)
+        # 'We perform downsampling directly by convolutional layers that have a stride of 2.'
+        downsampling = 2 if in_channels != out_channels else 1
+
+        self._block = nn.Sequential(
+            YOLOConv(in_channels, out_channels, k=k, s=s, p=p),
+            CSPBottleneck(out_channels, out_channels,
+                          bottlenecks_n=bottlenecks_n,
+                          downsampling=downsampling)
+        )
+
+class CSPDarknet(Block):
+    def __init__(self, in_channels, out_channels, in_kernel=6, in_stride=2,
+                 in_padding=2, blocks_sizes=(64, 128, 256, 512),
+                 kernels=(3, 3, 3, 3), strides=(2, 2, 2, 2),
+                 paddings=(1, 1, 1, 1), bottlenecks=(3, 6, 9, 3),
+                 block=YOLOLayer):
+        super().__init__(in_channels, out_channels)
+        c2_sizes = list(blocks_sizes[1:])
+        c2_sizes.append(out_channels)
+        self._block = nn.Sequential(
+            YOLOConv(in_channels, blocks_sizes[0], k=in_kernel, s=in_stride, p=in_padding),
+            *[block(i[0], i[1], k=i[2], s=i[3], p=i[4], bottlenecks_n=i[5])
+              for i in zip(blocks_sizes, c2_sizes, kernels, strides, paddings, bottlenecks)],
+            SPP(out_channels, out_channels)
+        )
+
+class PANet(nn.Module):
+    def __init__(self, blocks_sizes=(64, 128, 256, 512), deep=(2, 2, 2, 2),
+                 activation=nn.ReLU, block=ResNetBasicBlock, *args, **kwargs):
+        super().__init__()
