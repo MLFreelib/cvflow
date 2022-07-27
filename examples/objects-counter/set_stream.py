@@ -11,7 +11,7 @@ from components.muxer_component import SourceMuxer
 from components.handler_component import Counter, Filter
 from components.painter_component import Tiler, BBoxPainter
 from components.reader_component import CamReader, VideoReader, ReaderBase
-from components.tracker_component import CorrelationBasedTrackerComponent
+#from components.tracker_component import CorrelationBasedTrackerComponent
 
 COCO_INSTANCE_CATEGORY_NAMES = ['person', 'bicycle', 'car', 'motorcycle', 'airplane', 'bus',
                                 'train', 'truck', 'boat', 'traffic light', 'fire hydrant', 'N/A', 'stop sign',
@@ -56,13 +56,13 @@ def get_detection_model(name: str, model: torch.nn.Module, sources: List[ReaderB
     return model_det
 
 
-def get_tracker(name: str, model: torch.nn.Module, sources: List[ReaderBase],
-                classes: List[str], lines=None) -> CorrelationBasedTrackerComponent:
-    tracker = CorrelationBasedTrackerComponent(name)
-    tracker.set_labels(classes)
-    for src in sources:
-        tracker.add_source(src.get_name())
-    return tracker
+# def get_tracker(name: str, model: torch.nn.Module, sources: List[ReaderBase],
+#                 classes: List[str], lines=None) -> CorrelationBasedTrackerComponent:
+#     tracker = CorrelationBasedTrackerComponent(name)
+#     tracker.set_labels(classes)
+#     for src in sources:
+#         tracker.add_source(src.get_name())
+#     return tracker
 
 
 def get_counter(name: str, lines) -> Counter:

@@ -6,7 +6,7 @@ from torch import nn
 import torch
 
 from models.layers import Conv2dAuto
-
+from models.preprocessing import preprocess_for_YOLO
 
 class Block(nn.Module):
     def __init__(self, in_channels, out_channels):
@@ -56,6 +56,58 @@ class ClassificationOutput(OutputBlock):
         x = self.decoder(x)
         return {OutputFormat.CONFIDENCE.value: x}
 
+class YOLOHead(nn.Module):
+    def __init__(self, nc=80, anchors=(), ch=(256, 512, 1024), inplace=True):  # detection layer
+        super().__init__()
+        self.nc = nc  # number of classes
+        self.no = nc + 5  # number of outputs per anchor
+        self.nl = len(anchors)  # number of detection layers
+        self.na = len(anchors[0]) // 2  # number of anchors
+        self.grid = [torch.zeros(1)] * self.nl  # init grid
+        self.anchor_grid = [torch.zeros(1)] * self.nl  # init anchor grid
+        self.register_buffer('anchors', torch.tensor(anchors).float().view(self.nl, -1, 2))  # shape(nl,na,2)
+        self.m = nn.ModuleList(nn.Conv2d(x, self.no * self.na, 1) for x in ch)  # output conv
+        self.inplace = inplace  # use in-place ops (e.g. slice assignment)
+        self.stride = [1, 1, 1]
+
+    def forward(self, x, training=False):
+        z = []  # inference output
+        print('XSHAPE', x.shape)
+        for i in range(self.nl):
+            #x[i] = self.m[i](x[i])  # conv
+            print('XISHAPE', x[i].shape)
+            bs, _, ny, nx = x[i].shape  # x(bs,255,20,20) to x(bs,3,20,20,85)
+            x[i] = x[i].view(bs, self.na, self.no, ny, nx).permute(0, 1, 3, 4, 2).contiguous()
+
+            if not training:  # inference
+                if self.grid[i].shape[2:4] != x[i].shape[2:4]:
+                    self.grid[i], self.anchor_grid[i] = self._make_grid(nx, ny, i)
+
+                y = x[i].sigmoid()
+
+                y[..., 0:2] = (y[..., 0:2] * 2 - 0.5 + self.grid[i]) * self.stride[i]  # xy
+                y[..., 2:4] = (y[..., 2:4] * 2) ** 2 * self.anchor_grid[i]  # wh
+                z.append(y.view(bs, -1, self.no))
+
+        #with amp.autocast(enabled=autocast):
+        #    y = self.model(x, augment, profile)  # forward
+        #    y = non_max_suppression(y if self.dmb else y[0], self.conf, iou_thres=self.iou, classes=self.classes,
+        #                            agnostic=self.agnostic, multi_label=self.multi_label, max_det=self.max_det)  # NMS
+        #    for i in range(n):
+        #        scale_coords(shape1, y[i][:, :4], shape0[i])
+
+        #    t.append(time_sync())
+        #    return Detections(imgs, y, files, t, self.names, x.shape)
+
+        return x if self.training else (torch.cat(z, 1), x)
+
+    def _make_grid(self, nx=20, ny=20, i=0):
+        d = self.anchors[i].device
+        shape = 1, self.na, ny, nx, 2
+        yv, xv = torch.meshgrid(torch.arange(ny, device=d), torch.arange(nx, device=d))
+        grid = torch.stack((xv, yv), 2).expand(shape).float()
+        anchor_grid = (self.anchors[i] * self.stride[i]).view((1, self.na, 1, 1, 2)).expand(shape).float()
+        return grid, anchor_grid
 
 # ResNetBlocks
 
@@ -278,59 +330,87 @@ class SPP(nn.Module):
         y2 = self.m(y1)
         return self.cv2(torch.cat([x1, y1, y2, self.m(y2)], 1))
 
+class Concat(nn.Module):
+    def __init__(self, skip_in, dimension=1):
+        super().__init__()
+        self.skip_in = skip_in
+        self.d = dimension
+
+    def forward(self, x):
+        sx = self.skip_in.pop(-1)
+        return torch.cat((sx, x), self.d)
+
 class YOLOLayer(Block):
-    def __init__(self, in_channels, out_channels, k=3, s=2, p=1,
-                 bottlenecks_n=3, upsample=None):
+    def __init__(self, in_channels, out_channels, skip_outs, k=3, s=2, p=1,
+                 bottlenecks_n=3, upsample=None, shortcut=None, concat=False):
         super().__init__(in_channels, out_channels)
         # 'We perform downsampling directly by convolutional layers that have a stride of 2.'
         downsampling = 2 if in_channels != out_channels else 1
-        if upsample:
-            self._block = nn.Sequential(
-                YOLOConv(in_channels, out_channels, k=k, s=s, p=p),
-                nn.Upsample(scale_factor=upsample, mode='nearest'),
-                CSPBottleneck(out_channels,
-                              out_channels,
-                              bottlenecks_n=bottlenecks_n,
-                              downsampling=downsampling)
-            )
+        layers = []
+        conv = YOLOConv(in_channels, out_channels, k=k, s=s, p=p)
+        if not shortcut:
+            layers.append(conv)
         else:
-            self._block = nn.Sequential(
-                YOLOConv(in_channels, out_channels, k=k, s=s, p=p),
-                CSPBottleneck(out_channels,
+            self.conv = conv
+        if upsample:
+            layers.append(nn.Upsample(scale_factor=upsample, mode='nearest'))
+        if concat:
+            layers.append(Concat(skip_outs[shortcut]))
+        self.shortcut = shortcut
+        self.skip_outs = skip_outs
+        layers.append(CSPBottleneck(out_channels,
                               out_channels,
                               bottlenecks_n=bottlenecks_n,
-                              downsampling=downsampling)
-            )
+                              downsampling=downsampling))
+        self._block = nn.Sequential(*layers)
+
+    def forward(self, x):
+        if self.shortcut:
+            x = self.conv(x)
+            self.skip_outs[self.shortcut] = x
+        return self._block(x)
 
 class CSPDarknet(Block):
     def __init__(self, in_channels, out_channels, in_kernel=6, in_stride=2,
                  in_padding=2, blocks_sizes=(64, 128, 256, 512),
                  kernels=(3, 3, 3, 3), strides=(2, 2, 2, 2),
                  paddings=(1, 1, 1, 1), bottlenecks=(3, 6, 9, 3),
+                 shortcuts=(None, (3, 0), (2, 0), None),
                  block=YOLOLayer):
         super().__init__(in_channels, out_channels)
+        self.skip_outs = {}
         c2_sizes = list(blocks_sizes[1:])
         c2_sizes.append(out_channels)
         self._block = nn.Sequential(
             YOLOConv(in_channels, blocks_sizes[0], k=in_kernel, s=in_stride, p=in_padding),
-            *[block(i[0], i[1], k=i[2], s=i[3], p=i[4], bottlenecks_n=i[5])
-              for i in zip(blocks_sizes, c2_sizes, kernels, strides, paddings, bottlenecks)],
+            *[YOLOLayer(i[0], i[1], self.skip_outs, k=i[2], s=i[3], p=i[4], bottlenecks_n=i[5], shortcut=i[6])
+              for i in zip(blocks_sizes, c2_sizes, kernels, strides, paddings, bottlenecks, shortcuts)],
             SPP(out_channels, out_channels)
+        )
+
+    def forward(self, x):
+        preprocess_for_YOLO(x, [1, 1, 1])
+        return self._block(x)
+
+class PANet(Block):
+    def __init__(self, in_channels, out_channels, backbone,
+                 blocks_sizes=(512, 256, 256),
+                 kernels=(3, 3, 3, 3), strides=(2, 2, 2, 2),
+                 paddings=(1, 1, 1, 1), bottlenecks=(3, 6, 9, 3),
+                 upsamplings=(2, 2, None, None),  block=YOLOLayer,
+                 shortcuts=((3, 0), (2, 0), (1, 0), (0, 0))):
+        super().__init__(in_channels, out_channels)
+        c1_sizes = [in_channels, *blocks_sizes]
+        c2_sizes = list(blocks_sizes[:])
+        c2_sizes.append(out_channels)
+        self.skip_outs = backbone.skip_outs
+        self._block = nn.Sequential(
+            *[YOLOLayer(i[0], i[1], self.skip_outs, k=i[2], s=i[3], p=i[4],
+                        bottlenecks_n=i[5], upsample=i[6], shortcut=i[7])
+              for i in zip(c1_sizes, c2_sizes, kernels, strides, paddings,
+                           bottlenecks, upsamplings, shortcuts)],
         )
 
     def forward(self, x):
         return self._block(x)
 
-class PANet(Block):
-    def __init__(self, in_channels, out_channels, blocks_sizes=(512, 256, 256),
-                 kernels=(3, 3, 3, 3), strides=(2, 2, 2, 2),
-                 paddings=(1, 1, 1, 1), bottlenecks=(3, 6, 9, 3),
-                 upsamplings=(2, 2, None, None), block=YOLOLayer):
-        super().__init__(in_channels, out_channels)
-        c1_sizes = [in_channels, *blocks_sizes]
-        c2_sizes = list(blocks_sizes[:])
-        c2_sizes.append(out_channels)
-        self._block = nn.Sequential(
-            *[block(i[0], i[1], k=i[2], s=i[3], p=i[4], bottlenecks_n=i[5], upsample=i[6])
-              for i in zip(c1_sizes, c2_sizes, kernels, strides, paddings, bottlenecks, upsamplings)],
-        )

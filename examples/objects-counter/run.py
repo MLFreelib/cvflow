@@ -53,10 +53,10 @@ lines = []
 for line in lines_list:
     lines.append((line['points'][0], line['points'][1], line['color'], line['thickness']))
 
-tracker = get_tracker('tracking', correlation_tracker(), sources=readers, classes=COCO_INSTANCE_CATEGORY_NAMES, lines=lines)
+#tracker = get_tracker('tracking', correlation_tracker(), sources=readers, classes=COCO_INSTANCE_CATEGORY_NAMES, lines=lines)
 line = [lines[0][0][0], lines[0][0][1], lines[0][1][0], lines[0][1][1]]
 counter = get_counter('counter', lines)
-bbox_painter = BBoxPainter('bboxer', font_path=args['font'])
+bbox_painter = BBoxPainter('bboxer')
 
 tiler = get_tiler('tiler', tiler_size=(2, 2), frame_size=(1440, 2160))
 

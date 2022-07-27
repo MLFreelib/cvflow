@@ -32,8 +32,13 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="923dc110-0930-408b-832c-a103e981f341" name="Default Changelist" comment="">
+      <change afterPath="$PROJECT_DIR$/models/preprocessing.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examples/objects-counter/run.py" beforeDir="false" afterPath="$PROJECT_DIR$/examples/objects-counter/run.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examples/objects-counter/set_stream.py" beforeDir="false" afterPath="$PROJECT_DIR$/examples/objects-counter/set_stream.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examples/objects-counter/yolo_wrapper.py" beforeDir="false" afterPath="$PROJECT_DIR$/examples/objects-counter/yolo_wrapper.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/models/blocks.py" beforeDir="false" afterPath="$PROJECT_DIR$/models/blocks.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/models/models.py" beforeDir="false" afterPath="$PROJECT_DIR$/models/models.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />

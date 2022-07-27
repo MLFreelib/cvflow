@@ -1,7 +1,7 @@
 import torch
 #from vehicles_classifier import SuperModel, classes
 from yolov5.models.common import DetectMultiBackend, AutoShape
-
+from models.models import yolo
 class YOLO(torch.nn.Module):
     def __init__(self, clf_spec=None):
         super().__init__()
@@ -22,13 +22,16 @@ class YOLO(torch.nn.Module):
             self.cls_model = None
         #self.model = torch.hub.load('ultralytics/yolov5', 'yolov5l', pretrained=True)
         dmb = DetectMultiBackend(weights='yolov5l.pt', device='cpu')
-        self.model = AutoShape(dmb)
+        #self.model = AutoShape(dmb)
+        self.model = yolo()
         self.boxes = []
 
     def forward(self, x):
         #nx = x.cpu().detach().numpy() * 255
         #res = self.model(nx[0]).xyxy[0]
-        res = self.model(x).xyxy[0]
+        #res = self.model(x).xyxy[0]
+        res = self.model(x)
+        print(res)
         res[..., :4] = res[..., :4].int()
         self.boxes = res[..., :4]
         if self.cls_model:
