@@ -71,8 +71,9 @@ def yolo(in_channels=3):
     anchors = ((10, 13, 16, 30, 33, 23),
                     (30, 61, 62, 45, 59, 119),
                     (116, 90, 156, 198, 373, 326))
+    input_block = CSPDarknet(in_channels, 1024)
     return ModelBuilder(
-        input_block=CSPDarknet(in_channels, 1024),
-        backbone=PANet(1024, 512),
+        input_block=input_block,
+        backbone=PANet(1024, 512, input_block),
         output_block=YOLOHead(anchors=anchors)
     )

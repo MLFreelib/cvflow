@@ -252,9 +252,9 @@ class ResNetBackbone(nn.Module):
 # YOLO Blocks
 
 class YOLOConv(nn.Module):
-    def __init__(self, c1, c2, k=1, s=1, p=1, g=1, save_copy=None):
+    def __init__(self, c1, c2, k=1, s=1, p=1, g=1, copy=None):
         super().__init__()
-        self.save_copy = save_copy
+        self.copy = copy
         self.layers = nn.Sequential(
             nn.Conv2d(c1, c2, kernel_size=k, stride=s, padding=p, bias=False, groups=g),
             nn.SiLU(inplace=True)
@@ -262,8 +262,6 @@ class YOLOConv(nn.Module):
 
     def forward(self, x):
         out = self.layers(x)
-        if self.save_copy is not None:
-            self.save_copy.append(out)
         return out
 
 class Bottleneck(nn.Module):
@@ -331,32 +329,33 @@ class SPP(nn.Module):
         return self.cv2(torch.cat([x1, y1, y2, self.m(y2)], 1))
 
 class Concat(nn.Module):
-    def __init__(self, skip_in, dimension=1):
+    def __init__(self, shortcut, skip_outs, dimension=1):
         super().__init__()
-        self.skip_in = skip_in
+        self.shortcut = shortcut
+        self.skip_outs = skip_outs
         self.d = dimension
 
     def forward(self, x):
-        sx = self.skip_in.pop(-1)
-        return torch.cat((sx, x), self.d)
+        return torch.cat((self.skip_outs[self.shortcut], x), self.d)
 
 class YOLOLayer(Block):
     def __init__(self, in_channels, out_channels, skip_outs, k=3, s=2, p=1,
-                 bottlenecks_n=3, upsample=None, shortcut=None, concat=False):
+                 bottlenecks_n=3, upsample=None, shortcut=None, concat=False, out=None):
         super().__init__(in_channels, out_channels)
         # 'We perform downsampling directly by convolutional layers that have a stride of 2.'
         downsampling = 2 if in_channels != out_channels else 1
         layers = []
         conv = YOLOConv(in_channels, out_channels, k=k, s=s, p=p)
-        if not shortcut:
-            layers.append(conv)
-        else:
+        if shortcut and shortcut[1] == 0:
             self.conv = conv
+        else:
+            layers.append(conv)
         if upsample:
             layers.append(nn.Upsample(scale_factor=upsample, mode='nearest'))
         if concat:
-            layers.append(Concat(skip_outs[shortcut]))
+            layers.append(Concat(concat, skip_outs))
         self.shortcut = shortcut
+        self.out = out
         self.skip_outs = skip_outs
         layers.append(CSPBottleneck(out_channels,
                               out_channels,
@@ -368,14 +367,17 @@ class YOLOLayer(Block):
         if self.shortcut:
             x = self.conv(x)
             self.skip_outs[self.shortcut] = x
-        return self._block(x)
+        res = self._block(x)
+        if self.out is not None:
+            self.out.append(res)
+        return res
 
 class CSPDarknet(Block):
     def __init__(self, in_channels, out_channels, in_kernel=6, in_stride=2,
                  in_padding=2, blocks_sizes=(64, 128, 256, 512),
                  kernels=(3, 3, 3, 3), strides=(2, 2, 2, 2),
                  paddings=(1, 1, 1, 1), bottlenecks=(3, 6, 9, 3),
-                 shortcuts=(None, (3, 0), (2, 0), None),
+                 shortcuts=(None, (2, 0), (3, 0), None),
                  block=YOLOLayer):
         super().__init__(in_channels, out_channels)
         self.skip_outs = {}
@@ -392,24 +394,34 @@ class CSPDarknet(Block):
         preprocess_for_YOLO(x, [1, 1, 1])
         return self._block(x)
 
+
 class PANet(Block):
     def __init__(self, in_channels, out_channels, backbone,
                  blocks_sizes=(512, 256, 256),
-                 kernels=(3, 3, 3, 3), strides=(2, 2, 2, 2),
-                 paddings=(1, 1, 1, 1), bottlenecks=(3, 6, 9, 3),
-                 upsamplings=(2, 2, None, None),  block=YOLOLayer,
-                 shortcuts=((3, 0), (2, 0), (1, 0), (0, 0))):
+                 kernels=(1, 1, 3, 3), strides=(1, 1, 2, 2),
+                 paddings=(0, 0, 1, 1), bottlenecks=(3, 6, 9, 3),
+                 upsamplings=(2, 2, None, None), block=YOLOLayer,
+                 shortcuts=((1, 0), (0, 0), None, None),
+                 concats=((3, 0), (2, 0), (1, 0), (0, 0)),
+                 outs=(True, True, True, True)):
         super().__init__(in_channels, out_channels)
         c1_sizes = [in_channels, *blocks_sizes]
         c2_sizes = list(blocks_sizes[:])
         c2_sizes.append(out_channels)
+        self.shortcuts = shortcuts
         self.skip_outs = backbone.skip_outs
+        self.out = []
         self._block = nn.Sequential(
             *[YOLOLayer(i[0], i[1], self.skip_outs, k=i[2], s=i[3], p=i[4],
-                        bottlenecks_n=i[5], upsample=i[6], shortcut=i[7])
+                        bottlenecks_n=i[5], upsample=i[6], shortcut=i[7],
+                        concat=i[8], out=(self.out if i[9] else None))
               for i in zip(c1_sizes, c2_sizes, kernels, strides, paddings,
-                           bottlenecks, upsamplings, shortcuts)],
+                           bottlenecks, upsamplings, shortcuts, concats, outs)],
         )
+
+    def forward(self, x):
+        self._block(x)
+        return self.out
 
     def forward(self, x):
         return self._block(x)
