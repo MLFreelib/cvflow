@@ -51,7 +51,7 @@ class BBoxPainterTest(unittest.TestCase):
         self.meta_batch.set_source_names(['test_src'])
 
     def test_do_check_draw_bboxes(self):
-        bbox_painter = BBoxPainter('painter', os.path.join(os.path.dirname(__file__), '..', 'fonts', 'OpenSans-VariableFont_wdth,wght.ttf'))
+        bbox_painter = BBoxPainter('painter')
         self.meta_batch = bbox_painter.do(self.meta_batch)
         frames_dif = self.meta_batch.get_meta_frames_by_src_name('test_src')[0].get_frame() - self.frame
         self.assertTrue(torch.sum(frames_dif) != 0)

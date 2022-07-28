@@ -1,3 +1,6 @@
+import sys
+sys.path.append('../cvflow')
+
 from typing import Union, List
 
 import torch

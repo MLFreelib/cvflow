@@ -11,7 +11,7 @@ from components.model_component import ModelClassification
 from components.muxer_component import SourceMuxer
 from components.outer_component import DisplayComponent, FileWriterComponent
 from components.painter_component import Tiler, LabelPainter
-from components.reader_component import CamReader, VideoReader, ReaderBase, ImageReader
+from components.reader_component import CamReader, VideoReader, ReaderBase
 
 from pipeline import Pipeline
 
@@ -59,7 +59,6 @@ if __name__ == '__main__':
     model = torchvision.models.resnet18(pretrained=True)
     labels = get_labels('ImageNetClasses.csv')
     pipeline = Pipeline()
-
     readers = []
     usb_srcs = get_cam_srcs()
     for usb_src in usb_srcs:
@@ -69,16 +68,11 @@ if __name__ == '__main__':
     for file_srcs in file_srcs:
         readers.append(get_videofile_reader(file_srcs, file_srcs))
 
-    image_reader1 = ImageReader('E:\PyCharmProjects\cvflow\\tests\\test_data\zebra.jpg', 'zebra1')
-    image_reader2 = ImageReader('E:\PyCharmProjects\cvflow\\tests\\test_data\zebra.jpg', 'zebra2')
-
-    readers.append(image_reader1)
-    readers.append(image_reader2)
     muxer = get_muxer(readers)
     model_class = get_classification_model('classification', model, sources=readers, classes=list(labels.values))
 
     model_class.set_transforms([torchvision.transforms.Resize((240, 360))])
-    model_class.set_source_names(['zebra2'])
+    model_class.set_source_names([reader.get_name() for reader in readers])
     label_painter = LabelPainter('lblpainter')
     label_painter.set_org((5, 20))
     label_painter.set_thickness(1)

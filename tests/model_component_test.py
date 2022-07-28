@@ -132,12 +132,12 @@ class ModelDepthTest(unittest.TestCase):
         self.msn2d.eval()
         self.model = ModelDepth('depht_test', self.msn2d)
         self.model.set_device('cpu')
-
+        stereo_imgs = ['Right', 'Left']
         meta_batch = MetaBatch('test_batch')
         for i in range(2):
             src_name = f'test_frame{i}'
             self.model.add_source(src_name)
-            frame = cv2.imread(filename=os.path.join(os.path.dirname(__file__), 'test_data', f'stereo{i}.png'))
+            frame = cv2.imread(filename=os.path.join(os.path.dirname(__file__), 'test_data', f'stereo{stereo_imgs[i]}.png'))
             frame = cv2.resize(frame, (512, 960))
             meta_frame = _to_meta_frame(frame=frame, src_name=src_name)
             meta_batch.add_meta_frame(meta_frame)

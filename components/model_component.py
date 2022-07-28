@@ -5,6 +5,8 @@ import torch
 
 from Meta import MetaBatch, MetaLabel, MetaBBox, MetaMask, MetaDepth
 from components.component_base import ComponentBase
+from models.blocks import OutputFormat
+import gc
 
 
 def _to_tensor(src_data: List[torch.tensor]):
@@ -104,7 +106,6 @@ class ModelBase(ComponentBase):
         super().__init__(name)
         self.__transforms = list()
         self._inference: torch.nn.Module = model
-        self._inference.eval()
         self._confidence = 0.8
         self.__label_names = None
 
@@ -116,10 +117,18 @@ class ModelBase(ComponentBase):
             self._confidence = 1
         elif conf < 0:
             self._confidence = 0
+        else:
+            self._confidence = conf
 
     def start(self):
         r""" Specifies the device on which the model will be executed. """
-        self._inference.to(device=self.get_device())
+        self._inference.to(device=torch.device(self.get_device()))
+        self._inference.eval()
+
+    def stop(self):
+        del self._inference
+        gc.collect()
+        torch.cuda.empty_cache()
 
     def set_transforms(self, tensor_transforms: list):
         r""" Method of setting transformations for frames that are passed to the model.
@@ -196,6 +205,7 @@ class ModelDetection(ModelBase):
                              transform=self._transform)
 
         batch, src_size = _to_tensor(src_data)
+
         with torch.no_grad():
             preds = self._inference(batch)
 
@@ -206,6 +216,7 @@ class ModelDetection(ModelBase):
             self.__to_meta(data=data, preds=preds[i_point: i_point + src_size[i_src_name]], shape=shape,
                            src_name=src_name)
             i_point += src_size[i_src_name]
+
 
         return data
 
@@ -224,7 +235,7 @@ class ModelDetection(ModelBase):
             if np.any(true_conf):
                 conf = conf[true_conf]
                 boxes = boxes[true_conf]
-                label_names = [self.get_labels()[ind] for ind in labels[true_conf]]
+                label_names = [self.get_labels()[int(ind)] for ind in labels[true_conf]]
 
                 self.__bbox_normalize(boxes, shape)
                 meta_frame = data.get_meta_frames_by_src_name(src_name)[i]
@@ -270,7 +281,8 @@ class ModelClassification(ModelBase):
 
         with torch.no_grad():
             probabilities = self._inference(batch)
-        probabilities = torch.nn.functional.softmax(probabilities, dim=1)
+        probabilities = torch.nn.functional.softmax(probabilities[OutputFormat.CONFIDENCE.value]
+                                                    if isinstance(probabilities, dict) else probabilities, dim=1)
 
         prob_i = 0
         for i_src_name in range(len(self._source_names)):
@@ -314,15 +326,13 @@ class ModelSegmentation(ModelBase):
             output = self._inference(batch)['out']
 
         normalized_masks = torch.nn.functional.softmax(output, dim=1)
-        normalized_masks[normalized_masks < self._confidence] = 0
-
         prob_i = 0
         for i_src_name in range(len(self._source_names)):
             for i in range(src_size[i_src_name]):
                 meta_frame = data.get_meta_frames_by_src_name(self._source_names[i_src_name])[i]
                 normalized_mask = normalized_masks[prob_i]
                 mask = torch.zeros(normalized_mask.shape, dtype=torch.bool, device=self.get_device())
-                mask[normalized_mask > self._confidence] = True
+                mask[normalized_mask >= self._confidence] = True
                 mask = mask[None, :]
                 meta_mask = MetaMask(mask, MetaLabel(self.get_labels(), normalized_mask))
                 meta_frame.set_mask_info(meta_mask)

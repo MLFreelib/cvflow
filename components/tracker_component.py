@@ -2,12 +2,10 @@ from typing import List
 
 from Meta import MetaBatch, MetaLabel, MetaBBox
 from components.component_base import ComponentBase
-#from tracker import Tracker
 from dlib import correlation_tracker
 import numpy as np
 import dlib
 import torch
-import cv2
 
 
 class TrackerBase(ComponentBase):
@@ -27,7 +25,6 @@ class TrackerBase(ComponentBase):
 
     def start(self):
         pass
-        # self._inference.to(device=self.get_device())
 
     def set_transforms(self, tensor_transforms: list):
         self.__transforms = tensor_transforms
@@ -50,9 +47,8 @@ class ManualROICorrelationBasedTracker(TrackerBase):
 
     def __init__(self, name: str, boxes):
         super().__init__(name)
-        # self.tracker = Tracker()
         self.tracker = correlation_tracker()
-        self.trackers = []
+        self.trackers = {}
         self.ids = []
         self.boxes = boxes
         self.start_bb_not_set = True
@@ -72,29 +68,33 @@ class ManualROICorrelationBasedTracker(TrackerBase):
         return bboxes
 
     def do(self, data: MetaBatch) -> MetaBatch:
-        print('DO')
+
         if self.start_bb_not_set:
             self.set_trackers(data)
+
         for src_name in data.get_source_names():
             meta_frames = data.get_meta_frames_by_src_name(src_name)
-            shape = data.get_frames_by_src_name(src_name).shape
             for meta_frame in meta_frames:
                 boxes = []
                 frame = meta_frame.get_frame().clone().cpu()
                 frame *= 255
                 frame = torch.permute(frame, (1, 2, 0))
                 frame = np.array(frame, dtype=np.uint8)
-                for tracker in self.trackers:
+                for box_id in self.trackers[src_name]:
+                    tracker = self.trackers[src_name][box_id]
                     tracker['tracker'].update(frame)
                     pos = tracker['tracker'].get_position()
                     box = [pos.left(), pos.top(), pos.right(), pos.bottom()]
                     boxes.append(box)
+
                 boxes = self.__bbox_normalize(torch.tensor(boxes), shape)
                 labels = ['object'] * len(self.ids)
                 scores = [1] * len(self.ids)
                 meta_labels = MetaLabel(labels, scores)
                 meta_box = MetaBBox(boxes, meta_labels)
+
                 meta_frame.set_bbox_info(meta_box)
+                self.ids = [i for i in range(len(self.boxes))]
                 meta_frame.get_bbox_info().get_label_info().set_object_id(self.ids)
                 meta_bbox = meta_frame.get_bbox_info()
                 meta_label = meta_bbox.get_label_info()
@@ -132,3 +132,4 @@ class ManualROICorrelationBasedTracker(TrackerBase):
         first_frame.set_bbox_info(meta_box)
         first_frame.get_bbox_info().get_label_info().set_object_id(self.ids)
         self.start_bb_not_set = False
+
