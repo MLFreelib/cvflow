@@ -22,3 +22,17 @@ python3 [script name] --videofile {file_path},{file_path} --font ../fonts/OpenSa
 * --fsize <H, W> - the resolution of the image to output.   
 * -d or --device <device_type> - The device on which the conveyor will work. Available: cpu, cuda.
 * -l or --line - coordinates of the line intersecting the objects to be counted.
+
+
+### Stereo distance tracker example
+
+#### Creating ROI-bounding boxes
+1. Run giu/roi_getter.py with parameters: -n to set number of objects and -f to set filepath.
+2. Press 'd' to skip 10 frames
+3. Press 's' to start selection
+4. Press 'n' to add each bbox. When you will select n objects, conf.txt  will be written automatically.
+
+#### Running
+5. Download the [weights](https://drive.google.com/file/d/1FM7rTKbpYWQ1-QUzQoMPWSRDEn_LBx6l/view?usp=sharing) and put it to tests/test_data folder.
+6. Run stereo_example.py for demonstration. You can use data from tests/test_data for example.
+NB! Model works only with cuda. Please provide at least two data sources. 
