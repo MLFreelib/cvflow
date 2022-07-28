@@ -26,14 +26,14 @@
       <path>
         <item name="ROOT" type="e8cecc67:BranchNodeDescriptor" />
         <item name="LOCAL_ROOT" type="e8cecc67:BranchNodeDescriptor" />
-        <item name="BRANCH:objects-counter" type="e8cecc67:BranchNodeDescriptor" />
+        <item name="BRANCH:yolo" type="e8cecc67:BranchNodeDescriptor" />
       </path>
     </select>
   </component>
   <component name="ChangeListManager">
     <list default="true" id="923dc110-0930-408b-832c-a103e981f341" name="Default Changelist" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/models/blocks.py" beforeDir="false" afterPath="$PROJECT_DIR$/models/blocks.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/models/plates_model.py" beforeDir="false" afterPath="$PROJECT_DIR$/models/plates_model.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -120,7 +120,7 @@
                   <entry key="branch">
                     <value>
                       <list>
-                        <option value="objects-counter" />
+                        <option value="yolo" />
                       </list>
                     </value>
                   </entry>
@@ -158,6 +158,10 @@
       <screen x="0" y="25" width="1440" height="826" />
     </state>
     <state x="229" y="73" key="SettingsEditor/0.25.1440.826@0.25.1440.826" timestamp="1658005307978" />
+    <state x="572" y="354" key="VCS.ChangelistChooser" timestamp="1659036284202">
+      <screen x="0" y="25" width="1440" height="824" />
+    </state>
+    <state x="572" y="354" key="VCS.ChangelistChooser/0.25.1440.824@0.25.1440.824" timestamp="1659036284202" />
     <state x="320" y="175" key="Vcs.Push.Dialog.v2" timestamp="1658666841434">
       <screen x="0" y="25" width="1440" height="824" />
     </state>
