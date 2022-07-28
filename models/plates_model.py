@@ -7,7 +7,7 @@ import numpy as np
 from torchvision.transforms.functional import crop, resize, rgb_to_grayscale
 import sys
 print(sys.path)
-from yolov5.models.common import DetectMultiBackend, AutoShape
+from models.yolov5.models.common import DetectMultiBackend, AutoShape
 
 CHARS = '0123456789АВЕКМНОРСТУХ'
 CHAR2LABEL = {char: i + 1 for i, char in enumerate(CHARS)}
