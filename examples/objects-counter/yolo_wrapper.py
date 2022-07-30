@@ -31,7 +31,7 @@ class YOLO(torch.nn.Module):
         #res = self.model(nx[0]).xyxy[0]
         #res = self.model(x).xyxy[0]
         res = self.model(x)
-        print(res)
+        print(res[0].shape)
         res[..., :4] = res[..., :4].int()
         self.boxes = res[..., :4]
         if self.cls_model:

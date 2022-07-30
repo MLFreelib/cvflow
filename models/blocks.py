@@ -56,6 +56,8 @@ class ClassificationOutput(OutputBlock):
         x = self.decoder(x)
         return {OutputFormat.CONFIDENCE.value: x}
 
+from torch.cuda import amp
+
 class YOLOHead(nn.Module):
     def __init__(self, nc=80, anchors=(), ch=(256, 512, 1024), inplace=True):  # detection layer
         super().__init__()
@@ -69,13 +71,12 @@ class YOLOHead(nn.Module):
         self.m = nn.ModuleList(nn.Conv2d(x, self.no * self.na, 1) for x in ch)  # output conv
         self.inplace = inplace  # use in-place ops (e.g. slice assignment)
         self.stride = [1, 1, 1]
+        self.training = False
 
     def forward(self, x, training=False):
         z = []  # inference output
-        print('XSHAPE', x.shape)
         for i in range(self.nl):
-            #x[i] = self.m[i](x[i])  # conv
-            print('XISHAPE', x[i].shape)
+            x[i] = self.m[i](x[i])  # conv
             bs, _, ny, nx = x[i].shape  # x(bs,255,20,20) to x(bs,3,20,20,85)
             x[i] = x[i].view(bs, self.na, self.no, ny, nx).permute(0, 1, 3, 4, 2).contiguous()
 
@@ -88,18 +89,11 @@ class YOLOHead(nn.Module):
                 y[..., 0:2] = (y[..., 0:2] * 2 - 0.5 + self.grid[i]) * self.stride[i]  # xy
                 y[..., 2:4] = (y[..., 2:4] * 2) ** 2 * self.anchor_grid[i]  # wh
                 z.append(y.view(bs, -1, self.no))
-
-        #with amp.autocast(enabled=autocast):
-        #    y = self.model(x, augment, profile)  # forward
-        #    y = non_max_suppression(y if self.dmb else y[0], self.conf, iou_thres=self.iou, classes=self.classes,
-        #                            agnostic=self.agnostic, multi_label=self.multi_label, max_det=self.max_det)  # NMS
-        #    for i in range(n):
-        #        scale_coords(shape1, y[i][:, :4], shape0[i])
-
-        #    t.append(time_sync())
-        #    return Detections(imgs, y, files, t, self.names, x.shape)
-
-        return x if self.training else (torch.cat(z, 1), x)
+        if training:
+            out = x
+        else:
+            out = (torch.cat(z, 1), x)
+        return out
 
     def _make_grid(self, nx=20, ny=20, i=0):
         d = self.anchors[i].device
@@ -251,10 +245,10 @@ class ResNetBackbone(nn.Module):
 
 # YOLO Blocks
 
-class YOLOConv(nn.Module):
-    def __init__(self, c1, c2, k=1, s=1, p=1, g=1, copy=None):
+class Conv(nn.Module):
+    def __init__(self, c1, c2, k=1, s=1, p=1, g=1, save_copy=None):
         super().__init__()
-        self.copy = copy
+        self.save_copy = save_copy
         self.layers = nn.Sequential(
             nn.Conv2d(c1, c2, kernel_size=k, stride=s, padding=p, bias=False, groups=g),
             nn.SiLU(inplace=True)
@@ -262,16 +256,35 @@ class YOLOConv(nn.Module):
 
     def forward(self, x):
         out = self.layers(x)
+        if self.save_copy is not None:
+            self.save_copy.append(out)
         return out
 
-class Bottleneck(nn.Module):
-    def __init__(self, c1, c2, shortcut=True, g=1, downsampling=2):
+class YOLOConv(nn.Module):
+    def __init__(self, c1, c2, k=1, s=1, p=1, g=1, shortcut=None, outs=None):
         super().__init__()
-        h = int(c2 / downsampling)  # hidden channels
+        self.shortcut = shortcut
+        self.outs = outs
+        self.layers = nn.Sequential(
+            nn.Conv2d(c1, c2, kernel_size=k, stride=s, padding=p, bias=False, groups=g),
+            nn.SiLU(inplace=True)
+        )
+
+    def forward(self, x):
+        out = self.layers(x)
+        if self.shortcut:
+            self.outs[self.shortcut] = out
+        return out
+
+
+class Bottleneck(nn.Module):
+    def __init__(self, c1, c2, shortcut=True, g=1, e=0.5):
+        super().__init__()
+        h = int(c2 * e)  # hidden channels
         self.h = h
         self.c1 = c1
-        self.cv1 = YOLOConv(c1, h, 1, 1, p=0)
-        self.cv2 = YOLOConv(h, c2, 3, 1, g=g)
+        self.cv1 = Conv(c1, h, 1, 1, p=0)
+        self.cv2 = Conv(h, c2, 3, 1, g=g)
         self.layers = nn.Sequential(
             self.cv1,
             self.cv2
@@ -288,17 +301,18 @@ class Bottleneck(nn.Module):
             out = self.layers(x)
         return out
 
+
 class CSPBottleneck(nn.Module):
-    def __init__(self, c1, c2, bottlenecks_n=1, downsampling=1, save_copy=None, pre_save=True):
+    def __init__(self, c1, c2, bottlenecks_n=1, e=1, save_copy=None, pre_save=True):
         super().__init__()
-        h = int(c2 / downsampling)
-        self.cv1 = YOLOConv(c1, h, 1, 1, p=0)
-        self.cv2 = YOLOConv(c1, h, 1, 1, p=0)
-        self.cv3 = YOLOConv(2 * h, c2, 1, p=0)
+        h = int(c2 * e)
+        self.cv1 = Conv(c1, h, 1, 1, p=0)
+        self.cv2 = Conv(c1, h, 1, 1, p=0)
+        self.cv3 = Conv(2 * h, c2, 1, p=0)
         self.save_copy = save_copy
         self.pre_save = pre_save
         self.bn = bottlenecks_n
-        self.m = nn.Sequential(*(Bottleneck(h, h, downsampling=1) for _ in range(bottlenecks_n)))
+        self.m = nn.Sequential(*(Bottleneck(h, h, e=1) for _ in range(bottlenecks_n)))
 
     def forward(self, x):
         x1 = self.cv1(x)
@@ -318,8 +332,8 @@ class SPP(nn.Module):
     def __init__(self, c1, c2, k=5):
         super().__init__()
         h = c1 // 2
-        self.cv1 = YOLOConv(c1, h, 1, 1, p=0)
-        self.cv2 = YOLOConv(h * 4, c2, 1, 1, p=0)
+        self.cv1 = Conv(c1, h, 1, 1, p=0)
+        self.cv2 = Conv(h * 4, c2, 1, 1, p=0)
         self.m = nn.MaxPool2d(kernel_size=k, stride=1, padding=k//2)
 
     def forward(self, x):
@@ -360,7 +374,7 @@ class YOLOLayer(Block):
         layers.append(CSPBottleneck(out_channels,
                               out_channels,
                               bottlenecks_n=bottlenecks_n,
-                              downsampling=downsampling))
+                              e=1/downsampling))
         self._block = nn.Sequential(*layers)
 
     def forward(self, x):
@@ -384,45 +398,58 @@ class CSPDarknet(Block):
         c2_sizes = list(blocks_sizes[1:])
         c2_sizes.append(out_channels)
         self._block = nn.Sequential(
-            YOLOConv(in_channels, blocks_sizes[0], k=in_kernel, s=in_stride, p=in_padding),
+            Conv(in_channels, blocks_sizes[0], k=in_kernel, s=in_stride, p=in_padding),
             *[YOLOLayer(i[0], i[1], self.skip_outs, k=i[2], s=i[3], p=i[4], bottlenecks_n=i[5], shortcut=i[6])
               for i in zip(blocks_sizes, c2_sizes, kernels, strides, paddings, bottlenecks, shortcuts)],
             SPP(out_channels, out_channels)
-        )
+        )      
 
     def forward(self, x):
-        preprocess_for_YOLO(x, [1, 1, 1])
+        x = preprocess_for_YOLO(x, [1, 1, 1])
         return self._block(x)
 
 
 class PANet(Block):
-    def __init__(self, in_channels, out_channels, backbone,
-                 blocks_sizes=(512, 256, 256),
-                 kernels=(1, 1, 3, 3), strides=(1, 1, 2, 2),
-                 paddings=(0, 0, 1, 1), bottlenecks=(3, 6, 9, 3),
-                 upsamplings=(2, 2, None, None), block=YOLOLayer,
-                 shortcuts=((1, 0), (0, 0), None, None),
-                 concats=((3, 0), (2, 0), (1, 0), (0, 0)),
-                 outs=(True, True, True, True)):
+    def __init__(self, in_channels, out_channels, backbone):
         super().__init__(in_channels, out_channels)
-        c1_sizes = [in_channels, *blocks_sizes]
-        c2_sizes = list(blocks_sizes[:])
-        c2_sizes.append(out_channels)
-        self.shortcuts = shortcuts
-        self.skip_outs = backbone.skip_outs
-        self.out = []
+        self.outs = backbone.skip_outs
+        self.bn_outs = []
+        conv_ins = [(in_channels, in_channels // 2),
+                    (in_channels // 2, in_channels // 4),
+                    (in_channels // 4, in_channels // 4),
+                    (in_channels // 2, in_channels // 2)]
+        bn_ins = [(in_channels, in_channels // 2),
+                  (in_channels // 2, in_channels // 4),
+                  (in_channels // 2, in_channels // 2),
+                  (in_channels, in_channels)]
+        self.conv1 = YOLOConv(conv_ins[0][0], conv_ins[0][1], p=0, shortcut=(1, 0), outs=self.outs)
+        self.upsample1 = nn.Upsample(scale_factor=2, mode='nearest')
+        self.bnc31 = CSPBottleneck(bn_ins[0][0], bn_ins[0][1], e=0.5, bottlenecks_n=3)
+        self.conv2 = YOLOConv(conv_ins[1][0], conv_ins[1][1], p=0, shortcut=(4, 0), outs=self.outs)
+        self.upsample2 = nn.Upsample(scale_factor=2, mode='nearest')
+        self.bnc32 = CSPBottleneck(bn_ins[1][0], bn_ins[1][1], e=0.5, bottlenecks_n=3, save_copy=self.bn_outs, pre_save=False)
+        self.conv3 = YOLOConv(conv_ins[2][0], conv_ins[2][1], k=3, s=2, p=1)
+        self.bnc33 = CSPBottleneck(bn_ins[2][0], bn_ins[2][1], e=0.5, bottlenecks_n=3, save_copy=self.bn_outs, pre_save=False)
+        self.conv4 = YOLOConv(conv_ins[3][0], conv_ins[3][1], k=3, s=2, p=1)
+        self.bnc34 = CSPBottleneck(bn_ins[3][0], bn_ins[3][1], e=0.5, bottlenecks_n=3, save_copy=self.bn_outs, pre_save=False)
         self._block = nn.Sequential(
-            *[YOLOLayer(i[0], i[1], self.skip_outs, k=i[2], s=i[3], p=i[4],
-                        bottlenecks_n=i[5], upsample=i[6], shortcut=i[7],
-                        concat=i[8], out=(self.out if i[9] else None))
-              for i in zip(c1_sizes, c2_sizes, kernels, strides, paddings,
-                           bottlenecks, upsamplings, shortcuts, concats, outs)],
+            self.conv1,
+            self.upsample1,
+            Concat((3, 0), self.outs),
+            self.bnc31,
+            self.conv2,
+            self.upsample2,
+            Concat((2, 0), self.outs),
+            self.bnc32,
+            self.conv3,
+            Concat((4, 0), self.outs),
+            self.bnc33,
+            self.conv4,
+            Concat((1, 0), self.outs),
+            self.bnc34
         )
 
     def forward(self, x):
         self._block(x)
-        return self.out
-
-    def forward(self, x):
-        return self._block(x)
+        return self.bn_outs
 

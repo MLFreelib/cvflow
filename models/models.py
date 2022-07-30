@@ -3,6 +3,7 @@ from typing import Union
 from torch import nn
 
 from models.blocks import *
+from models.preprocessing import *
 
 
 class ModelBuilder(nn.Module):
@@ -15,12 +16,12 @@ class ModelBuilder(nn.Module):
         self.out_block = output_block
 
     def forward(self, x):
+        print('STG0', x.shape)
         x = self.in_block(x)
         print('STG1', x.shape)
         x = self.backbone(x)
-        print("STG2", x.shape)
         x = self.out_block(x)
-        print('STG3', x.shape)
+        x = non_max_suppression(x[0])
         return x
 
 
@@ -69,8 +70,8 @@ def resnet152(in_channels, n_classes):
 
 def yolo(in_channels=3):
     anchors = ((10, 13, 16, 30, 33, 23),
-                    (30, 61, 62, 45, 59, 119),
-                    (116, 90, 156, 198, 373, 326))
+                        (30, 61, 62, 45, 59, 119),
+                        (116, 90, 156, 198, 373, 326))
     input_block = CSPDarknet(in_channels, 1024)
     return ModelBuilder(
         input_block=input_block,
