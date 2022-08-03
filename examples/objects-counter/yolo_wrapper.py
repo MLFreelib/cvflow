@@ -20,18 +20,11 @@ class YOLO(torch.nn.Module):
             self.cls_model = supermodel
         else:
             self.cls_model = None
-        #self.model = torch.hub.load('ultralytics/yolov5', 'yolov5l', pretrained=True)
-        dmb = DetectMultiBackend(weights='yolov5l.pt', device='cpu')
-        #self.model = AutoShape(dmb)
-        self.model = yolo()
+        self.model = yolo(weights_path='/Users/szymanski/PycharmProjects/cvflow/examples/objects-counter/model.pt')
         self.boxes = []
 
     def forward(self, x):
-        #nx = x.cpu().detach().numpy() * 255
-        #res = self.model(nx[0]).xyxy[0]
-        #res = self.model(x).xyxy[0]
-        res = self.model(x)
-        print(res[0].shape)
+        res = self.model(x)[0]
         res[..., :4] = res[..., :4].int()
         self.boxes = res[..., :4]
         if self.cls_model:

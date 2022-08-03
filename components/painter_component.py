@@ -126,11 +126,6 @@ class BBoxPainter(Painter):
                         self.__resolution = frame.shape[-2:]
 
                     frame = torchvision.transforms.Resize(self.__resolution)(frame)
-                    print(self.__font_width)
-                    print(full_labels)
-                    print(self.__font_size)
-                    print(self.__font_path)
-                    print(self.__get_colors(labels))
                     bboxes_frame = draw_bounding_boxes(frame,
                                                        boxes=bbox,
                                                        width=self.__font_width,

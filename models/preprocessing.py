@@ -18,8 +18,7 @@ def clip_coords(boxes, shape):
 
 
 def scale_coords(img1_shape, coords, img0_shape, ratio_pad=None):
-    # Rescale coords (xyxy) from img1_shape to img0_shape
-    if ratio_pad is None:  # calculate from img0_shape
+    if ratio_pad is None:
         gain = min(img1_shape[0] / img0_shape[0], img1_shape[1] / img0_shape[1])  # gain  = old / new
         pad = (img1_shape[1] - img0_shape[1] * gain) / 2, (img1_shape[0] - img0_shape[0] * gain) / 2  # wh padding
     else:
@@ -128,7 +127,7 @@ def bbox_iou(box1, box2, xywh=True, GIoU=False, DIoU=False, CIoU=False, eps=1e-7
     return iou  # IoU
 
 def non_max_suppression(prediction,
-                        conf_thres=0.25,
+                        conf_thres=0,
                         iou_thres=0.45,
                         classes=None,
                         agnostic=False,
@@ -140,7 +139,6 @@ def non_max_suppression(prediction,
     Returns:
          list of detections, on (n,6) tensor per image [xyxy, conf, cls]
     """
-
     bs = prediction.shape[0]  # batch size
     nc = prediction.shape[2] - 5  # number of classes
     xc = prediction[..., 4] > conf_thres  # candidates
@@ -237,5 +235,6 @@ def preprocess_for_YOLO(im, stride, size=640):
     x = torch.cat((x, letterbox(im)[0].unsqueeze(0)))
     #shape1 = [make_divisible(x, stride) for x in np.stack(shape1, 0).max(0)]  # inference shape
     x = torch.permute(x, (0, 3, 1, 2))
-    print('XOUT', x.shape)
     return x
+
+
