@@ -13,3 +13,12 @@
 3. Press 's' to start selection
 4. Press 'n' to add each bbox. When you will select n objects, conf.txt  will be written automatically.
 NB! Model works only with cuda. Please provide at least two data sources. 
+
+### YOLO
+
+```
+from models.models import yolo
+model = yolo()
+model = yolo(weights_path=<path_to_weights>) #  import weights
+res = self.model(<input_tensor>)
+```
