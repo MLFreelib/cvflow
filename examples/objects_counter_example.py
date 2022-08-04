@@ -2,15 +2,13 @@ import sys
 
 import configparser
 
-sys.path.append('../../')
 sys.path.append('../')
 import torchvision
 from components.outer_component import DisplayComponent
 from components.painter_component import Tiler, BBoxPainter
-from dlib import correlation_tracker
 from pipeline import Pipeline
 from set_stream import *
-from yolo_wrapper import YOLO
+from models.models import yolo
 import argparse
 
 argparser = argparse.ArgumentParser()
@@ -26,8 +24,7 @@ args = vars(argparser.parse_args())
 
 config = configparser.ConfigParser()
 config.read(args['config'])
-#model = YOLO(clf_spec='vehicles')
-model = YOLO()
+model = yolo(weights_path='/Users/szymanski/Downloads/model.pt')
 device = 'cpu'
 
 pipeline = Pipeline()

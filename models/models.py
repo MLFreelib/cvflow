@@ -30,7 +30,12 @@ class ModelBuilder(nn.Module):
             x = non_max_suppression(x[0])
             scaled_x = scale_coords(shape1, x[0][:, :4], shape0)
             x[0][..., :4] = scaled_x
-        return x
+            out = []
+            for i in x:
+                out = [{'boxes': i[..., :4],
+                        'labels': i[..., 5],
+                        'scores': i[..., 4]}, ]
+        return out
 
 
 # ResNet
