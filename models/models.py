@@ -18,6 +18,14 @@ class ModelBuilder(nn.Module):
         self.count = 1
 
     def forward(self, x):
+        x = self.in_block(x)
+        x = self.backbone(x)
+        x = self.out_block(x)
+        return x
+
+
+class YOLOBuilder(ModelBuilder):
+    def forward(self, x):
         shape0 = x.shape[2:]
         autocast = False
         with amp.autocast(enabled=autocast):
@@ -36,7 +44,6 @@ class ModelBuilder(nn.Module):
                         'labels': i[..., 5],
                         'scores': i[..., 4]}, ]
         return out
-
 
 # ResNet
 
@@ -81,7 +88,7 @@ def resnet152(in_channels, n_classes):
     )
 
 
-def yolo(in_channels=3, weights_path=None):
+def yolo_large(in_channels=3, weights_path=None):
     anchors = ((10, 13, 16, 30, 33, 23),
                (30, 61, 62, 45, 59, 119),
                (116, 90, 156, 198, 373, 326))
@@ -94,7 +101,29 @@ def yolo(in_channels=3, weights_path=None):
     output_block = YOLOHead(anchors=anchors)
     if weights_path:
         output_block.import_weights(weights_path)
-    return ModelBuilder(
+    return YOLOBuilder(
+        input_block=input_block,
+        backbone=backbone,
+        output_block=output_block
+    )
+
+
+def yolo_small(in_channels=3, weights_path=None):
+    anchors = ((10, 13, 16, 30, 33, 23),
+               (30, 61, 62, 45, 59, 119),
+               (116, 90, 156, 198, 373, 326))
+    blocks_sizes = (32, 64, 128, 256)
+    bottlenecks = (1, 2, 3, 1)
+    input_block = CSPDarknet(in_channels, 512, blocks_sizes=blocks_sizes, bottlenecks=bottlenecks)
+    if weights_path:
+        input_block.import_weights(weights_path)
+    backbone = PANet(512, 256, input_block, bottlenecks_n=1)
+    if weights_path:
+        backbone.import_weights(weights_path)
+    output_block = YOLOHead(anchors=anchors, weight_index=backbone.weight_index + 1, ch=(128, 256, 512), nc=1)
+    if weights_path:
+        output_block.import_weights(weights_path)
+    return YOLOBuilder(
         input_block=input_block,
         backbone=backbone,
         output_block=output_block

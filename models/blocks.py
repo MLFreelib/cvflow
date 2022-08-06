@@ -61,7 +61,7 @@ class ClassificationOutput(OutputBlock):
 
 
 class YOLOHead(nn.Module):
-    def __init__(self, nc=80, anchors=(), ch=(256, 512, 1024), inplace=True):  # detection layer
+    def __init__(self, nc=80, anchors=(), ch=(256, 512, 1024), inplace=True, weight_index=203):  # detection layer
         super().__init__()
         self.nc = nc  # number of classes
         self.no = nc + 5  # number of outputs per anchor
@@ -69,11 +69,13 @@ class YOLOHead(nn.Module):
         self.na = len(anchors[0]) // 2  # number of anchors
         self.grid = [torch.zeros(1)] * self.nl  # init grid
         self.anchor_grid = [torch.zeros(1)] * self.nl  # init anchor grid
+        print(self.no, self.na, self.no * self.na)
         self.register_buffer('anchors', torch.tensor(anchors).float().view(self.nl, -1, 2))  # shape(nl,na,2)
         self.m = nn.ModuleList(nn.Conv2d(x, self.no * self.na, 1) for x in ch)  # output conv
         self.inplace = inplace  # use in-place ops (e.g. slice assignment)
         self.stride = torch.tensor([8., 16., 32.])
         self.weights = None
+        self.weight_index = weight_index
         self.training = False
         self.anchors = torch.tensor([[[1.25000, 1.62500],
                                       [2.00000, 3.75000],
@@ -120,13 +122,16 @@ class YOLOHead(nn.Module):
     def import_weights(self, weights_path):
         self.weights = torch.load(weights_path)
         weights_list = [_ for _ in self.weights]
-        weight_index = 203
+        weight_index = self.weight_index
         self.m[0].weight = nn.Parameter(self.weights[weights_list[weight_index]])
         self.m[0].bias = nn.Parameter(self.weights[weights_list[weight_index + 1]])
+        print('SHAPE(0)', self.m[0].weight.shape, self.m[0].bias.shape)
         self.m[1].weight = nn.Parameter(self.weights[weights_list[weight_index + 2]])
         self.m[1].bias = nn.Parameter(self.weights[weights_list[weight_index + 3]])
+        print('SHAPE(1)', self.m[1].weight.shape, self.m[1].bias.shape)
         self.m[2].weight = nn.Parameter(self.weights[weights_list[weight_index + 4]])
         self.m[2].bias = nn.Parameter(self.weights[weights_list[weight_index + 5]])
+        print('SHAPE(2)', self.m[2].weight.shape, self.m[2].bias.shape)
         weight_index += 6
 
 
@@ -430,6 +435,7 @@ class CSPDarknet(Block):
         super().__init__(in_channels, out_channels)
         self.skip_outs = {}
         self.weights = None
+        self.weight_index = 0
         c2_sizes = list(blocks_sizes[1:])
         c2_sizes.append(out_channels)
         self._block = nn.Sequential(
@@ -487,12 +493,14 @@ class CSPDarknet(Block):
                             i.cv2.layers[0].weight = nn.Parameter(self.weights[weights_list[weight_index + 2]])
                             i.cv2.layers[0].bias = nn.Parameter(self.weights[weights_list[weight_index + 3]])
                             weight_index += 4
+        self.weight_index = weight_index
 
 
 class PANet(Block):
-    def __init__(self, in_channels, out_channels, backbone):
+    def __init__(self, in_channels, out_channels, backbone, bottlenecks_n=3):
         super().__init__(in_channels, out_channels)
         self.outs = backbone.skip_outs
+        self.weight_index = backbone.weight_index
         self.bn_outs = []
         self.weights = None
         conv_ins = [(in_channels, in_channels // 2),
@@ -505,16 +513,16 @@ class PANet(Block):
                   (in_channels, in_channels)]
         self.conv1 = YOLOConv(conv_ins[0][0], conv_ins[0][1], p=0, shortcut=(1, 0), outs=self.outs)
         self.upsample1 = nn.Upsample(scale_factor=2, mode='nearest')
-        self.bnc31 = CSPBottleneck(bn_ins[0][0], bn_ins[0][1], e=0.5, bottlenecks_n=3, bs=False)
+        self.bnc31 = CSPBottleneck(bn_ins[0][0], bn_ins[0][1], e=0.5, bottlenecks_n=bottlenecks_n, bs=False)
         self.conv2 = YOLOConv(conv_ins[1][0], conv_ins[1][1], p=0, shortcut=(4, 0), outs=self.outs)
         self.upsample2 = nn.Upsample(scale_factor=2, mode='nearest')
-        self.bnc32 = CSPBottleneck(bn_ins[1][0], bn_ins[1][1], e=0.5, bottlenecks_n=3, save_copy=self.bn_outs,
+        self.bnc32 = CSPBottleneck(bn_ins[1][0], bn_ins[1][1], e=0.5, bottlenecks_n=bottlenecks_n, save_copy=self.bn_outs,
                                    pre_save=False, bs=False)
         self.conv3 = YOLOConv(conv_ins[2][0], conv_ins[2][1], k=3, s=2, p=1)
-        self.bnc33 = CSPBottleneck(bn_ins[2][0], bn_ins[2][1], e=0.5, bottlenecks_n=3, save_copy=self.bn_outs,
+        self.bnc33 = CSPBottleneck(bn_ins[2][0], bn_ins[2][1], e=0.5, bottlenecks_n=bottlenecks_n, save_copy=self.bn_outs,
                                    pre_save=False, bs=False)
         self.conv4 = YOLOConv(conv_ins[3][0], conv_ins[3][1], k=3, s=2, p=1)
-        self.bnc34 = CSPBottleneck(bn_ins[3][0], bn_ins[3][1], e=0.5, bottlenecks_n=3, save_copy=self.bn_outs,
+        self.bnc34 = CSPBottleneck(bn_ins[3][0], bn_ins[3][1], e=0.5, bottlenecks_n=bottlenecks_n, save_copy=self.bn_outs,
                                    pre_save=False, bs=False)
         self._block = nn.Sequential(
             self.conv1,
@@ -540,7 +548,7 @@ class PANet(Block):
 
     def import_weights(self, weights_path):
         self.weights = torch.load(weights_path)
-        weight_index = 122
+        weight_index = self.weight_index
         weights_list = [_ for _ in self.weights]
         for layer in self._block:
             if isinstance(layer, YOLOConv):
@@ -561,3 +569,4 @@ class PANet(Block):
                     i.cv2.layers[0].weight = nn.Parameter(self.weights[weights_list[weight_index + 2]])
                     i.cv2.layers[0].bias = nn.Parameter(self.weights[weights_list[weight_index + 3]])
                     weight_index += 4
+        self.weight_index = weight_index
