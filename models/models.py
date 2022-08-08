@@ -25,24 +25,25 @@ class ModelBuilder(nn.Module):
 
 
 class YOLOBuilder(ModelBuilder):
-    def forward(self, x):
-        shape0 = x.shape[2:]
+    def forward(self, imgs):
         autocast = False
-        with amp.autocast(enabled=autocast):
-            x = preprocess_for_YOLO(x, [1, 1, 1])
-            shape1 = x.shape[2:]
-            self.count += 1
-            x = self.in_block(x)
-            x = self.backbone(x)
-            x = self.out_block(x)
-            x = non_max_suppression(x[0])
-            scaled_x = scale_coords(shape1, x[0][:, :4], shape0)
-            x[0][..., :4] = scaled_x
-            out = []
-            for i in x:
-                out = [{'boxes': i[..., :4],
-                        'labels': i[..., 5],
-                        'scores': i[..., 4]}, ]
+        out = []
+        for x in imgs:
+            with amp.autocast(enabled=autocast):
+                shape0 = x.shape[2:]
+                x = preprocess_for_YOLO(im, [1, 1, 1])
+                shape1 = x.shape[2:]
+                self.count += 1
+                x = self.in_block(x)
+                x = self.backbone(x)
+                x = self.out_block(x)
+                x = non_max_suppression(x[0])
+                scaled_x = scale_coords(shape1, x[0][:, :4], shape0)
+                x[0][..., :4] = scaled_x
+                for i in x:
+                    out.append({'boxes': i[..., :4],
+                                'labels': i[..., 5],
+                                'scores': i[..., 4]})
         return out
 
 # ResNet
