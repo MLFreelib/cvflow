@@ -194,8 +194,9 @@ class Counter(ComponentBase):
         cv_shape = (*shape[1:], shape[0])
         self.__bbox_denormalize(torch.unsqueeze(bbox, dim=0), shape)
         np_bbox = bbox.detach().cpu().numpy().astype(int)
-        check_line = cv2.line(np.zeros(cv_shape), line[0], line[1], thickness=line[3], color=line[2])
-        check_bbox = cv2.rectangle(np.zeros(cv_shape), np_bbox[:2], np_bbox[2:], color=(255, 255, 255), thickness=-1)
+        check_line = cv2.line(np.zeros(cv_shape), line[0], line[1], thickness=line[3], color=(255, 255, 255))
+        check_bbox = cv2.line(np.zeros(cv_shape), (np_bbox[0], np_bbox[3]), (np_bbox[2], np_bbox[3]),
+                              color=(255, 255, 255), thickness=5)
         dif = check_bbox - check_line
         dif[dif < 0] = 0
 

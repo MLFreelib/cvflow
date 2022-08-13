@@ -7,7 +7,7 @@ import numpy as np
 from torchvision.transforms.functional import crop, resize, rgb_to_grayscale
 import sys
 print(sys.path)
-from yolov5.models.common import DetectMultiBackend, AutoShape
+from models.yolov5.models.common import DetectMultiBackend, AutoShape
 
 CHARS = '0123456789АВЕКМНОРСТУХ'
 CHAR2LABEL = {char: i + 1 for i, char in enumerate(CHARS)}
@@ -34,9 +34,9 @@ class PlatesModel(nn.Module):
 		self.img_width = common_config['img_width']
 		self.img_height = common_config['img_height']
 
-		self.yolo_model = torch.hub.load('ultralytics/yolov5', 'custom', path=yolo_checkpoint)  # local model
-		#dmb = DetectMultiBackend(weights='yolov5l.pt', device='cpu')
-		#self.yolo_model = AutoShape(dmb)
+		#self.yolo_model = torch.hub.load('ultralytics/yolov5', 'custom', path=yolo_checkpoint)  # local model
+		dmb = DetectMultiBackend(weights='cust', device='cpu')
+		self.yolo_model = AutoShape(dmb)
 
 		self.crnn = CRNN(1, self.img_height, self.img_width, self.num_class,
 						 map_to_seq_hidden=common_config['map_to_seq_hidden'],
@@ -51,8 +51,8 @@ class PlatesModel(nn.Module):
 		"""
 		:param x: tensor [N, 3, W, H]
 		"""
-		imgsnp = list(imgs.numpy())
-		det = self.yolo_model(imgsnp)
+		imgsnp = list(imgs)
+		det = self.yolo_model(imgs)
 		#det.show()
 		bboxes = det.xyxy # [0].tolist() (N sets of bounding boxes)
 
