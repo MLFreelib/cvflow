@@ -3,5 +3,6 @@
 
 CVFlow is a framework for creating computer vision pipelines based on ready-made components.  
 Examples of work, as well as existing components, can be viewed at the links below.
-* [lib API](components/README.md)  
+* [components API](components/README.md)  
+* [Metadata API](README.META.md)  
 * [lib Examples](examples/Readme.md)
