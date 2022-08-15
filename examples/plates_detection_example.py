@@ -1,7 +1,6 @@
 import sys
 
 sys.path.append('../')
-sys.path.append('./yolov5')
 
 from common.utils import *
 
@@ -66,17 +65,12 @@ if __name__ == '__main__':
         name = f'{file_srcs[i_file_srcs]}_{i_file_srcs}'
         readers.append(get_videofile_reader(file_srcs[i_file_srcs], name))
 
-    image_reader1 = ImageReader('E:\PyCharmProjects\cvflow\\tests\\test_data\zebra.jpg', 'zebra1')
-    image_reader2 = ImageReader('E:\PyCharmProjects\cvflow\\tests\\test_data\zebra.jpg', 'zebra2')
-
-    readers.append(image_reader1)
-    readers.append(image_reader2)
     muxer = get_muxer(readers)
-    model_det = get_detection_model('detection', model, sources=readers, classes=COCO_INSTANCE_CATEGORY_NAMES)
+    model_det = get_detection_model('detection', model, sources=readers, classes=[])
 
     model_det.set_transforms([torchvision.transforms.Resize((240, 320))])
-    model_det.set_source_names([f'zebra2'])
-    bbox_painter = BBoxPainter('bboxer', font_path=get_font())
+    #model_det.set_source_names([f'zebra2'])
+    bbox_painter = BBoxPainter('bboxer')
 
     tiler = get_tiler('tiler', tiler_size=get_tsize(), frame_size=get_fsize())
 
