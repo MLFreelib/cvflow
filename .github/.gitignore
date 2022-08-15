@@ -132,6 +132,8 @@ Temporary Items
 ### Python template
 # Byte-compiled / optimized / DLL files
 __pycache__/
+common/__pycache__/
+components/__pycache__/
 *.py[cod]
 *$py.class
 

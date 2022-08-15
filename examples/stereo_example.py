@@ -14,7 +14,7 @@ from components.muxer_component import SourceMuxer
 from components.outer_component import DisplayComponent, FileWriterComponent
 from components.tracker_component import ManualROICorrelationBasedTracker
 from components.painter_component import Tiler, DepthPainter, BBoxPainter
-from components.reader_component import ReaderBase, ImageReader, VideoReader
+from components.reader_component import ReaderBase, ImageReader, VideoReader, CamReader
 from pipeline import Pipeline
 
 # from models.ganet_model import PSMNet as depth_model
@@ -52,24 +52,31 @@ def get_tiler(name: str, tiler_size: tuple, frame_size: tuple = (640, 1280)) -> 
     return tiler
 
 
+def get_usb_cam(path: str, name: str) -> CamReader:
+    return CamReader(path, name)
+
+
+def get_videofile_reader(path: str, name: str) -> VideoReader:
+    return VideoReader(path, name)
+
+
 if __name__ == '__main__':
     model = depth_model()
     model = torch.nn.DataParallel(model)
-    checkpoint = torch.load(os.path.join(os.path.dirname(__file__), '..', 'tests', 'test_data', 'best.ckpt'))
+    checkpoint = torch.load(os.path.join(os.path.dirname(__file__), '..', 'tests', 'test_data', 'best.ckpt'), map_location=torch.device('cpu'))
     model.load_state_dict(checkpoint['model'], strict=False)
 
     pipeline = Pipeline()
 
     readers = []
 
-    image_reader1 = VideoReader(os.path.join(os.path.dirname(__file__), '..', 'tests', 'test_data', 'top_l.mov'), 'left')
-    image_reader2 = VideoReader(os.path.join(os.path.dirname(__file__), '..', 'tests', 'test_data', 'top_r.mov'),
-                                'right')
+    usb_srcs = get_cam_srcs()
+    for usb_src in usb_srcs:
+        readers.append(get_usb_cam(usb_src, usb_src))
 
-    # image_reader1 = ImageReader("/content/cvflow/70_50_1l.png", "left")
-    # image_reader2 = ImageReader("/content/cvflow/70_50_1r.png", "right")
-    readers.append(image_reader1)
-    readers.append(image_reader2)
+    file_srcs = get_video_file_srcs()
+    for file_src in file_srcs:
+        readers.append(get_videofile_reader(file_src, os.path.basename(file_src)))
 
     config = configparser.ConfigParser()
     config.read(os.path.join(os.path.dirname(__file__), '..', 'tests', 'test_data', 'conf.txt'))
@@ -91,12 +98,12 @@ if __name__ == '__main__':
     dist = DistanceCalculator('distance')
 
     depth_painter = DepthPainter('depth_painter')
-    bbox_painter = BBoxPainter('bboxer', font_path=os.path.join(os.path.dirname(__file__), '..', 'fonts', "OpenSans-VariableFont_wdth,wght.ttf"))
+    bbox_painter = BBoxPainter('bboxer')
     tiler = get_tiler('tiler', tiler_size=get_tsize(), frame_size=get_fsize())
 
-    outer = FileWriterComponent('file', 'file.avi')
+    outer = DisplayComponent('file')
 
-    pipeline.set_device('cuda')
+    pipeline.set_device('cpu')
     pipeline.add_all([muxer, model_depth,tracker, dist, depth_painter, bbox_painter, tiler, outer])
     pipeline.compile()
     pipeline.run()

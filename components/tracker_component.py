@@ -74,14 +74,14 @@ class ManualROICorrelationBasedTracker(TrackerBase):
 
         for src_name in data.get_source_names():
             meta_frames = data.get_meta_frames_by_src_name(src_name)
+            shape = data.get_frames_by_src_name(src_name).shape
             for meta_frame in meta_frames:
                 boxes = []
                 frame = meta_frame.get_frame().clone().cpu()
                 frame *= 255
                 frame = torch.permute(frame, (1, 2, 0))
                 frame = np.array(frame, dtype=np.uint8)
-                for box_id in self.trackers[src_name]:
-                    tracker = self.trackers[src_name][box_id]
+                for tracker in self.trackers:
                     tracker['tracker'].update(frame)
                     pos = tracker['tracker'].get_position()
                     box = [pos.left(), pos.top(), pos.right(), pos.bottom()]
@@ -120,7 +120,6 @@ class ManualROICorrelationBasedTracker(TrackerBase):
             frame = np.array(frame, dtype=np.uint8)
             tracker = correlation_tracker()
             tracker.start_track(frame, rect)
-            print('TRACKER', tracker)
             checked = False
             self.trackers.append({'tracker': tracker, 'checked': checked})
         boxes = self.__bbox_normalize(torch.tensor(self.boxes), shape)
