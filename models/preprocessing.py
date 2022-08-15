@@ -148,10 +148,8 @@ def non_max_suppression(prediction,
     assert 0 <= iou_thres <= 1, f'Invalid IoU {iou_thres}, valid values are between 0.0 and 1.0'
 
     # Settings
-    # min_wh = 2  # (pixels) minimum box width and height
     max_wh = 7680  # (pixels) maximum box width and height
     max_nms = 30000  # maximum number of boxes into torchvision.ops.nms()
-    time_limit = 0.3 + 0.03 * bs  # seconds to quit after
     redundant = True  # require redundant detections
     multi_label &= nc > 1  # multiple labels per box (adds 0.5ms/img)
     merge = False  # use merge-NMS
@@ -159,7 +157,6 @@ def non_max_suppression(prediction,
     output = [torch.zeros((0, 6), device=prediction.device)] * bs
     for xi, x in enumerate(prediction):  # image index, image inference
         # Apply constraints
-        # x[((x[..., 2:4] < min_wh) | (x[..., 2:4] > max_wh)).any(1), 4] = 0  # width-height
         x = x[xc[xi]]  # confidence
 
         # Cat apriori labels if autolabelling
@@ -193,10 +190,6 @@ def non_max_suppression(prediction,
         if classes is not None:
             x = x[(x[:, 5:6] == torch.tensor(classes, device=x.device)).any(1)]
 
-        # Apply finite constraint
-        # if not torch.isfinite(x).all():
-        #     x = x[torch.isfinite(x).all(1)]
-
         # Check shape
         n = x.shape[0]  # number of boxes
         if not n:  # no boxes
@@ -226,15 +219,11 @@ def preprocess_for_YOLO(im, stride, size=640):
     shape0, shape1 = [], []
     x = torch.tensor([])
     if im.shape[0] < 5:  # image in CHW
-        try:
-            im = torch.permute(im[0], (1, 2, 0))
-        except RuntimeError:
-            im = torch.permute(im, (1, 2, 0))
+        im = torch.permute(im, (1, 2, 0))
     s = im.shape[:2]  # HWC
     shape0.append(s)  # image shape
     g = (size / max(s))  # gain
     shape1.append([y * g for y in s])
-    im = im  # if im.data.contiguous else np.ascontiguousarray(im)  # update
     x = torch.cat((x, letterbox(im)[0].unsqueeze(0)))
     x = torch.permute(x, (0, 3, 1, 2))
     return x
