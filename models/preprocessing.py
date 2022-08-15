@@ -238,5 +238,3 @@ def preprocess_for_YOLO(im, stride, size=640):
     x = torch.cat((x, letterbox(im)[0].unsqueeze(0)))
     x = torch.permute(x, (0, 3, 1, 2))
     return x
-
-
