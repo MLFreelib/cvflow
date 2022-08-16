@@ -36,3 +36,17 @@ python3 [script name] --videofile {file_path},{file_path} --font ../fonts/OpenSa
 5. Download the [weights](https://drive.google.com/file/d/1FM7rTKbpYWQ1-QUzQoMPWSRDEn_LBx6l/view?usp=sharing) and put it to tests/test_data folder.
 6. Run stereo_example.py for demonstration. You can use data from tests/test_data for example.
 NB! Model works only with cuda. Please provide at least two data sources. 
+
+### Objects counter example
+
+#### Create configuration of counting lines
+1. Run command:
+```
+python3 config_gui.py -v <video_file> -n <path_to_config_file>
+```
+2. Press save and close the window.
+
+#### Running
+```
+python3 objects_counter_example.py --videofile <path_to_video> -f <path_to_fonts> -c <path_to_config_file>
+```

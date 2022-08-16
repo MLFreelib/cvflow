@@ -30,7 +30,7 @@ class YOLOBuilder(ModelBuilder):
         out = []
         for x in imgs:
             with amp.autocast(enabled=autocast):
-                shape0 = x.shape[2:]
+                shape0 = x.shape[1:]
                 x = preprocess_for_YOLO(x, [1, 1, 1])
                 shape1 = x.shape[2:]
                 self.count += 1

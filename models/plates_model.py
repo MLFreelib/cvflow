@@ -1,3 +1,5 @@
+import sys
+sys.path.append('../')
 import torch
 import torch.nn as nn
 from PIL import Image
@@ -5,15 +7,14 @@ from models.crnn import CRNN
 from common.ctc_decoder import ctc_decode
 import numpy as np
 from torchvision.transforms.functional import crop, resize, rgb_to_grayscale
-import sys
-print(sys.path)
-from models.yolov5.models.common import DetectMultiBackend, AutoShape
+
+from models.models import yolo_small
 
 CHARS = '0123456789АВЕКМНОРСТУХ'
 CHAR2LABEL = {char: i + 1 for i, char in enumerate(CHARS)}
 LABEL2CHAR = {label: char for char, label in CHAR2LABEL.items()}
 
-yolo_checkpoint = '../checkpoints/best.pt'
+yolo_checkpoint = '../checkpoints/plates_sd.pt'
 crnn_checkpoint = '../checkpoints/crnn_014000_loss1.8461857752828725.pt'#crnn_012000_loss1.6033634845448912.pt'
 
 
@@ -35,8 +36,7 @@ class PlatesModel(nn.Module):
 		self.img_height = common_config['img_height']
 
 		#self.yolo_model = torch.hub.load('ultralytics/yolov5', 'custom', path=yolo_checkpoint)  # local model
-		dmb = DetectMultiBackend(weights='cust', device='cpu')
-		self.yolo_model = AutoShape(dmb)
+		self.yolo_model = yolo_small(weights_path=yolo_checkpoint)
 
 		self.crnn = CRNN(1, self.img_height, self.img_width, self.num_class,
 						 map_to_seq_hidden=common_config['map_to_seq_hidden'],
