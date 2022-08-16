@@ -255,22 +255,64 @@ is stored in MetaDepth.
 ## tracker_component
 
 ### TrackerBase
-Component for segmentation models. 
+Component of basic model. This class is necessary for implementing trackers.
+
+#### params:
+* name: str - name of component.
+
+#### methods:
+* All methods from ComponentBase;
+* set_confidence - Setting the confidence threshold.
+  * Parameters: 
+    * conf: float [0-1] - value of threshold
+  * Returns: None
+
+* set_resolution - Setting the confidence threshold.
+  * Parameters: 
+    * frame_resolution: list
+  * Returns: None
+
+* start - Specifies the device on which the model will be executed.
+  * Parameters: Empty.
+  * Returns - None.
+
+* stop - deletes data from memory.
+  * Parameters: Empty.
+  * Returns: None
+
+* set_transforms - Method of setting transformations for frames that are passed to the model.
+  * Parameters: 
+    * tensor_transforms: list - list of transformations from torchvision.transforms
+  * Returns: None
+
+* add_source - Names of input sources from which data will be processed by the component.
+  * Parameters:
+    * name: str - name of source
+  * Returns: None
+
+### ManualROICorrelationBasedTracker
+Component for correlation tracker
 
 #### params:
 * name: str - name of component;
-* model: torch.nn.Module - stereo model, which returns dictionary with key "out" which contains tensor of shape
-[N, H, W], where N - batch size, H - mask height, W - mask width and values in the range from 0 to 1.
+* boxes: torch.tensor - bounding boxes of objects in format [TOP_LEFT_X, TOP_LEFT_Y, BOTTOM_RIGHT_X, BOTTOM_RIGHT_Y].
 
 #### methods:
-* All methods from ModelBase;
-* do - Transmits data to the depth model. And adds the depth map to the MetaFrame in the MetaBatch. The depth map 
-is stored in MetaDepth.
+* All methods from TrackerBase;
+* do - Updates the coordinates of objects;
   * Parameters: 
     * data: MetaBatch - data with information about the frames.
   * Returns: 
-    * data: MetaBatch - data with information about the frames + MetaDepth inside.
-
+    * data: MetaBatch - data with information about the frames + updated bounding boxes.
+    
+* set_trackers - Updates the set of objects.
+  * Parameters: 
+    * data: MetaBatch - data with information about the frames.
+  
+* set_labels - Sets labels for model.
+  * Parameters:
+    * labels: List[str] - list of labels.
+  * Returns: None
 
 ## handler_component
 
