@@ -7,7 +7,7 @@ from common.utils import *
 from typing import List
 import torch
 import torchvision
-from components.model_component import ModelDetection
+from components.model_component import ModelDetection2
 from components.muxer_component import SourceMuxer
 from components.outer_component import DisplayComponent
 from components.painter_component import Tiler, BBoxPainter
@@ -34,8 +34,8 @@ def get_muxer(readers: List[ReaderBase]) -> SourceMuxer:
 
 def get_detection_model(name: str, model: torch.nn.Module, sources: List[ReaderBase], classes: List[str],
                         transforms: list = None,
-                        confidence: float = 0.8) -> ModelDetection:
-    model_det = ModelDetection(name, model)
+                        confidence: float = 0.8) -> ModelDetection2:
+    model_det = ModelDetection2(name, model)
     #model_det.set_labels(classes)
     for src in sources:
         model_det.add_source(src.get_name())
@@ -68,11 +68,9 @@ if __name__ == '__main__':
     muxer = get_muxer(readers)
     model_det = get_detection_model('detection', model, sources=readers, classes=[])
 
-    model_det.set_transforms([torchvision.transforms.Resize((240, 320))])
-    #model_det.set_source_names([f'zebra2'])
     bbox_painter = BBoxPainter('bboxer')
 
-    tiler = get_tiler('tiler', tiler_size=get_tsize(), frame_size=get_fsize())
+    tiler = get_tiler('LicencePlates', tiler_size=get_tsize(), frame_size=get_fsize())
 
     outer = DisplayComponent('display')
     pipeline.set_device(get_device())

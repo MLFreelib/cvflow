@@ -7,8 +7,9 @@ from models.crnn import CRNN
 from common.ctc_decoder import ctc_decode
 import numpy as np
 from torchvision.transforms.functional import crop, resize, rgb_to_grayscale
-
 from models.models import yolo_small
+import cv2
+import matplotlib.pyplot as plt
 
 CHARS = '0123456789АВЕКМНОРСТУХ'
 CHAR2LABEL = {char: i + 1 for i, char in enumerate(CHARS)}
@@ -49,28 +50,31 @@ class PlatesModel(nn.Module):
 
 	def forward(self, imgs):
 		"""
-		:param x: tensor [N, 3, W, H]
+		:param imgs: tensor [N, 3, W, H]
 		"""
-		imgsnp = list(imgs)
 		det = self.yolo_model(imgs)
-		#det.show()
-		bboxes = det.xyxy # [0].tolist() (N sets of bounding boxes)
-
 		imgs = rgb_to_grayscale(imgs)
-		plates = []
-		scores = []
-		for i in range(len(imgsnp)):
+		for i in range(len(imgs)):
 			img = imgs[i] # torch tensor for i-th image
-			bbset = bboxes[i]
-			platesset = []
+			bbset = det[i]['boxes']
+			conf = det[i]['scores']
+
+			true_conf = conf > 0.25
+
+			
+			conf = conf[true_conf]
+			bbset = bbset[true_conf]
+
+			platesset = [] # set of plates for a single frame
 			for bbox in bbset:
-				x, y, x2, y2 = bbox[:4].tolist()
+				x, y, x2, y2 = bbox.tolist()
 				h = y2 - y
 				w = x2 - x
 				cr = crop(img, int(y), int(x), int(h), int(w))
 				cr = resize(cr, [self.img_height, self.img_width]).unsqueeze(0)
-				cr = (cr / 127.5) - 1.0
-
+				#cr = (cr / 127.5) - 1.0
+				#cr_save = cr.permute(1, 2, 0).cpu().detach().numpy() 
+				#plt.imsave('temp.png', cr_save)
 				with torch.no_grad():
 					cr = cr.to(self.device)
 					logits = self.crnn(cr)
@@ -78,7 +82,9 @@ class PlatesModel(nn.Module):
 					preds = ctc_decode(log_probs, method='beam_search', beam_size=10,
 						label2char=LABEL2CHAR)
 					platesset.append(''.join(preds[0]))
-			plates.append(platesset)
-			scores.append(torch.tensor([1] * len(platesset)))
 
-		return {'boxes': bboxes, 'labels': plates, 'scores': scores}
+			det[i]['labels'] = platesset
+			det[i]['scores'] = conf
+			det[i]['boxes'] = bbset
+
+		return det
