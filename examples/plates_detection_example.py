@@ -34,6 +34,7 @@ def get_muxer(readers: List[ReaderBase]) -> SourceMuxer:
 
 def get_detection_model(name: str, model: torch.nn.Module, sources: List[ReaderBase], classes: List[str],
                         transforms: list = None,
+
                         confidence: float = 0.8) -> ModelDetectionDiffLabels:
     model_det = ModelDetectionDiffLabels(name, model)
     #model_det.set_labels(classes)
