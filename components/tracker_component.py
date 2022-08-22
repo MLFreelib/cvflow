@@ -1,6 +1,6 @@
 from typing import List
 
-from Meta import MetaBatch, MetaLabel, MetaBBox
+from Meta import MetaBatch, MetaLabel, MetaBBox, MetaName
 from components.component_base import ComponentBase
 from dlib import correlation_tracker
 import numpy as np
@@ -93,12 +93,12 @@ class ManualROICorrelationBasedTracker(TrackerBase):
                 meta_labels = MetaLabel(labels, scores)
                 meta_box = MetaBBox(boxes, meta_labels)
 
-                meta_frame.set_bbox_info(meta_box)
+                meta_frame.add_meta(MetaName.META_BBOX.value, meta_box)
                 self.ids = [i for i in range(len(self.boxes))]
-                meta_frame.get_bbox_info().get_label_info().set_object_id(self.ids)
-                meta_bbox = meta_frame.get_bbox_info()
+                meta_frame.get_meta_info(MetaName.META_BBOX.value).get_label_info().set_object_id(self.ids)
+                meta_bbox = meta_frame.get_meta_info(MetaName.META_BBOX.value)
                 meta_label = meta_bbox.get_label_info()
-                data.get_meta_frames_by_src_name(src_name)[0].set_label_info(meta_labels)
+                data.get_meta_frames_by_src_name(src_name)[0].add_meta(MetaName.META_LABEL.value, meta_labels)
                 meta_label.set_object_id(self.ids)
 
         return data
@@ -128,7 +128,7 @@ class ManualROICorrelationBasedTracker(TrackerBase):
         scores = [1] * len(self.ids)
         meta_labels = MetaLabel(labels, scores)
         meta_box = MetaBBox(boxes, meta_labels)
-        first_frame.set_bbox_info(meta_box)
-        first_frame.get_bbox_info().get_label_info().set_object_id(self.ids)
+        first_frame.add_meta(MetaName.META_BBOX.value, meta_box)
+        first_frame.get_meta_info(MetaName.META_BBOX.value).get_label_info().set_object_id(self.ids)
         self.start_bb_not_set = False
 

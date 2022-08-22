@@ -5,7 +5,7 @@ import numpy as np
 import torch
 from torch import Tensor
 
-from Meta import MetaBatch, MetaLabel, MetaBBox, MetaMask, MetaDepth
+from Meta import MetaBatch, MetaLabel, MetaBBox, MetaMask, MetaDepth, MetaFrame, MetaName
 from components.component_base import ComponentBase
 from models.blocks import OutputFormat
 
@@ -201,7 +201,7 @@ class ModelDetection(ModelBase):
                 meta_frame = data.get_meta_frames_by_src_name(src_name)[i]
                 meta_label = MetaLabel(labels=label_names, confidence=conf)
 
-                meta_frame.set_bbox_info(MetaBBox(boxes, meta_label))
+                meta_frame.add_meta(MetaName.META_BBOX.value, MetaBBox(boxes, meta_label))
 
     def _bbox_normalize(self, bboxes: torch.tensor, shape: torch.tensor):
         r""" Normalization of bounding box values in the range from 0 to 1.
@@ -239,7 +239,7 @@ class ModelDetectionDiffLabels(ModelDetection):
                 meta_frame = data.get_meta_frames_by_src_name(src_name)[i]
                 meta_label = MetaLabel(labels=label_names, confidence=conf)
 
-                meta_frame.set_bbox_info(MetaBBox(boxes, meta_label))
+                meta_frame.add_meta(MetaName.META_BBOX.value, MetaBBox(boxes, meta_label))
 
 
 class ModelClassification(ModelBase):
@@ -270,7 +270,7 @@ class ModelClassification(ModelBase):
                 probability = predictions[prob_i]
                 probability = probability[None, :]
                 meta_label = MetaLabel(labels=self.get_labels(), confidence=probability)
-                meta_frame.set_label_info(meta_label)
+                meta_frame.add_meta(MetaName.META_LABEL.value, meta_label)
                 prob_i += 1
 
 
@@ -304,7 +304,7 @@ class ModelSegmentation(ModelBase):
                 mask[normalized_mask >= self._confidence] = True
                 mask = mask[None, :]
                 meta_mask = MetaMask(mask, MetaLabel(self.get_labels(), normalized_mask))
-                meta_frame.set_mask_info(meta_mask)
+                meta_frame.add_meta(MetaName.META_MASK.value, meta_mask)
                 prob_i += 1
 
 
@@ -386,5 +386,5 @@ class ModelDepth(ModelBase):
                 meta_frame = meta_batch.get_meta_frames_by_src_name(self._source_names[i_src_name])[i]
                 depth = predictions[prob_i][-1]
                 meta_depth = MetaDepth(depth)
-                meta_frame.set_depth_info(meta_depth)
+                meta_frame.add_meta(MetaName.META_DEPTH.value, meta_depth)
                 prob_i += 1

@@ -7,7 +7,7 @@ import pandas as pd
 import torch
 import torchvision
 
-from Meta import MetaBatch, MetaFrame, MetaLabel, MetaBBox
+from Meta import MetaBatch, MetaFrame, MetaLabel, MetaBBox, MetaName
 from components.component_base import ComponentBase
 
 
@@ -48,7 +48,7 @@ class Filter(ComponentBase):
             :param: meta_frame: MetaFrame
                         metadata about frame.
         """
-        meta_labels = meta_frame.get_labels_info()
+        meta_labels = meta_frame.get_meta_info(MetaName.META_LABEL.value)
         if meta_labels is not None:
             labels = meta_labels.get_labels()
             sr_labels = pd.Series(False, labels)
@@ -56,14 +56,15 @@ class Filter(ComponentBase):
             sr_labels[indexes] = True
             confs = meta_labels.get_confidence().clone()
             confs = confs[list(sr_labels.values)]
-            meta_frame.set_label_info(MetaLabel(list(sr_labels.index[sr_labels.values]), torch.unsqueeze(confs, dim=0)))
+            meta_frame.add_meta(MetaName.META_LABEL.value,
+                                MetaLabel(list(sr_labels.index[sr_labels.values]), torch.unsqueeze(confs, dim=0)))
 
     def __filter_bboxes(self, meta_frame: MetaFrame):
         r""" Filters labels and bboxes for detection models.
             :param: meta_frame: MetaFrame
                         metadata about frame.
         """
-        meta_bboxes = meta_frame.get_bbox_info()
+        meta_bboxes = meta_frame.get_meta_info(MetaName.META_BBOX.value)
         if meta_bboxes is not None:
             meta_labels = meta_bboxes.get_label_info()
             labels = meta_labels.get_labels()
@@ -77,14 +78,14 @@ class Filter(ComponentBase):
             if len(ids) == len(labels_id):
                 new_meta_label.set_object_id([ids[i] for i, e in enumerate(labels_id) if e == True])
             new_meta_bbox = MetaBBox(bboxes, new_meta_label)
-            meta_frame.set_bbox_info(new_meta_bbox)
+            meta_frame.add_meta(MetaName.META_BBOX.value, new_meta_bbox)
 
     def __filter_masks(self, meta_frame: MetaFrame):
         r""" Filters labels and masks for segmentation models.
             :param: meta_frame: MetaFrame
                         metadata about frame.
         """
-        meta_masks = meta_frame.get_mask_info()
+        meta_masks = meta_frame.get_meta_info(MetaName.META_MASK.value)
         if meta_masks is not None:
             meta_labels = meta_masks.get_label_info()
             labels = meta_labels.get_labels()
@@ -119,8 +120,8 @@ class Counter(ComponentBase):
                 frame = meta_frame.get_frame()
                 frame = self.__draw_line(frame)
                 meta_frame.set_frame(frame)
-                if meta_frame.get_bbox_info() is not None:
-                    self.__update(meta_frame.get_bbox_info(),
+                if meta_frame.get_meta_info(MetaName.META_BBOX.value) is not None:
+                    self.__update(meta_frame.get_meta_info(MetaName.META_BBOX.value),
                                   meta_frame.get_frame().detach().cpu().numpy().shape, src_name)
                 if src_name in list(self.__label_count.keys()):
                     meta_frame.add_meta('counter', self.__label_count[src_name])
@@ -163,7 +164,6 @@ class Counter(ComponentBase):
                         self.__label_count[source]['labels'][label] += 1
                     self.__checked_ids[source][object_id] = True
                     checked_ids.append(object_id)
-
 
         for object_id in list(self.__checked_ids[source].keys()):
             if object_id not in checked_ids:
@@ -238,7 +238,7 @@ class DistanceCalculator(ComponentBase):
             for meta_frame in meta_frames:
                 frame = meta_frame.get_frame()
                 meta_frame.set_frame(frame)
-                if meta_frame.get_bbox_info() is not None:
+                if meta_frame.get_meta_info(MetaName.META_BBOX.value) is not None:
                     self.__update(meta_frame,
                                   meta_frame.get_frame().detach().cpu().numpy().shape, src_name)
         return data
@@ -256,13 +256,13 @@ class DistanceCalculator(ComponentBase):
             self.__checked_ids[source] = dict()
             self.__distances[source] = {'bboxes': dict(), 'distance': dict()}
 
-        meta_bbox = meta_frame.get_bbox_info()
+        meta_bbox = meta_frame.get_meta_info(MetaName.META_BBOX.value)
         bboxes = meta_bbox.get_bbox()
         for bbox in bboxes:
             self.__bbox_denormalize(torch.unsqueeze(bbox, dim=0), meta_frame.get_frame().detach().cpu().numpy().shape)
         for i in range(bboxes.shape[0]):
             for j in range(i, bboxes.shape[0]):
-                if i!=j:
+                if i != j:
                     meta_frame = self.__calculate_distance(bbox1=bboxes[i], bbox2=bboxes[j], meta_frame=meta_frame)
         for bbox in bboxes:
             self.__bbox_normalize(torch.unsqueeze(bbox, dim=0), meta_frame.get_frame().detach().cpu().numpy().shape)
@@ -285,18 +285,18 @@ class DistanceCalculator(ComponentBase):
 
         h_dist = s_h - e_h
         v_dist = s_v - e_v
-        if meta_frame.get_depth_info():
-            depth = meta_frame.get_depth_info().get_depth().clone()
+        if meta_frame.get_meta_info(MetaName.META_DEPTH.value):
+            depth = meta_frame.get_meta_info(MetaName.META_DEPTH.value).get_depth().clone()
             depth = torchvision.transforms.Resize((cv_shape[:2]))(depth)
             depth = depth.permute(1, 2, 0).detach().cpu().numpy()
             depth_bbox1 = np.mean(depth[np_bbox1[1]:np_bbox1[3], np_bbox1[0]:np_bbox1[2]])
             depth_bbox2 = np.mean(depth[np_bbox2[1]:np_bbox2[3], np_bbox2[0]:np_bbox2[2]])
-            depth = 1017./((depth_bbox2+depth_bbox1)//2)
+            depth = 1017. / ((depth_bbox2 + depth_bbox1) // 2)
 
             h_dist = h_dist * 53 * (depth - 1) / 28
             v_dist = v_dist * 45 * (depth - 1) / 28
 
-        dist = (h_dist**2 + v_dist**2)**0.5
+        dist = (h_dist ** 2 + v_dist ** 2) ** 0.5
 
         frame = frame.detach().cpu()
         frame = frame.permute(1, 2, 0).numpy()
