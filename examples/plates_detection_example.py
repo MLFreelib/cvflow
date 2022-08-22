@@ -7,7 +7,7 @@ from common.utils import *
 from typing import List
 import torch
 import torchvision
-from components.model_component import ModelDetection2
+from components.model_component import ModelDetectionDiffLabels
 from components.muxer_component import SourceMuxer
 from components.outer_component import DisplayComponent
 from components.painter_component import Tiler, BBoxPainter
@@ -34,8 +34,9 @@ def get_muxer(readers: List[ReaderBase]) -> SourceMuxer:
 
 def get_detection_model(name: str, model: torch.nn.Module, sources: List[ReaderBase], classes: List[str],
                         transforms: list = None,
-                        confidence: float = 0.8) -> ModelDetection2:
-    model_det = ModelDetection2(name, model)
+
+                        confidence: float = 0.8) -> ModelDetectionDiffLabels:
+    model_det = ModelDetectionDiffLabels(name, model)
     #model_det.set_labels(classes)
     for src in sources:
         model_det.add_source(src.get_name())
