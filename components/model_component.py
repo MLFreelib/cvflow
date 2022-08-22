@@ -213,67 +213,6 @@ class ModelDetection(ModelBase):
         bboxes[:, (1, 3)] = bboxes[:, (1, 3)].div(shape[0])
         return bboxes
 
-class ModelDetection2(ModelBase):
-    def __init__(self, name: str, model: torch.nn.Module):
-        super().__init__(name, model)
-
-    def do(self, data: MetaBatch) -> MetaBatch:
-        r""" Transmits data to the detection model. And adds the predicted bounding boxes with labels to the MetaFrame
-            in the MetaBatch. Bounding boxes in BBoxMeta and labels in MetaLabel, which are contained in BBoxMeta.
-        """
-        src_data = _to_model(connected_sources=self._source_names,
-                             data=data,
-                             device=self.get_device(),
-                             transform=self._transform)
-
-        batch, src_size = _to_tensor(src_data)
-
-        with torch.no_grad():
-            preds = self._inference(batch)
-
-        i_point = 0
-        for i_src_name in range(len(self._source_names)):
-            src_name = self._source_names[i_src_name]
-            shape = src_data[i_src_name].shape[-2:]
-            self.__to_meta(data=data, preds=preds[i_point: i_point + src_size[i_src_name]], shape=shape,
-                           src_name=src_name)
-            i_point += src_size[i_src_name]
-
-        return data
-
-    def __to_meta(self, data: MetaBatch, preds: list, shape: torch.Tensor, src_name: str):
-        r""" Adds bounding boxes to MetaBatch.
-            :param data: MetaBatch
-            :param preds: A list of floating point values.
-            :param shape: torch.tensor - image resolution.
-            :param src_name: str - source name
-        """
-        for i in range(len(preds)):
-            boxes = preds[i]['boxes'].cpu()
-            label_names = preds[i]['labels']
-            conf = preds[i]['scores'].cpu().detach().numpy()
-            true_conf = conf > 0.25
-
-            if np.any(true_conf):
-                conf = conf[true_conf]
-                boxes = boxes[true_conf]
-                label_names = np.array(label_names)[true_conf]
-                self.__bbox_normalize(boxes, shape)
-                meta_frame = data.get_meta_frames_by_src_name(src_name)[i]
-                meta_label = MetaLabel(labels=label_names, confidence=conf)
-
-                meta_frame.set_bbox_info(MetaBBox(boxes, meta_label))
-
-    def __bbox_normalize(self, bboxes: torch.tensor, shape: torch.tensor):
-        r""" Normalization of bounding box values in the range from 0 to 1.
-            :param bboxes: torch.tensor
-            :param shape: torch.tensor - image resolution.
-            :return:
-        """
-        bboxes[:, (0, 2)] = bboxes[:, (0, 2)].div(shape[1])
-        bboxes[:, (1, 3)] = bboxes[:, (1, 3)].div(shape[0])
-        return bboxes
-
 
 class ModelDetectionDiffLabels(ModelDetection):
     def __init__(self, name: str, model: torch.nn.Module):
