@@ -1,9 +1,8 @@
-import os
 import unittest
 
 import torch
 
-from Meta import MetaBatch, MetaFrame, MetaLabel, MetaBBox, MetaMask
+from Meta import MetaBatch, MetaFrame, MetaLabel, MetaBBox, MetaMask, MetaName
 from components.painter_component import Tiler, BBoxPainter, LabelPainter, MaskPainter
 
 
@@ -45,7 +44,7 @@ class BBoxPainterTest(unittest.TestCase):
         meta_label = MetaLabel(labels=labels_name, confidence=labels_conf)
         self.frame = torch.ones((3, 40, 60), dtype=torch.uint8)
         self.meta_frame = MetaFrame('test_src', self.frame)
-        self.meta_frame.set_bbox_info(MetaBBox(bboxes, meta_label))
+        self.meta_frame.add_meta(MetaName.META_BBOX.value, MetaBBox(bboxes, meta_label))
         self.meta_batch = MetaBatch('mock')
         self.meta_batch.add_meta_frame(self.meta_frame)
         self.meta_batch.set_source_names(['test_src'])
@@ -66,7 +65,7 @@ class LabelPainterTest(unittest.TestCase):
         self.frame = torch.ones((3, 40, 60), dtype=torch.uint8)
         self.meta_frame = MetaFrame('test_src', self.frame)
         self.meta_batch = MetaBatch('mock')
-        self.meta_frame.set_label_info(meta_label)
+        self.meta_frame.add_meta(MetaName.META_LABEL.value, meta_label)
         self.meta_batch.add_meta_frame(self.meta_frame)
         self.meta_batch.set_source_names(['test_src'])
 
@@ -87,7 +86,7 @@ class MaskPainterTest(unittest.TestCase):
         mask = torch.randint(0, 2, size=(1, 2, 240, 360), dtype=torch.bool)
         self.meta_frame = MetaFrame('test_src', self.frame)
         self.meta_batch = MetaBatch('mock')
-        self.meta_frame.set_mask_info(MetaMask(mask, meta_label))
+        self.meta_frame.add_meta(MetaName.META_MASK.value, MetaMask(mask, meta_label))
         self.meta_batch.add_meta_frame(self.meta_frame)
         self.meta_batch.set_source_names(['test_src'])
 

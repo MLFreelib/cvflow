@@ -13,10 +13,10 @@ class MetaLabel:
                     confidence in the label for each label from labels.
     """
 
-    def __init__(self, labels: List[str], confidence: List[float]):
+    def __init__(self, labels: List[str], confidence: torch.Tensor):
         self.__labels: List[str] = labels
         self.__object_ids: List[int] = list()
-        self.__confidence: List[float] = confidence
+        self.__confidence: torch.Tensor = confidence
 
     def get_confidence(self) -> torch.tensor:
         r""" Returns tensor of confidences for each label. """
@@ -209,7 +209,6 @@ class MetaBatch:
     def __init__(self, name: str):
         self.__name = name
         self.__meta_frames = dict()
-        self.__frames = dict()
         self.__source_names = list()
         self.__signals = dict()
 
@@ -256,33 +255,27 @@ class MetaBatch:
 
         self.__meta_frames[frame.get_src_name()].append(frame)
 
-    def add_frames(self, name: str, frames: torch.tensor):
-        r""" Adds a frames to the batch.
-            :param name: str
-                        name of source
-            :param frames: torch.tensor.
-            :exception TypeError if frames is not tensor.
-        """
-        if not isinstance(frames, torch.Tensor):
-            raise TypeError(f'Expected type of frames a torch.Tensor, received {type(frames)}')
-
-        if name in self.__frames.keys():
-            self.__frames[name] = torch.cat((self.__frames[name], torch.unsqueeze(frames, 0)), 0)
-        else:
-            self.__frames[name] = torch.unsqueeze(frames, 0)
-
     def get_frames_by_src_name(self, src_name: str) -> Union[torch.tensor, None]:
         r""" Returns frames received from a specific source.
             :param src_name: str
                         name of source.
         """
-        return self.__frames[src_name] if src_name in self.__frames.keys() else None
+        meta_frames = self.__meta_frames.get(src_name)
+        frames = []
+        if meta_frames is not None:
+            for meta_frame in meta_frames:
+                frames.append(torch.unsqueeze(meta_frame.get_frame(), dim=0))
+            frames = torch.cat(frames, dim=0)
+        return frames
 
     def get_frames_all(self) -> Dict[str, torch.tensor]:
         r""" Returns all frames.
             :return Dict[str, torch.tensor] where key is name of source and values is frames.
         """
-        return self.__frames
+        frames = dict()
+        for src_name in list(self.__meta_frames.keys()):
+            frames[src_name] = self.get_frames_by_src_name(src_name)
+        return frames
 
     def get_meta_frames_by_src_name(self, src_name: str) -> Union[List[MetaFrame], None]:
         r""" Returns information about frames by the source name. """

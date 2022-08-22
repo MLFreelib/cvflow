@@ -239,7 +239,7 @@ class LabelPainter(Painter):
         for source in data.get_source_names():
             for meta_frame in data.get_meta_frames_by_src_name(source):
                 label_info = meta_frame.get_meta_info(MetaName.META_LABEL.value)
-                if meta_frame.get_labels_info() is not None:
+                if meta_frame.get_meta_info(MetaName.META_LABEL.value) is not None:
                     labels = label_info.get_labels()
                     label_confidence = label_info.get_confidence()
                     label_id = torch.max(label_confidence, dim=1)[1]

@@ -54,7 +54,6 @@ class SourceMuxer(MuxerBase):
                 meta_frame = self.__to_meta_frame(frame, self.__sources[i].get_name())
 
                 data.add_meta_frame(meta_frame)
-                data.add_frames(meta_frame.get_src_name(), meta_frame.get_frame())
                 self.__current_batch_size += 1
 
                 if (self.__current_batch_size / source_count) >= self.__max_batch_size:
