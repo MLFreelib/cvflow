@@ -87,6 +87,7 @@ argparser = argparse.ArgumentParser()
 
 argparser.add_argument('--usbcam', required=False)
 argparser.add_argument('--videofile', required=False)
+argparser.add_argument('--images', required=False)
 argparser.add_argument('-c', '--confidence', required=False)
 argparser.add_argument('-f', '--font', required=False)
 argparser.add_argument('--tsize', required=False)
@@ -98,18 +99,22 @@ args = vars(argparser.parse_args())
 
 
 def get_video_file_srcs():
-    readers = list()
-    file_srcs = args['videofile']
-    if file_srcs is not None:
-        readers = file_srcs.split(',')
-    return readers
+    return get_src('videofile')
 
 
 def get_cam_srcs():
+    return get_src('usbcam')
+
+
+def get_img_srcs():
+    return get_src('images')
+
+
+def get_src(reader_name: str):
     readers = list()
-    file_srcs = args['usbcam']
-    if file_srcs is not None:
-        readers = file_srcs.split(',')
+    srcs = args[reader_name]
+    if srcs is not None:
+        readers = srcs.split(',')
     return readers
 
 
@@ -122,6 +127,7 @@ def get_confidence():
         return .0
     except TypeError:
         return .0
+
 
 def get_font():
     return args['font']
