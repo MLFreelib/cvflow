@@ -25,11 +25,12 @@ class ModelBuilder(nn.Module):
 
 
 class YOLOBuilder(ModelBuilder):
-    def forward(self, imgs):
+    def forward(self, imgs, device='cpu'):
         autocast = False
         out = []
         for x in imgs:
             with amp.autocast(enabled=autocast):
+                x = x.to(device)
                 shape0 = x.shape[1:]
                 x = preprocess_for_YOLO(x, [1, 1, 1])
                 shape1 = x.shape[2:]
