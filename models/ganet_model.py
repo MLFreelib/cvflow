@@ -378,33 +378,6 @@ class PSMNet(nn.Module):
         if out_cost_volume:
             return cost3
 
-        if self.training:
-            cost1 = F.upsample(cost1, [self.maxdepth // self.scale, left.size()[2], left.size()[3]], mode='trilinear')
-            cost2 = F.upsample(cost2, [self.maxdepth // self.scale, left.size()[2], left.size()[3]], mode='trilinear')
-
-            off1 = F.upsample(off1, [self.maxdepth // self.scale, left.size()[2], left.size()[3]], mode='trilinear')
-            off2 = F.upsample(off2, [self.maxdepth // self.scale, left.size()[2], left.size()[3]], mode='trilinear')
-
-            cost1 = torch.squeeze(cost1, 1)
-            off1 = torch.squeeze(off1, 1)
-            pred1 = F.softmax(cost1, dim=1)
-            # off1 = F.sigmoid(off1)
-            off1 = self.off_regress(off1)
-
-            # _, pred1_out = torch.max(pred1, 1)
-            # pred1_out = pred1_out.float() + 1  # Make 1-indexed
-            # off1 = self.interpolate_value(off1, pred1_out)
-
-            cost2 = torch.squeeze(cost2, 1)
-            off2 = torch.squeeze(off2, 1)
-            pred2 = F.softmax(cost2, dim=1)
-            # off2 = F.sigmoid(off2)
-            off2 = self.off_regress(off2)
-
-            # _, pred2_out = torch.max(pred2, 1)
-            # pred2_out = pred2_out.float() + 1  # Make 1-indexed
-            # off2 = self.interpolate_value(off2, pred2_out)
-
         cost3 = F.upsample(cost3, [self.maxdepth // self.scale, left.size()[2], left.size()[3]], mode='trilinear')
         off3 = F.upsample(off3, [self.maxdepth // self.scale, left.size()[2], left.size()[3]], mode='trilinear')
 

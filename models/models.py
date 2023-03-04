@@ -3,6 +3,7 @@ from typing import Union
 from torch import nn
 
 from models.blocks import *
+from models.blocks_test import DepthOutput
 from models.preprocessing import *
 from torch.cuda import amp
 
@@ -129,3 +130,11 @@ def yolo_small(in_channels=3, weights_path=None):
         backbone=backbone,
         output_block=output_block
     )
+
+def mobilestereonet():
+    return ModelBuilder(
+        input_block=MobileStereoNetInputBlock(),
+        backbone=MobileStereoNetBackbone(),
+        output_block=DepthOutput()
+    )
+

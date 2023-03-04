@@ -329,44 +329,12 @@ class MSNet2D(nn.Module):
         out2 = self.encoder_decoder2(out1)
         out3 = self.encoder_decoder3(out2)
 
-        if self.training:
-            cost0 = self.classif0(cost0)
-            cost1 = self.classif1(out1)
-            cost2 = self.classif2(out2)
-            cost3 = self.classif3(out3)
 
-            cost0 = torch.unsqueeze(cost0, 1)
-            cost0 = F.interpolate(cost0, [self.maxdisp, L.size()[2], L.size()[3]], mode='trilinear')
-            cost0 = torch.squeeze(cost0, 1)
-            pred0 = F.softmax(cost0, dim=1)
-            pred0 = disparity_regression(pred0, self.maxdisp)
+        cost3 = self.classif3(out3)
+        cost3 = torch.unsqueeze(cost3, 1)
+        cost3 = F.interpolate(cost3, [self.maxdisp, L.size()[2], L.size()[3]], mode='trilinear')
+        cost3 = torch.squeeze(cost3, 1)
+        pred3 = F.softmax(cost3, dim=1)
+        pred3 = disparity_regression(pred3, self.maxdisp)
 
-            cost1 = torch.unsqueeze(cost1, 1)
-            cost1 = F.interpolate(cost1, [self.maxdisp, L.size()[2], L.size()[3]], mode='trilinear')
-            cost1 = torch.squeeze(cost1, 1)
-            pred1 = F.softmax(cost1, dim=1)
-            pred1 = disparity_regression(pred1, self.maxdisp)
-
-            cost2 = torch.unsqueeze(cost2, 1)
-            cost2 = F.interpolate(cost2, [self.maxdisp, L.size()[2], L.size()[3]], mode='trilinear')
-            cost2 = torch.squeeze(cost2, 1)
-            pred2 = F.softmax(cost2, dim=1)
-            pred2 = disparity_regression(pred2, self.maxdisp)
-
-            cost3 = torch.unsqueeze(cost3, 1)
-            cost3 = F.interpolate(cost3, [self.maxdisp, L.size()[2], L.size()[3]], mode='trilinear')
-            cost3 = torch.squeeze(cost3, 1)
-            pred3 = F.softmax(cost3, dim=1)
-            pred3 = disparity_regression(pred3, self.maxdisp)
-
-            return [pred0, pred1, pred2, pred3]
-
-        else:
-            cost3 = self.classif3(out3)
-            cost3 = torch.unsqueeze(cost3, 1)
-            cost3 = F.interpolate(cost3, [self.maxdisp, L.size()[2], L.size()[3]], mode='trilinear')
-            cost3 = torch.squeeze(cost3, 1)
-            pred3 = F.softmax(cost3, dim=1)
-            pred3 = disparity_regression(pred3, self.maxdisp)
-
-            return [pred3]
+        return [pred3]
