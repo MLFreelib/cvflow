@@ -1,10 +1,10 @@
+import os
 from typing import Union
 
 from torch import nn
 
-from models.blocks import *
-from models.blocks_test import DepthOutput
-from models.preprocessing import *
+from blocks import *
+from preprocessing import *
 from torch.cuda import amp
 
 
@@ -131,10 +131,19 @@ def yolo_small(in_channels=3, weights_path=None):
         output_block=output_block
     )
 
-def mobilestereonet():
-    return ModelBuilder(
-        input_block=MobileStereoNetInputBlock(),
-        backbone=MobileStereoNetBackbone(),
-        output_block=DepthOutput()
+def mobilestereonet(weights_path = None):
+    input_block = MobileStereoNetInputBlock()
+    backbone = MobileStereoNetBackbone(),
+    output_block = DepthOutput()
+    if weights_path:
+        input_block.import_weights(weights_path)
+        # backbone.import_weights(weights_path)
+        # output_block.import_weights(weights_path)
+    model =  ModelBuilder(
+        input_block=input_block,
+        backbone=backbone,
+        output_block=output_block
     )
 
+wp = os.path.join(os.path.dirname(__file__), '..', 'tests', 'test_data', 'best.ckpt')
+mobilestereonet(wp)

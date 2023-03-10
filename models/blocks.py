@@ -7,9 +7,10 @@ from torch.cuda import amp
 from torch import nn
 import torch
 
-from models.layers import Conv2dAuto
-from models.preprocessing import preprocess_for_YOLO
+from layers import Conv2dAuto
+from preprocessing import preprocess_for_YOLO
 import torch.nn.functional as F
+
 
 class Block(nn.Module):
     def __init__(self, in_channels, out_channels):
@@ -41,6 +42,7 @@ class OutputFormat(Enum):
     BBOX = 'bbox'
     SEM_MASK = 'semantic_mask'
     INST_MASK = 'instance_mask'
+    DEPTH = 'depth'
 
 
 class OutputBlock(Block):
@@ -517,13 +519,16 @@ class PANet(Block):
         self.bnc31 = CSPBottleneck(bn_ins[0][0], bn_ins[0][1], e=0.5, bottlenecks_n=bottlenecks_n, bs=False)
         self.conv2 = YOLOConv(conv_ins[1][0], conv_ins[1][1], p=0, shortcut=(4, 0), outs=self.outs)
         self.upsample2 = nn.Upsample(scale_factor=2, mode='nearest')
-        self.bnc32 = CSPBottleneck(bn_ins[1][0], bn_ins[1][1], e=0.5, bottlenecks_n=bottlenecks_n, save_copy=self.bn_outs,
+        self.bnc32 = CSPBottleneck(bn_ins[1][0], bn_ins[1][1], e=0.5, bottlenecks_n=bottlenecks_n,
+                                   save_copy=self.bn_outs,
                                    pre_save=False, bs=False)
         self.conv3 = YOLOConv(conv_ins[2][0], conv_ins[2][1], k=3, s=2, p=1)
-        self.bnc33 = CSPBottleneck(bn_ins[2][0], bn_ins[2][1], e=0.5, bottlenecks_n=bottlenecks_n, save_copy=self.bn_outs,
+        self.bnc33 = CSPBottleneck(bn_ins[2][0], bn_ins[2][1], e=0.5, bottlenecks_n=bottlenecks_n,
+                                   save_copy=self.bn_outs,
                                    pre_save=False, bs=False)
         self.conv4 = YOLOConv(conv_ins[3][0], conv_ins[3][1], k=3, s=2, p=1)
-        self.bnc34 = CSPBottleneck(bn_ins[3][0], bn_ins[3][1], e=0.5, bottlenecks_n=bottlenecks_n, save_copy=self.bn_outs,
+        self.bnc34 = CSPBottleneck(bn_ins[3][0], bn_ins[3][1], e=0.5, bottlenecks_n=bottlenecks_n,
+                                   save_copy=self.bn_outs,
                                    pre_save=False, bs=False)
         self._block = nn.Sequential(
             self.conv1,
@@ -573,7 +578,6 @@ class PANet(Block):
         self.weight_index = weight_index
 
 
-
 class CRNN(Block):
 
     def __init__(self, in_channels, out_channels, img_height, img_width, num_class,
@@ -604,7 +608,7 @@ class CRNN(Block):
         def conv_relu(i, batch_norm=False):
             # shape of input: (batch, input_channel, height, width)
             input_channel = channels[i]
-            output_channel = channels[i+1]
+            output_channel = channels[i + 1]
 
             cnn.add_module(
                 f'conv{i}',
@@ -793,7 +797,6 @@ class MobileStereoFeatureExtractionBlock(nn.Module):
         self.inplanes = planes
         for i in range(1, blocks):
             layers.append(block(self.inplanes, planes, 1, None, pad, dilation))
-
         return nn.Sequential(*layers)
 
     def forward(self, x):
@@ -808,9 +811,24 @@ class MobileStereoFeatureExtractionBlock(nn.Module):
         return feature_volume
 
 
+def load_weights(block, weight_index, weights_list, weights, bias=None, running=None):
+    block.weight = nn.Parameter(weights[weights_list[weight_index]])
+    weight_index += 1
+    if bias:
+        block.bias = nn.Parameter(weights[weights_list[weight_index]])
+        weight_index += 1
+    if running:
+        block.running_mean = nn.Parameter(weights[weights_list[weight_index]], requires_grad=False)
+        block.running_var = nn.Parameter(weights[weights_list[weight_index + 1]], requires_grad=False)
+        block.num_batches_tracked = nn.Parameter(weights[weights_list[weight_index + 2]], requires_grad=False)
+        weight_index += 3
+    return block, weight_index
+
+
 class MobileStereoNetInputBlock(Block):
     def __init__(self, in_channels=3, out_channels=32):
         super().__init__(in_channels, out_channels)
+        self.weight_index = 0
         self._block = nn.Sequential(
             MobileStereoFeatureExtractionBlock(add_relus=True),
             nn.Sequential(self.convbn(320, 256, 1, 1, 0, 1),
@@ -822,6 +840,63 @@ class MobileStereoNetInputBlock(Block):
                           nn.Conv2d(64, 32, 1, 1, 0, 1))
         )
 
+    def import_weights(self, weights_path):
+        self.weights = torch.load(weights_path, map_location=torch.device('cpu'))['model']
+        weights_list = [_ for _ in self.weights]
+        weight_index = self.weight_index
+        for layer in self._block:
+            if isinstance(layer, MobileStereoFeatureExtractionBlock):
+                for sublayer in layer.firstconv:
+                    if isinstance(sublayer, MobileV2ResidualBlock):
+                        sublayer.block[0], self.weight_index = load_weights(sublayer.block[0], self.weight_index,
+                                                                            weights_list, self.weights)
+                        sublayer.block[1], self.weight_index = load_weights(sublayer.block[1], self.weight_index,
+                                                                            weights_list, self.weights, bias=True,
+                                                                            running=True)
+                        sublayer.block[3], self.weight_index = load_weights(sublayer.block[3], self.weight_index,
+                                                                            weights_list, self.weights)
+                        sublayer.block[4], self.weight_index = load_weights(sublayer.block[4], self.weight_index,
+                                                                            weights_list, self.weights, bias=True,
+                                                                            running=True)
+                        sublayer.block[6], self.weight_index = load_weights(sublayer.block[6], self.weight_index,
+                                                                            weights_list, self.weights)
+                        sublayer.block[7], self.weight_index = load_weights(sublayer.block[7], self.weight_index,
+                                                                            weights_list, self.weights, bias=True,
+                                                                            running=True)
+                for sublayer in [layer.layer1, layer.layer2, layer.layer3, layer.layer4]:
+                    for subsublayer in sublayer:
+                        if isinstance(subsublayer, MobileV1ResidualBlock):
+                            if subsublayer.downsample:
+                                subsublayer.downsample[0], self.weight_index = load_weights(subsublayer.downsample[0], self.weight_index,
+                                                                           weights_list, self.weights)
+                                subsublayer.downsample[1], self.weight_index = load_weights(subsublayer.downsample[1],
+                                                                           self.weight_index,
+                                                                           weights_list, self.weights, bias=True,
+                                                                           running=True)
+                            for block in subsublayer.blocks:
+                                block[0], self.weight_index = load_weights(block[0], self.weight_index,
+                                                                           weights_list, self.weights)
+                                block[1], self.weight_index = load_weights(block[1],
+                                                                           self.weight_index,
+                                                                           weights_list, self.weights, bias=True,
+                                                                           running=True)
+                                block[3], self.weight_index = load_weights(block[3], self.weight_index,
+                                                                           weights_list, self.weights)
+                                block[4], self.weight_index = load_weights(block[4], self.weight_index,
+                                                                           weights_list, self.weights, bias=True,
+                                                                           running=True)
+            else:
+                for sublayer in layer:
+                    if isinstance(sublayer, nn.Sequential):
+                        sublayer[0], self.weight_index = load_weights(sublayer[0], self.weight_index,
+                                                                   weights_list, self.weights)
+                        sublayer[1], self.weight_index = load_weights(sublayer[1],
+                                                                   self.weight_index,
+                                                                   weights_list, self.weights, bias=True,
+                                                                   running=True)
+                    else:
+                        sublayer, self.weight_index = load_weights(sublayer, self.weight_index,
+                                                                      weights_list, self.weights)
     def convbn(self, in_channels, out_channels, kernel_size, stride, pad, dilation):
         return nn.Sequential(
             nn.Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride=stride,
@@ -934,6 +1009,12 @@ class MobileStereoNetBackbone(nn.Module):
             elif isinstance(m, nn.Linear):
                 m.bias.data.zero_()
 
+    def import_weights(self, weights_path):
+        self.weights = torch.load(weights_path, map_location=torch.device('cpu'))
+        weights_list = [_ for _ in self.weights['model']]
+        # weight_index = self.weight_index
+        pass
+
     def convbn(self, in_channels, out_channels, kernel_size, stride, pad, dilation):
         return nn.Sequential(
             nn.Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride=stride,
@@ -984,13 +1065,26 @@ class MobileStereoNetBackbone(nn.Module):
 
 class DepthOutput(OutputBlock):
     def __init__(self, maxdisp=192):
-        super().__init__()
+        super().__init__(in_channels=1, out_channels=1)
         self.hg_size = 48
         self.maxdisp = maxdisp
         self._block = nn.Sequential(self.convbn(self.hg_size, self.hg_size, 3, 1, 1, 1),
                                     nn.ReLU(inplace=True),
                                     nn.Conv2d(self.hg_size, self.hg_size, kernel_size=3, padding=1, stride=1,
                                               bias=False, dilation=1))
+
+    def convbn(self, in_channels, out_channels, kernel_size, stride, pad, dilation):
+        return nn.Sequential(
+            nn.Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride=stride,
+                      padding=dilation if dilation > 1 else pad, dilation=dilation, bias=False),
+            nn.BatchNorm2d(out_channels)
+        )
+
+    def import_weights(self, weights_path):
+        self.weights = torch.load(weights_path, map_location=torch.device('cpu'))
+        weights_list = [_ for _ in self.weights]
+        weight_index = self.weight_index
+        pass
 
     def disparity_regression(self, x, maxdisp):
         assert len(x.shape) == 4
