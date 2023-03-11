@@ -137,9 +137,8 @@ def mobilestereonet(weights_path = None):
     output_block = DepthOutput()
     if weights_path:
         input_block.import_weights(weights_path)
-        # backbone.import_ weights(weights_path)
-
-        # output_block.import_weights(weights_path)
+        backbone.import_weights(weights_path)
+        output_block.import_weights(weights_path)
     model =  ModelBuilder(
         input_block=input_block,
         backbone=backbone,

@@ -675,7 +675,7 @@ class MobileV1ResidualBlock(nn.Module):
 
         self.stride = stride
         self.downsample = downsample
-        self.blocks = nn.ModuleList([self.convbn_dws(inplanes, planes, 3, stride, pad, dilation),
+        self._block = nn.ModuleList([self.downsample, self.convbn_dws(inplanes, planes, 3, stride, pad, dilation),
                                      self.convbn_dws(planes, planes, 3, 1, pad, dilation, second_relu=False)])
 
     def convbn_dws(self, inp, oup, kernel_size, stride, pad, dilation, second_relu=True):
@@ -705,7 +705,7 @@ class MobileV1ResidualBlock(nn.Module):
 
     def forward(self, x):
         out = x
-        for block in self.blocks.children():
+        for block in self._block.children():
             out = block(out)
 
         if self.downsample is not None:
@@ -727,7 +727,7 @@ class MobileV2ResidualBlock(nn.Module):
         pad = dilation
 
         if expanse_ratio == 1:
-            self.block = nn.Sequential(
+            self._block = nn.Sequential(
                 # dw
                 nn.Conv2d(hidden_dim, hidden_dim, 3, stride, pad, dilation=dilation, groups=hidden_dim, bias=False),
                 nn.BatchNorm2d(hidden_dim),
@@ -737,7 +737,7 @@ class MobileV2ResidualBlock(nn.Module):
                 nn.BatchNorm2d(oup),
             )
         else:
-            self.block = nn.Sequential(
+            self._block = nn.Sequential(
                 # pw
                 nn.Conv2d(inp, hidden_dim, 1, 1, 0, bias=False),
                 nn.BatchNorm2d(hidden_dim),
@@ -753,9 +753,9 @@ class MobileV2ResidualBlock(nn.Module):
 
     def forward(self, x):
         if self.use_res_connect:
-            return x + self.block(x)
+            return x + self._block(x)
         else:
-            return self.block(x)
+            return self._block(x)
 
 
 class MobileStereoFeatureExtractionBlock(nn.Module):
@@ -782,6 +782,13 @@ class MobileStereoFeatureExtractionBlock(nn.Module):
         self.layer2 = self._make_layer(MobileV1ResidualBlock, 64, 16, 2, 1, 1)
         self.layer3 = self._make_layer(MobileV1ResidualBlock, 128, 3, 1, 1, 1)
         self.layer4 = self._make_layer(MobileV1ResidualBlock, 128, 3, 1, 1, 2)
+        self._block = nn.Sequential(
+            self.firstconv,
+            self.layer1,
+            self.layer2,
+            self.layer3,
+            self.layer4,
+        )
 
     def _make_layer(self, block, planes, blocks, stride, pad, dilation):
         downsample = None
@@ -800,11 +807,11 @@ class MobileStereoFeatureExtractionBlock(nn.Module):
         return nn.Sequential(*layers)
 
     def forward(self, x):
-        x = self.firstconv(x)
-        x = self.layer1(x)
-        l2 = self.layer2(x)
-        l3 = self.layer3(l2)
-        l4 = self.layer4(l3)
+        x = self._block[0]
+        x = self._block[1]
+        l2 = self._block[2]
+        l3 = self._block[3]
+        l4 = self._block[4]
 
         feature_volume = torch.cat((l2, l3, l4), dim=1)
 
@@ -812,22 +819,45 @@ class MobileStereoFeatureExtractionBlock(nn.Module):
 
 
 def load_weights(block, weight_index, weights_list, weights, bias=None, running=None):
-    try:
+    # try:
         block.weight = nn.Parameter(weights[weights_list[weight_index]])
         weight_index += 1
-        if bias:
+        if bias is not None:
             block.bias = nn.Parameter(weights[weights_list[weight_index]])
             weight_index += 1
-        if running:
+        if running is not None:
             block.running_mean = nn.Parameter(weights[weights_list[weight_index]], requires_grad=False)
             block.running_var = nn.Parameter(weights[weights_list[weight_index + 1]], requires_grad=False)
             block.num_batches_tracked = nn.Parameter(weights[weights_list[weight_index + 2]], requires_grad=False)
             weight_index += 3
-    except RuntimeError as e:
-        print(e)
-        print(weight_index, weights_list[weight_index])
-    return block, weight_index
+    # except RuntimeError as e:
+    #     print(e)
+        return block, weight_index
 
+def import_weights(block, weight_index, weights_list, weights):
+    for layer in block:
+        print(weight_index, weights_list[weight_index], layer)
+        if isinstance(layer, (nn.Sequential, nn. ModuleList)):
+            layer, weight_index = import_weights(layer, weight_index, weights_list, weights)
+        elif isinstance(layer, (MobileStereoNetInputBlock, MobileStereoFeatureExtractionBlock,
+                                MobileV2ResidualBlock, MobileV1ResidualBlock, MobileStereoNetBackbone,
+                                hourglass2D)):
+             layer._block, weight_index = import_weights(layer._block, weight_index, weights_list, weights)
+        else:
+            try:
+                weight = layer.weight
+            except AttributeError:
+                continue
+            try:
+                running = layer.running_mean
+            except AttributeError:
+                running = None
+            bias = layer.bias
+            layer, weight_index = load_weights(layer, weight_index, weights_list, weights, bias, running)
+
+
+
+    return block, weight_index,
 class MobileStereoNetInputBlock(Block):
     def __init__(self, in_channels=3, out_channels=32):
         super().__init__(in_channels, out_channels)
@@ -847,66 +877,9 @@ class MobileStereoNetInputBlock(Block):
     def import_weights(self, weights_path):
         self.weights = torch.load(weights_path, map_location=torch.device('cpu'))['model']
         weights_list = [_ for _ in self.weights]
+        self._block, self.weight_index = import_weights(self._block, self.weight_index,
+                                                        weights_list, self.weights)
 
-        for layer in self._block:
-
-            if isinstance(layer, MobileStereoFeatureExtractionBlock):
-                for sublayer in layer.firstconv:
-                    if isinstance(sublayer, MobileV2ResidualBlock):
-                        params = [_ for _ in sublayer.block[0].named_buffers()]
-                        print(sublayer.block[0].running_var)
-
-                        sublayer.block[0], self.weight_index = load_weights(sublayer.block[0], self.weight_index,
-                                                                            weights_list, self.weights)
-                        sublayer.block[1], self.weight_index = load_weights(sublayer.block[1], self.weight_index,
-                                                                            weights_list, self.weights, bias=True,
-                                                                            running=True)
-                        sublayer.block[3], self.weight_index = load_weights(sublayer.block[3], self.weight_index,
-                                                                            weights_list, self.weights)
-                        sublayer.block[4], self.weight_index = load_weights(sublayer.block[4], self.weight_index,
-                                                                            weights_list, self.weights, bias=True,
-                                                                            running=True)
-                        sublayer.block[6], self.weight_index = load_weights(sublayer.block[6], self.weight_index,
-                                                                            weights_list, self.weights)
-                        sublayer.block[7], self.weight_index = load_weights(sublayer.block[7], self.weight_index,
-                                                                            weights_list, self.weights, bias=True,
-                                                                            running=True)
-                for sublayer in [layer.layer1, layer.layer2, layer.layer3, layer.layer4]:
-                    for subsublayer in sublayer:
-                        if isinstance(subsublayer, MobileV1ResidualBlock):
-                            if subsublayer.downsample:
-                                subsublayer.downsample[0], self.weight_index = load_weights(subsublayer.downsample[0],
-                                                                                            self.weight_index,
-                                                                                            weights_list, self.weights)
-                                subsublayer.downsample[1], self.weight_index = load_weights(subsublayer.downsample[1],
-                                                                                            self.weight_index,
-                                                                                            weights_list, self.weights,
-                                                                                            bias=True,
-                                                                                            running=True)
-                            for block in subsublayer.blocks:
-                                block[0], self.weight_index = load_weights(block[0], self.weight_index,
-                                                                           weights_list, self.weights)
-                                block[1], self.weight_index = load_weights(block[1],
-                                                                           self.weight_index,
-                                                                           weights_list, self.weights, bias=True,
-                                                                           running=True)
-                                block[3], self.weight_index = load_weights(block[3], self.weight_index,
-                                                                           weights_list, self.weights)
-                                block[4], self.weight_index = load_weights(block[4], self.weight_index,
-                                                                           weights_list, self.weights, bias=True,
-                                                                           running=True)
-            else:
-                for sublayer in layer:
-                    if isinstance(sublayer, nn.Sequential):
-                        sublayer[0], self.weight_index = load_weights(sublayer[0], self.weight_index,
-                                                                      weights_list, self.weights)
-                        sublayer[1], self.weight_index = load_weights(sublayer[1],
-                                                                      self.weight_index,
-                                                                      weights_list, self.weights, bias=True,
-                                                                      running=True)
-                    else:
-                        sublayer, self.weight_index = load_weights(sublayer, self.weight_index,
-                                                                   weights_list, self.weights)
 
     def convbn(self, in_channels, out_channels, kernel_size, stride, pad, dilation):
         return nn.Sequential(
@@ -946,15 +919,26 @@ class hourglass2D(nn.Module):
         self.redir2 = MobileV2ResidualBlock(in_channels * 2, in_channels * 2, stride=1,
                                             expanse_ratio=self.expanse_ratio)
 
+        self._block = nn.Sequential(
+            self.conv1,
+            self.conv2,
+            self.conv3,
+            self.conv4,
+            self.conv5,
+            self.conv6,
+            self.redir1,
+            self.redir2
+        )
+
     def forward(self, x):
-        conv1 = self.conv1(x)
-        conv2 = self.conv2(conv1)
+        conv1 = self._block[0](x)
+        conv2 =  self._block[1](conv1)
 
-        conv3 = self.conv3(conv2)
-        conv4 = self.conv4(conv3)
+        conv3 =  self._block[2](conv2)
+        conv4 = self._block[3](conv3)
 
-        conv5 = F.relu(self.conv5(conv4) + self.redir2(conv2), inplace=True)
-        conv6 = F.relu(self.conv6(conv5) + self.redir1(x), inplace=True)
+        conv5 = F.relu(self._block[4](conv4) + self._block[7](conv2), inplace=True)
+        conv6 = F.relu(self._block[5](conv5) + self._block[6](x), inplace=True)
 
         return conv6
 
@@ -1006,7 +990,6 @@ class MobileStereoNetBackbone(Block):
         self.encoder_decoder2 = hourglass2D(self.hg_size)
 
         self.encoder_decoder3 = hourglass2D(self.hg_size)
-
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
                 n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
@@ -1022,54 +1005,24 @@ class MobileStereoNetBackbone(Block):
                 m.bias.data.zero_()
             elif isinstance(m, nn.Linear):
                 m.bias.data.zero_()
+        self._block = nn.Sequential(
+            self.conv3d,
+            self.volume11,
+            self.dres0,
+            self.dres1,
+            self.encoder_decoder1,
+            self.encoder_decoder2,
+            self.encoder_decoder3
+        )
 
 
     def import_weights(self, weights_path):
 
         self.weights = torch.load(weights_path, map_location=torch.device('cpu'))['model']
         weights_list = [_ for _ in self.weights]
+        self._block, self.weight_index = import_weights(self._block, self.weight_index,
+                                                        weights_list, self.weights)
 
-        for big_layer in [self.conv3d, self.volume11, self.dres0, self.dres1]:
-            for layer in big_layer:
-                if isinstance(layer, nn.Conv3d):
-                    layer, self.weight_index = load_weights(layer, self.weight_index,
-                                                            weights_list, self.weights)
-
-                elif isinstance(layer, nn.BatchNorm3d):
-                    layer, self.weight_index = load_weights(layer, self.weight_index,
-                                                            weights_list, self.weights, bias=True,
-                                                            running=True)
-                elif isinstance(layer, MobileV2ResidualBlock):
-                    layer.block[0], self.weight_index = load_weights(layer.block[0], self.weight_index,
-                                                                    weights_list, self.weights)
-                    layer.block[1], self.weight_index = load_weights(layer.block[1], self.weight_index,
-                                                                     weights_list, self.weights, bias=True,
-                                                                     running=True)
-                    layer.block[3], self.weight_index = load_weights(layer.block[3], self.weight_index,
-                                                                     weights_list, self.weights)
-                    layer.block[4], self.weight_index = load_weights(layer.block[4], self.weight_index,
-                                                                     weights_list, self.weights, bias=True,
-                                                                     running=True)
-                    layer.block[6], self.weight_index = load_weights(layer.block[6], self.weight_index,
-                                                                     weights_list, self.weights)
-                    layer.block[7], self.weight_index = load_weights(layer.block[7], self.weight_index,
-                                                                     weights_list, self.weights, bias=True,
-                                                                     running=True)
-                elif isinstance(layer, nn.Sequential):
-                    for sublayer in layer:
-                        if isinstance(sublayer, nn.Conv2d):
-                            sublayer, self.weight_index = load_weights(sublayer, self.weight_index,
-                                                                    weights_list, self.weights)
-
-                        elif isinstance(sublayer, nn.BatchNorm2d):
-                            sublayer, self.weight_index = load_weights(sublayer, self.weight_index,
-                                                                    weights_list, self.weights, bias=True,
-                                                                    running=True)
-                elif isinstance(layer, nn.ReLU):
-                    pass
-                else:
-                    raise Exception('non recognized layer', layer)
-        print(self.weight_index)
 
     def convbn(self, in_channels, out_channels, kernel_size, stride, pad, dilation):
         return nn.Sequential(
@@ -1087,6 +1040,7 @@ class MobileStereoNetBackbone(Block):
         return interwoven_features
 
     def forward(self, x):
+
         featL, featR = x
         B, C, H, W = featL.shape
         volume = featL.new_zeros([B, self.num_groups, self.volume_size, H, W])
@@ -1094,27 +1048,26 @@ class MobileStereoNetBackbone(Block):
             if i > 0:
                 x = self.interweave_tensors(featL[:, :, :, i:], featR[:, :, :, :-i])
                 x = torch.unsqueeze(x, 1)
-                x = self.conv3d(x)
+                x = self._block[0](x)
                 x = torch.squeeze(x, 2)
-                x = self.volume11(x)
+                x = self._block[1](x)
                 volume[:, :, i, :, i:] = x
             else:
                 x = self.interweave_tensors(featL, featR)
                 x = torch.unsqueeze(x, 1)
-                x = self.conv3d(x)
+                x = self._block[0](x)
                 x = torch.squeeze(x, 2)
-                x = self.volume11(x)
+                x = self._block[1](x)
                 volume[:, :, i, :, :] = x
 
         volume = volume.contiguous()
         volume = torch.squeeze(volume, 1)
+        cost0 = self._block[2](volume)
+        cost0 = self._block[3](cost0) + cost0
 
-        cost0 = self.dres0(volume)
-        cost0 = self.dres1(cost0) + cost0
-
-        out1 = self.encoder_decoder1(cost0)  # [2, hg_size, 64, 128]
-        out2 = self.encoder_decoder2(out1)
-        out3 = self.encoder_decoder3(out2)
+        out1 = self._block[4](cost0)  # [2, hg_size, 64, 128]
+        out2 = self._block[5](out1)
+        out3 = self._block[6](out2)
 
         return out3
 
@@ -1122,12 +1075,31 @@ class MobileStereoNetBackbone(Block):
 class DepthOutput(OutputBlock):
     def __init__(self, maxdisp=192):
         super().__init__(in_channels=1, out_channels=1)
+        self.weight_index = 1145
+        self.weights = None
         self.hg_size = 48
         self.maxdisp = maxdisp
-        self._block = nn.Sequential(self.convbn(self.hg_size, self.hg_size, 3, 1, 1, 1),
-                                    nn.ReLU(inplace=True),
-                                    nn.Conv2d(self.hg_size, self.hg_size, kernel_size=3, padding=1, stride=1,
-                                              bias=False, dilation=1))
+
+        self.classif0 = nn.Sequential(self.convbn(self.hg_size, self.hg_size, 3, 1, 1, 1),
+                                      nn.ReLU(inplace=True),
+                                      nn.Conv2d(self.hg_size, self.hg_size, kernel_size=3, padding=1, stride=1,
+                                                bias=False, dilation=1))
+        self.classif1 = nn.Sequential(self.convbn(self.hg_size, self.hg_size, 3, 1, 1, 1),
+                                      nn.ReLU(inplace=True),
+                                      nn.Conv2d(self.hg_size, self.hg_size, kernel_size=3, padding=1, stride=1,
+                                                bias=False, dilation=1))
+        self.classif2 = nn.Sequential(self.convbn(self.hg_size, self.hg_size, 3, 1, 1, 1),
+                                      nn.ReLU(inplace=True),
+                                      nn.Conv2d(self.hg_size, self.hg_size, kernel_size=3, padding=1, stride=1,
+                                                bias=False, dilation=1))
+        self.classif3 = nn.Sequential(self.convbn(self.hg_size, self.hg_size, 3, 1, 1, 1),
+                                      nn.ReLU(inplace=True),
+                                      nn.Conv2d(self.hg_size, self.hg_size, kernel_size=3, padding=1, stride=1,
+                                                bias=False, dilation=1))
+        self._block = nn.Sequential(self.classif1,
+                                    self.classif2,
+                                    self.classif3,
+                                    self.classif2)
 
     def convbn(self, in_channels, out_channels, kernel_size, stride, pad, dilation):
         return nn.Sequential(
@@ -1137,10 +1109,10 @@ class DepthOutput(OutputBlock):
         )
 
     def import_weights(self, weights_path):
-        self.weights = torch.load(weights_path, map_location=torch.device('cpu'))
+        self.weights = torch.load(weights_path, map_location=torch.device('cpu'))['model']
         weights_list = [_ for _ in self.weights]
-        weight_index = self.weight_index
-        pass
+        self._block, self.weight_index = import_weights(self._block, self.weight_index,
+                                                        weights_list, self.weights)
 
     def disparity_regression(self, x, maxdisp):
         assert len(x.shape) == 4
