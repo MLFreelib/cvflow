@@ -819,7 +819,6 @@ class MobileStereoFeatureExtractionBlock(nn.Module):
 
 
 def load_weights(block, weight_index, weights_list, weights, bias=None, running=None):
-    # try:
         block.weight = nn.Parameter(weights[weights_list[weight_index]])
         weight_index += 1
         if bias is not None:
@@ -830,13 +829,10 @@ def load_weights(block, weight_index, weights_list, weights, bias=None, running=
             block.running_var = nn.Parameter(weights[weights_list[weight_index + 1]], requires_grad=False)
             block.num_batches_tracked = nn.Parameter(weights[weights_list[weight_index + 2]], requires_grad=False)
             weight_index += 3
-    # except RuntimeError as e:
-    #     print(e)
         return block, weight_index
 
 def import_weights(block, weight_index, weights_list, weights):
     for layer in block:
-        print(weight_index, weights_list[weight_index], layer)
         if isinstance(layer, (nn.Sequential, nn. ModuleList)):
             layer, weight_index = import_weights(layer, weight_index, weights_list, weights)
         elif isinstance(layer, (MobileStereoNetInputBlock, MobileStereoFeatureExtractionBlock,
