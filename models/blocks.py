@@ -7,8 +7,8 @@ from torch.cuda import amp
 from torch import nn
 import torch
 
-from layers import Conv2dAuto
-from preprocessing import preprocess_for_YOLO
+from models.layers import Conv2dAuto
+from models.preprocessing import preprocess_for_YOLO
 import torch.nn.functional as F
 
 
@@ -122,8 +122,8 @@ class YOLOHead(nn.Module):
         anchor_grid = (self.anchors[i] * self.stride[i]).view((1, self.na, 1, 1, 2)).expand(shape).float()
         return grid, anchor_grid
 
-    def import_weights(self, weights_path):
-        self.weights = torch.load(weights_path)
+    def import_weights(self, weights):
+        self.weights = weights
         weights_list = [_ for _ in self.weights]
         weight_index = self.weight_index
         self.m[0].weight = nn.Parameter(self.weights[weights_list[weight_index]])
@@ -675,7 +675,8 @@ class MobileV1ResidualBlock(nn.Module):
 
         self.stride = stride
         self.downsample = downsample
-        self._block = nn.ModuleList([self.downsample, self.convbn_dws(inplanes, planes, 3, stride, pad, dilation),
+        self._block = nn.ModuleList([self.downsample,
+                                     self.convbn_dws(inplanes, planes, 3, stride, pad, dilation),
                                      self.convbn_dws(planes, planes, 3, 1, pad, dilation, second_relu=False)])
 
     def convbn_dws(self, inp, oup, kernel_size, stride, pad, dilation, second_relu=True):
@@ -704,9 +705,8 @@ class MobileV1ResidualBlock(nn.Module):
             )
 
     def forward(self, x):
-        out = x
-        for block in self._block.children():
-            out = block(out)
+        out = self._block[1](x)
+        out = self._block[2](out)
 
         if self.downsample is not None:
             x = self.downsample(x)
@@ -807,12 +807,11 @@ class MobileStereoFeatureExtractionBlock(nn.Module):
         return nn.Sequential(*layers)
 
     def forward(self, x):
-        x = self._block[0]
-        x = self._block[1]
-        l2 = self._block[2]
-        l3 = self._block[3]
-        l4 = self._block[4]
-
+        x = self._block[0](x)
+        x = self._block[1](x)
+        l2 = self._block[2](x)
+        l3 = self._block[3](l2)
+        l4 = self._block[4](l3)
         feature_volume = torch.cat((l2, l3, l4), dim=1)
 
         return feature_volume
@@ -870,8 +869,8 @@ class MobileStereoNetInputBlock(Block):
                           nn.Conv2d(64, 32, 1, 1, 0, 1))
         )
 
-    def import_weights(self, weights_path):
-        self.weights = torch.load(weights_path, map_location=torch.device('cpu'))['model']
+    def import_weights(self, weights):
+        self.weights = weights
         weights_list = [_ for _ in self.weights]
         self._block, self.weight_index = import_weights(self._block, self.weight_index,
                                                         weights_list, self.weights)
@@ -1012,9 +1011,9 @@ class MobileStereoNetBackbone(Block):
         )
 
 
-    def import_weights(self, weights_path):
+    def import_weights(self, weights):
 
-        self.weights = torch.load(weights_path, map_location=torch.device('cpu'))['model']
+        self.weights = weights
         weights_list = [_ for _ in self.weights]
         self._block, self.weight_index = import_weights(self._block, self.weight_index,
                                                         weights_list, self.weights)
@@ -1104,8 +1103,8 @@ class DepthOutput(OutputBlock):
             nn.BatchNorm2d(out_channels)
         )
 
-    def import_weights(self, weights_path):
-        self.weights = torch.load(weights_path, map_location=torch.device('cpu'))['model']
+    def import_weights(self, weights):
+        self.weights = weights
         weights_list = [_ for _ in self.weights]
         self._block, self.weight_index = import_weights(self._block, self.weight_index,
                                                         weights_list, self.weights)
@@ -1124,4 +1123,4 @@ class DepthOutput(OutputBlock):
         pred3 = F.softmax(cost3, dim=1)
         pred3 = self.disparity_regression(pred3, self.maxdisp)
 
-        return {OutputFormat.DEPTH_MASK.value: pred3}
+        return {OutputFormat.DEPTH.value: pred3}
