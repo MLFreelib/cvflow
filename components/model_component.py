@@ -375,7 +375,6 @@ class ModelDepth(ModelBase):
             imgL, imgR = pairs
             # imgL, imgR, calib = batch
             with torch.no_grad():
-                # output.append(self._inference(imgL, imgR, calib))
                 output.append(self._inference((imgL, imgR)))
         return output
 

@@ -839,9 +839,8 @@ def import_weights(block, weight_index, weights_list, weights):
                                 hourglass2D)):
              layer._block, weight_index = import_weights(layer._block, weight_index, weights_list, weights)
         else:
-            print(weight_index, weights_list[weight_index], layer)
             try:
-                weight = layer.weight
+                _ = layer.weight
             except AttributeError:
                 continue
             try:
@@ -886,7 +885,7 @@ class MobileStereoNetInputBlock(Block):
 
     def forward(self, x):
         L, R = x
-        return self._block(L), self._block(R)
+        return self._block(L), self._block(R), L
 
 
 class hourglass2D(nn.Module):
@@ -1037,7 +1036,7 @@ class MobileStereoNetBackbone(Block):
 
     def forward(self, x):
 
-        featL, featR = x
+        featL, featR, L = x
         B, C, H, W = featL.shape
         volume = featL.new_zeros([B, self.num_groups, self.volume_size, H, W])
         for i in range(self.volume_size):
@@ -1065,7 +1064,7 @@ class MobileStereoNetBackbone(Block):
         out2 = self._block[5](out1)
         out3 = self._block[6](out2)
 
-        return out3
+        return out3, L
 
 
 class DepthOutput(OutputBlock):
@@ -1075,6 +1074,7 @@ class DepthOutput(OutputBlock):
         self.weights = None
         self.hg_size = 48
         self.maxdisp = maxdisp
+        self.volume_size = 48
 
         self.classif0 = nn.Sequential(self.convbn(self.hg_size, self.hg_size, 3, 1, 1, 1),
                                       nn.ReLU(inplace=True),
@@ -1114,9 +1114,10 @@ class DepthOutput(OutputBlock):
         return torch.sum(x * disp_values, 1, keepdim=False)
 
     def forward(self, x):
+        x, L = x
         cost3 = self._block(x)
         cost3 = torch.unsqueeze(cost3, 1)
-        cost3 = F.interpolate(cost3, [self.maxdisp, x.size()[2], x.size()[3]], mode='trilinear')
+        cost3 = F.interpolate(cost3, [self.maxdisp, L.size()[2], L.size()[3]], mode='trilinear')
         cost3 = torch.squeeze(cost3, 1)
         pred3 = F.softmax(cost3, dim=1)
         pred3 = self.disparity_regression(pred3, self.maxdisp)

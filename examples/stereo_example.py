@@ -18,7 +18,7 @@ from components.reader_component import ReaderBase, ImageReader, VideoReader, Ca
 from pipeline import Pipeline
 
 # from models.ganet_model import PSMNet as depth_model
-# from models.mobilestereonet_model import MSNet2D as depth_model
+from models.mobilestereonet_model import MSNet2D as depth_model
 from models.models import mobilestereonet
 
 def get_muxer(readers: List[ReaderBase]) -> SourceMuxer:
@@ -63,9 +63,9 @@ def get_videofile_reader(path: str, name: str) -> VideoReader:
 if __name__ == '__main__':
     # model = depth_model()
     # model = torch.nn.DataParallel(model)
-    checkpoint = torch.load(os.path.join(os.path.dirname(__file__), '..', 'tests', 'test_data', 'best.ckpt'),
+    checkpoint = torch.load(os.path.join(os.path.dirname(__file__), '..', 'tests', 'test_data', 'best1.ckpt'),
                             map_location=torch.device('cpu'))['model']
-    # model.load_state_dict(checkpoint['model'], strict=False)
+    # model.load_state_dict(checkpoint, strict=False)
     model = mobilestereonet(checkpoint)
     pipeline = Pipeline()
 
