@@ -839,6 +839,7 @@ def import_weights(block, weight_index, weights_list, weights):
                                 hourglass2D)):
              layer._block, weight_index = import_weights(layer._block, weight_index, weights_list, weights)
         else:
+            print(weight_index, weights_list[weight_index], layer)
             try:
                 weight = layer.weight
             except AttributeError:
@@ -1091,10 +1092,7 @@ class DepthOutput(OutputBlock):
                                       nn.ReLU(inplace=True),
                                       nn.Conv2d(self.hg_size, self.hg_size, kernel_size=3, padding=1, stride=1,
                                                 bias=False, dilation=1))
-        self._block = nn.Sequential(self.classif1,
-                                    self.classif2,
-                                    self.classif3,
-                                    self.classif2)
+        self._block = nn.Sequential(self.classif3)
 
     def convbn(self, in_channels, out_channels, kernel_size, stride, pad, dilation):
         return nn.Sequential(
