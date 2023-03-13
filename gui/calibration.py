@@ -3,7 +3,7 @@ import numpy as np
 
 import argparse
 class StereoCalibration(object):
-    def __init__(self, v1, v2, fpath):
+    def __init__(self, save_path):
         # termination criteria
         self.criteria = (cv2.TERM_CRITERIA_EPS +
                          cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
@@ -18,9 +18,8 @@ class StereoCalibration(object):
         self.objpoints = []  # 3d point in real world space
         self.imgpoints_l = []  # 2d points in image plane.
         self.imgpoints_r = []  # 2d points in image plane.
+        self.fpath = save_path
 
-        self.read_images(v1, v2)
-        self.fpath = fpath
 
     def preprocessing(self, frame):
 
@@ -39,15 +38,34 @@ class StereoCalibration(object):
         counter = 0
         img_shape = None
         while True:
+
+            _, img_l = v1.read()
+            _, img_r = v2.read()
+            # check to see if we have reached the end of the stream
+            if img_l  is None or img_r is None:
+                v1.release()
+                v2.release()
+                cv2.destroyAllWindows()
+            cv2.imshow('left', img_l)
+            cv2.imshow('right', img_r)
+            key = cv2.waitKey(1) & 0xFF
+            if key == ord("s"):
+                break
+        while True:
+            key = cv2.waitKey(1) & 0xFF
+            if key == ord("q"):
+                v1.release()
+                v2.release()
+                cv2.destroyAllWindows()
+                break
+
             try:
                 img_l = (v1.read()[1])
                 img_r = (v2.read()[1])
             except:
                 break
+
             counter += 1
-            print(counter)
-            img_l_s = img_l.copy()
-            img_r_s = img_r.copy()
 
             gray_l = self.preprocessing(img_l)
             gray_r = self.preprocessing(img_r)
@@ -62,31 +80,27 @@ class StereoCalibration(object):
             if ret_l is True and ret_r is True:
                 self.objpoints.append(self.objp)
 
-                rt = cv2.cornerSubPix(gray_l, corners_l, (11, 11),
-                                      (-1, -1), self.criteria)
+
                 self.imgpoints_l.append(corners_l)
 
                 # Draw and display the corners
                 ret_l = cv2.drawChessboardCorners(img_l, (9, 7),
                                                   corners_l, ret_l)
-                cv2.imwrite(f"left/left_{counter}.png", img_l_s)
 
-                rt = cv2.cornerSubPix(gray_r, corners_r, (11, 11),
-                                      (-1, -1), self.criteria)
+
+
                 self.imgpoints_r.append(corners_r)
 
                 # Draw and display the corners
                 ret_r = cv2.drawChessboardCorners(img_r, (9, 7),
                                                   corners_r, ret_r)
-                cv2.imwrite(f"right/right_{counter}.png", img_r_s)
 
-            for _ in range(20):
+            for _ in range(5):
                 v1.read()
                 v2.read()
 
             cv2.imshow('left', img_l)
             cv2.imshow('right', img_r)
-            key = cv2.waitKey(1) & 0xFF
 
 
         rt, self.M1, self.d1, self.r1, self.t1 = cv2.calibrateCamera(
@@ -100,16 +114,10 @@ class StereoCalibration(object):
     def stereo_calibrate(self, dims):
         flags = 0
         flags |= cv2.CALIB_FIX_INTRINSIC
-        # flags |= cv2.CALIB_FIX_PRINCIPAL_POINT
         flags |= cv2.CALIB_USE_INTRINSIC_GUESS
         flags |= cv2.CALIB_FIX_FOCAL_LENGTH
-        # flags |= cv2.CALIB_FIX_ASPECT_RATIO
         flags |= cv2.CALIB_ZERO_TANGENT_DIST
-        # flags |= cv2.CALIB_RATIONAL_MODEL
-        # flags |= cv2.CALIB_SAME_FOCAL_LENGTH
-        # flags |= cv2.CALIB_FIX_K3
-        # flags |= cv2.CALIB_FIX_K4
-        # flags |= cv2.CALIB_FIX_K5
+
 
         stereocalib_criteria = (cv2.TERM_CRITERIA_MAX_ITER +
                                 cv2.TERM_CRITERIA_EPS, 100, 1e-5)
@@ -119,39 +127,21 @@ class StereoCalibration(object):
             self.d2, dims,
             criteria=stereocalib_criteria, flags=flags)
 
-        print('Intrinsic_mtx_1', M1)
-        print('dist_1', d1)
-        print('Intrinsic_mtx_2', M2)
-        print('dist_2', d2)
-        print('R', R)
-        print('T', T)
-        print('E', E)
-        print('F', F)
-
-        print('')
 
         camera_model = dict([('M1', M1), ('M2', M2), ('dist1', d1),
                              ('dist2', d2), ('rvecs1', self.r1),
                              ('rvecs2', self.r2), ('R', R), ('T', T),
                              ('E', E), ('F', F)])
-
-        save_config(self.fpath, camera_model)
-        cv2.destroyAllWindows()
-        return camera_model
-
-
-
-def save_config(conf_name, params):
-    print(conf_name)
-    conf_header = '''[calib_parameters]
-values = [
-    '''
-    with open(conf_name, 'w') as f:
-        f.writelines(conf_header)
-        for param in params:
-            print(param)
-            f.write(f"\t'{{ {param[0]}:{param[1]} }}',\n")
-        f.write('\t]')
+        self.save_config(self.fpath, camera_model)
+    def save_config(self, conf_name, params):
+        conf_header = '''[calib_parameters]
+    values = [
+        '''
+        with open(conf_name, 'w') as f:
+            f.writelines(conf_header)
+            for param in params:
+                f.write(f"\t'{{ {param}:{params[param]} }}',\n")
+            f.write('\t]')
 
 
 if __name__ == '__main__':
@@ -160,17 +150,11 @@ if __name__ == '__main__':
                     help="path to  first input video file")
     ap.add_argument("-v2", "--video2", type=str,
                     help="path to  first input video file")
-    ap.add_argument('-f','--fpath', type=str, default='conf.txt', help='Path to save bboxes')
+    ap.add_argument('-f','--save_path', type=str, default='conf.txt', help='Path to save bboxes')
     args = vars(ap.parse_args())
 
     v1 = cv2.VideoCapture(args["video1"])
     v2 = cv2.VideoCapture(args["video2"])
-    fpath = args["fpath"]
-    StereoCalibration(v1, v2, fpath)
-#
-#
-# for _ in range(50):
-#     l = (v1.read()[1])[45:-300,:]
-#     r = (v2.read()[1])[:-45-300,:]
-
-
+    fpath = args["save_path"]
+    calib = StereoCalibration(fpath)
+    calib.read_images(v1, v2)
