@@ -10,7 +10,7 @@ from components.model_component import ModelSegmentation
 from components.muxer_component import SourceMuxer
 from components.outer_component import DisplayComponent
 from components.painter_component import Tiler, MaskPainter
-from components.reader_component import CamReader, VideoReader, ReaderBase
+from components.reader_component import *
 from components.handler_component import Filter
 from pipeline import Pipeline
 
@@ -38,7 +38,7 @@ def get_muxer(readers: List[ReaderBase]) -> SourceMuxer:
 
 def get_segmentation_model(name: str, model: torch.nn.Module, sources: List[ReaderBase], classes: List[str],
                            transforms: list = None,
-                           confidence: float = 0.8) -> ModelSegmentation:
+                           confidence = .8) -> ModelSegmentation:
     model_segm = ModelSegmentation(name, model)
     model_segm.set_labels(classes)
     for src in sources:
@@ -55,17 +55,25 @@ def get_tiler(name: str, tiler_size: tuple, frame_size: tuple = (640, 1280)) -> 
 
 
 if __name__ == '__main__':
-    model = torchvision.models.segmentation.fcn_resnet50(pretrained=True)
+    model = torchvision.models.segmentation.deeplabv3_resnet50(pretrained=True)
     pipeline = Pipeline()
 
     readers = []
     usb_srcs = get_cam_srcs()
     for usb_src in usb_srcs:
-        readers.append(get_usb_cam(usb_src, usb_src))
+        readers.append(CamReader(usb_src, usb_src))
 
+    name = None
     file_srcs = get_video_file_srcs()
-    for file_srcs in file_srcs:
-        readers.append(get_videofile_reader(file_srcs, file_srcs))
+    for i_file_srcs in range(len(file_srcs)):
+        name = f'{file_srcs[i_file_srcs]}_{i_file_srcs}'
+        readers.append(VideoReader(file_srcs[i_file_srcs], name))
+
+    name = None
+    file_srcs = get_img_srcs()
+    for i_file_srcs in range(len(file_srcs)):
+        name = f'{file_srcs[i_file_srcs]}_{i_file_srcs}'
+        readers.append(ImageReader(file_srcs[i_file_srcs], name))
 
     muxer = get_muxer(readers)
     model_segm = get_segmentation_model('detection', model, sources=readers, classes=SEM_CLASSES,
@@ -74,14 +82,12 @@ if __name__ == '__main__':
     model_segm.set_transforms([torchvision.transforms.Resize((240, 320))])
     mask_painter = MaskPainter('mask_painter')
 
+    filter_masks = Filter('mask_filter', ['person'])
     tiler = get_tiler('tiler', tiler_size=get_tsize(), frame_size=get_fsize())
 
     outer = DisplayComponent('display')
-
-    filter_comp = Filter('filter', ['person'])
-
     pipeline.set_device(get_device())
-    pipeline.add_all([muxer, model_segm, filter_comp, mask_painter, tiler, outer])
+    pipeline.add_all([muxer, model_segm, filter_masks, mask_painter, tiler, outer])
     pipeline.compile()
     pipeline.run()
     pipeline.close()

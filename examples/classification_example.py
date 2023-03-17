@@ -11,17 +11,9 @@ from components.model_component import ModelClassification
 from components.muxer_component import SourceMuxer
 from components.outer_component import DisplayComponent, FileWriterComponent
 from components.painter_component import Tiler, LabelPainter
-from components.reader_component import CamReader, VideoReader, ReaderBase, ImageReader
+from components.reader_component import *
 
 from pipeline import Pipeline
-
-
-def get_usb_cam(path: str, name: str) -> CamReader:
-    return CamReader(path, name)
-
-
-def get_videofile_reader(path: str, name: str) -> VideoReader:
-    return VideoReader(path, name)
 
 
 def get_muxer(readers: List[ReaderBase]) -> SourceMuxer:
@@ -63,22 +55,25 @@ if __name__ == '__main__':
     readers = []
     usb_srcs = get_cam_srcs()
     for usb_src in usb_srcs:
-        readers.append(get_usb_cam(usb_src, usb_src))
+        readers.append(CamReader(usb_src, usb_src))
 
+    name = None
     file_srcs = get_video_file_srcs()
-    for file_srcs in file_srcs:
-        readers.append(get_videofile_reader(file_srcs, file_srcs))
+    for i_file_srcs in range(len(file_srcs)):
+        name = f'{file_srcs[i_file_srcs]}_{i_file_srcs}'
+        readers.append(VideoReader(file_srcs[i_file_srcs], name))
 
-    image_reader1 = ImageReader('E:\PyCharmProjects\cvflow\\tests\\test_data\zebra.jpg', 'zebra1')
-    image_reader2 = ImageReader('E:\PyCharmProjects\cvflow\\tests\\test_data\zebra.jpg', 'zebra2')
+    name = None
+    file_srcs = get_img_srcs()
+    for i_file_srcs in range(len(file_srcs)):
+        name = f'{file_srcs[i_file_srcs]}_{i_file_srcs}'
+        readers.append(ImageReader(file_srcs[i_file_srcs], name))
 
-    readers.append(image_reader1)
-    readers.append(image_reader2)
     muxer = get_muxer(readers)
     model_class = get_classification_model('classification', model, sources=readers, classes=list(labels.values))
 
     model_class.set_transforms([torchvision.transforms.Resize((240, 360))])
-    model_class.set_source_names(['zebra2'])
+    model_class.set_source_names([reader.get_name() for reader in readers])
     label_painter = LabelPainter('lblpainter')
     label_painter.set_org((5, 20))
     label_painter.set_thickness(1)

@@ -1,4 +1,5 @@
 import time
+from enum import Enum
 from typing import Union, Any, List, Dict
 
 import torch
@@ -12,10 +13,10 @@ class MetaLabel:
                     confidence in the label for each label from labels.
     """
 
-    def __init__(self, labels: List[str], confidence: List[float]):
+    def __init__(self, labels: List[str], confidence: torch.Tensor):
         self.__labels: List[str] = labels
         self.__object_ids: List[int] = list()
-        self.__confidence: List[float] = confidence
+        self.__confidence: torch.Tensor = confidence
 
     def get_confidence(self) -> torch.tensor:
         r""" Returns tensor of confidences for each label. """
@@ -152,11 +153,7 @@ class MetaFrame:
     def __init__(self, source_name: str, frame: torch.tensor):
         self.__frame = None
         self.set_frame(frame)
-        self.__labels_info: Union[MetaLabel, None] = None
-        self.__mask_info: Union[MetaMask, None] = None
-        self.__bbox_info: Union[MetaBBox, None] = None
-        self.__depth_info: Union[MetaDepth, None] = None
-        self.__custom_meta = dict()
+        self.__meta = dict()
         self.timestamp = time.time()
         self.__source_name = source_name
 
@@ -189,7 +186,7 @@ class MetaFrame:
             :param value: Any
                         custom data.
         """
-        self.__custom_meta[meta_name] = value
+        self.__meta[meta_name] = value
 
     def get_frame(self) -> torch.Tensor:
         r""" Returns a frame. """
@@ -200,61 +197,7 @@ class MetaFrame:
             :param meta_name: str
                 name of custom data.
         """
-        return self.__custom_meta.get(meta_name)
-
-    def set_label_info(self, labels_info: MetaLabel):
-        r""" Sets information about the label in the frame.
-            :param labels_info: MetaLabel
-        """
-        if not isinstance(labels_info, MetaLabel):
-            raise TypeError(f'Expected type of label a MetaLabel, received {type(labels_info)}')
-
-        self.__labels_info = labels_info
-
-    def get_labels_info(self) -> MetaLabel:
-        r""" Returns a MetaLabel that contains information about the labels in the frame. """
-        return self.__labels_info
-
-    def set_mask_info(self, mask_info: MetaMask):
-        r""" Sets information about predicted masks for this frame.
-            :param mask_info: MetaMask.
-            :exception TypeError if mask_info is not MetaMask.
-        """
-        if not isinstance(mask_info, MetaMask):
-            raise TypeError(f'Expected type of mask_info a MetaMask, received {type(mask_info)}')
-
-        self.__mask_info = mask_info
-
-    def get_mask_info(self) -> MetaMask:
-        r""" Returns the predicted masks for this frame. """
-        return self.__mask_info
-
-    def set_bbox_info(self, bbox_info: MetaBBox):
-        r""" Sets information about the predicted bounding boxes for this frame.
-            :param bbox_info: MetaBBox
-        """
-        if not isinstance(bbox_info, MetaBBox):
-            raise TypeError(f'Expected type of label a MetaBBox, received {type(bbox_info)}')
-
-        self.__bbox_info = bbox_info
-
-    def get_bbox_info(self) -> MetaBBox:
-        r""" Returns the predicted bounding boxes for this frame. """
-        return self.__bbox_info
-
-    def set_depth_info(self, depth_info: MetaDepth):
-        r""" Sets information about predicted depth for this frame.
-            :param depth_info: MetaDepth.
-            :exception TypeError if depth_info is not MetaMask.
-        """
-        if not isinstance(depth_info, MetaDepth):
-            raise TypeError(f'Expected type of depth_info a MetaDepth, received {type(depth_info)}')
-
-        self.__depth_info = depth_info
-
-    def get_depth_info(self) -> MetaDepth:
-        r""" Returns the predicted depth for this frame. """
-        return self.__depth_info
+        return self.__meta.get(meta_name)
 
 
 class MetaBatch:
@@ -266,7 +209,6 @@ class MetaBatch:
     def __init__(self, name: str):
         self.__name = name
         self.__meta_frames = dict()
-        self.__frames = dict()
         self.__source_names = list()
         self.__signals = dict()
 
@@ -313,33 +255,27 @@ class MetaBatch:
 
         self.__meta_frames[frame.get_src_name()].append(frame)
 
-    def add_frames(self, name: str, frames: torch.tensor):
-        r""" Adds a frames to the batch.
-            :param name: str
-                        name of source
-            :param frames: torch.tensor.
-            :exception TypeError if frames is not tensor.
-        """
-        if not isinstance(frames , torch.Tensor):
-            raise TypeError(f'Expected type of frames a torch.Tensor, received {type(frames)}')
-
-        if name in self.__frames.keys():
-            self.__frames[name] = torch.cat((self.__frames[name], torch.unsqueeze(frames, 0)), 0)
-        else:
-            self.__frames[name] = torch.unsqueeze(frames, 0)
-
     def get_frames_by_src_name(self, src_name: str) -> Union[torch.tensor, None]:
         r""" Returns frames received from a specific source.
             :param src_name: str
                         name of source.
         """
-        return self.__frames[src_name] if src_name in self.__frames.keys() else None
+        meta_frames = self.__meta_frames.get(src_name)
+        frames = []
+        if meta_frames is not None:
+            for meta_frame in meta_frames:
+                frames.append(torch.unsqueeze(meta_frame.get_frame(), dim=0))
+            frames = torch.cat(frames, dim=0)
+        return frames
 
     def get_frames_all(self) -> Dict[str, torch.tensor]:
         r""" Returns all frames.
             :return Dict[str, torch.tensor] where key is name of source and values is frames.
         """
-        return self.__frames
+        frames = dict()
+        for src_name in list(self.__meta_frames.keys()):
+            frames[src_name] = self.get_frames_by_src_name(src_name)
+        return frames
 
     def get_meta_frames_by_src_name(self, src_name: str) -> Union[List[MetaFrame], None]:
         r""" Returns information about frames by the source name. """
@@ -363,3 +299,10 @@ class MetaBatch:
     def get_source_names(self) -> List[str]:
         r""" Returns the names of all the sources from which the frames were received. """
         return self.__source_names
+
+
+class MetaName(Enum):
+    META_BBOX = "meta_bbox",
+    META_LABEL = "meta_label",
+    META_MASK = "meta_mask",
+    META_DEPTH = "meta_depth"

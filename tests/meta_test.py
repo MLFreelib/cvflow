@@ -2,7 +2,7 @@ import unittest
 
 import torch
 
-from Meta import MetaLabel, MetaBBox, MetaMask, MetaFrame, MetaBatch, MetaDepth
+from Meta import MetaLabel, MetaBBox, MetaMask, MetaFrame, MetaBatch, MetaDepth, MetaName
 
 
 class TestMetaLabel(unittest.TestCase):
@@ -151,41 +151,32 @@ class TestMetaFrame(unittest.TestCase):
     def test_get_labels_info(self):
         meta_frame = MetaFrame('test_src', self.frame)
         meta_label = MetaLabel(self.labels, self.confs)
-        meta_frame.set_label_info(meta_label)
-        self.assertListEqual(self.labels, meta_frame.get_labels_info().get_labels())
-        self.assertListEqual(self.confs, meta_frame.get_labels_info().get_confidence())
+        meta_frame.add_meta(MetaName.META_LABEL.value, meta_label)
+        self.assertListEqual(self.labels, meta_frame.get_meta_info(MetaName.META_LABEL.value).get_labels())
+        self.assertListEqual(self.confs, meta_frame.get_meta_info(MetaName.META_LABEL.value).get_confidence())
 
     def test_get_mask_info(self):
         meta_frame = MetaFrame('test_src', self.frame)
         meta_label = MetaLabel(self.labels, self.confs)
         meta_mask = MetaMask(self.masks, meta_label)
-        meta_frame.set_mask_info(meta_mask)
-        self.assertListEqual(self.masks.detach().tolist(), meta_frame.get_mask_info().get_mask().detach().tolist())
+        meta_frame.add_meta(MetaName.META_MASK.value, meta_mask)
+        self.assertListEqual(self.masks.detach().tolist(),
+                             meta_frame.get_meta_info(MetaName.META_MASK.value).get_mask().detach().tolist())
 
     def test_get_bbox_info(self):
         meta_frame = MetaFrame('test_src', self.frame)
         meta_label = MetaLabel(self.labels, self.confs)
         meta_bbox = MetaBBox(self.points, meta_label)
-        meta_frame.set_bbox_info(meta_bbox)
-        self.assertListEqual(self.points.detach().tolist(), meta_frame.get_bbox_info().get_bbox().detach().tolist())
+        meta_frame.add_meta(MetaName.META_BBOX.value, meta_bbox)
+        self.assertListEqual(self.points.detach().tolist(),
+                             meta_frame.get_meta_info(MetaName.META_BBOX.value).get_bbox().detach().tolist())
 
     def test_get_depth_info(self):
         meta_frame = MetaFrame('test_src', self.frame)
         meta_depth = MetaDepth(self.depth)
-        meta_frame.set_depth_info(meta_depth)
-        self.assertListEqual(self.depth.detach().tolist(), meta_frame.get_depth_info().get_depth().detach().tolist())
-
-    def test_set_bbox_info_TypeError_exception(self):
-        meta_frame = MetaFrame('test_src', self.frame)
-        self.assertRaises(TypeError, meta_frame.set_bbox_info, 'mock')
-
-    def test_set_mask_info_TypeError_exception(self):
-        meta_frame = MetaFrame('test_src', self.frame)
-        self.assertRaises(TypeError, meta_frame.set_mask_info, 'mock')
-
-    def test_set_label_info_TypeError_exception(self):
-        meta_frame = MetaFrame('test_src', self.frame)
-        self.assertRaises(TypeError, meta_frame.set_label_info, 'mock')
+        meta_frame.add_meta(MetaName.META_DEPTH.value, meta_depth)
+        self.assertListEqual(self.depth.detach().tolist(),
+                             meta_frame.get_meta_info(MetaName.META_DEPTH.value).get_depth().detach().tolist())
 
     def test_set_frame_TypeError_exception(self):
         meta_frame = MetaFrame('test_src', self.frame)
@@ -215,22 +206,12 @@ class TestMetaBatch(unittest.TestCase):
         meta_batch = MetaBatch('test')
         self.assertRaises(TypeError, meta_batch.add_meta_frame, 'mock')
 
-    def test_add_frames_TypeError_exception(self):
-        meta_batch = MetaBatch('test')
-        self.assertRaises(TypeError, meta_batch.add_frames, 'mock_name', 'mock_frames')
-
-    def test_add_frames_shape_check_one_frame(self):
-        meta_batch = MetaBatch('test')
-        src_name = 'test_src'
-        meta_batch.add_frames(src_name, self.frame)
-        self.assertListEqual(list(self.frame[None, :, :, :].shape),
-                             list(meta_batch.get_frames_by_src_name(src_name).shape))
-
     def test_get_frames_all(self):
         meta_batch = MetaBatch('test')
         test_srcs = [f'test_src_{i}' for i in range(3)]
         for src in test_srcs:
-            meta_batch.add_frames(src, frames=self.frame.detach().clone())
+            meta_frame = MetaFrame(src, self.frame.detach().clone())
+            meta_batch.add_meta_frame(meta_frame)
         returned_frames = meta_batch.get_frames_all().values()
         returned_frames_shape = torch.cat(list(returned_frames), dim=0).detach().shape
         true_all_frames_shape = torch.cat([self.frame[None, :, :, :] for _ in range(len(test_srcs))],

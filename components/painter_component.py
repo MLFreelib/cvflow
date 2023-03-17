@@ -9,7 +9,7 @@ import torchvision.transforms
 from torchvision.transforms import Resize
 from torchvision.utils import draw_bounding_boxes, draw_segmentation_masks, make_grid
 
-from Meta import MetaFrame, MetaBatch
+from Meta import MetaFrame, MetaBatch, MetaName
 from components.component_base import ComponentBase
 
 
@@ -81,9 +81,9 @@ class BBoxPainter(Painter):
                     font width
     """
 
-    def __init__(self, name: str, font_path: str, font_size: int = 20, font_width: int = 3):
+    def __init__(self, name: str, font_size: int = 20, font_width: int = 3):
         super().__init__(name)
-        self.__font_path = font_path
+        self.__font_path = os.path.join(os.path.dirname(__file__), '..', 'fonts', 'OpenSans-VariableFont_wdth,wght.ttf')
         self.__font_size = font_size
         self.__font_width = font_width
         self.__colors = dict()
@@ -92,6 +92,10 @@ class BBoxPainter(Painter):
     def set_font_size(self, font_size: int):
         if isinstance(font_size, int):
             self.__font_size = font_size
+
+    def set_font(self, font_path: str):
+        if isinstance(font_path, str):
+            self.__font_path = font_path
 
     def set_font_width(self, font_width: int):
         if isinstance(font_width, int):
@@ -103,8 +107,8 @@ class BBoxPainter(Painter):
         for source in data.get_source_names():
             for meta_frame in data.get_meta_frames_by_src_name(source):
                 shape = meta_frame.get_frame().shape
-                if meta_frame.get_bbox_info() is not None:
-                    meta_bbox = meta_frame.get_bbox_info()
+                meta_bbox = meta_frame.get_meta_info(MetaName.META_BBOX.value)
+                if meta_bbox is not None:
                     bbox = meta_bbox.get_bbox()
                     self.__bbox_denormalize(bbox, shape)
                     meta_labels = meta_bbox.get_label_info()
@@ -234,8 +238,8 @@ class LabelPainter(Painter):
         r""" Writes labels on the frames. """
         for source in data.get_source_names():
             for meta_frame in data.get_meta_frames_by_src_name(source):
-                label_info = meta_frame.get_labels_info()
-                if meta_frame.get_labels_info() is not None:
+                label_info = meta_frame.get_meta_info(MetaName.META_LABEL.value)
+                if meta_frame.get_meta_info(MetaName.META_LABEL.value) is not None:
                     labels = label_info.get_labels()
                     label_confidence = label_info.get_confidence()
                     label_id = torch.max(label_confidence, dim=1)[1]
@@ -259,8 +263,6 @@ class LabelPainter(Painter):
                     meta_frame.set_frame(frame)
 
         return data
-
-        return frame
 
     def __get_label_color(self, label_name: str):
         if label_name not in self.__colors.keys():
@@ -288,15 +290,14 @@ class MaskPainter(Painter):
         r""" Draws masks on frames. """
         for source in data.get_source_names():
             for meta_frame in data.get_meta_frames_by_src_name(source):
-                meta_mask = meta_frame.get_mask_info()
+                meta_mask = meta_frame.get_meta_info(MetaName.META_MASK.value)
                 masks = meta_mask.get_mask()
                 frame = meta_frame.get_frame()
                 colors = self.__get_colors(meta_mask.get_label_info().get_labels())
-                for mask in masks:
-                    resized_mask = torchvision.transforms.Resize((frame.shape[-2:]))(mask)
-                    frame = draw_segmentation_masks(frame.detach().cpu(), resized_mask.detach().cpu(),
-                                                    alpha=self.__alpha,
-                                                    colors=colors)
+                resized_mask = torchvision.transforms.Resize((frame.shape[-2:]))(masks[0])
+                frame = draw_segmentation_masks(frame.detach().cpu(), resized_mask.detach().cpu(),
+                                                alpha=self.__alpha,
+                                                colors=colors)
                 meta_frame.set_frame(frame)
         return data
 
@@ -307,6 +308,7 @@ class MaskPainter(Painter):
                 self.__colors[label_name] = _generate_color()
             colors.append(self.__colors[label_name])
         return colors
+
 
 class DepthPainter(Painter):
     r"""A component for drawing masks on frames.
@@ -319,7 +321,7 @@ class DepthPainter(Painter):
         self.__colors = dict()
         self.__alpha = 0.8
 
-    #TBD: added drawing depth with alpha
+    # TBD: added drawing depth with alpha
     def set_alpha(self, alpha: float):
         if isinstance(alpha, float):
             if 0 <= alpha <= 1:
@@ -329,8 +331,8 @@ class DepthPainter(Painter):
         r""" Draws masks on frames. """
         for source in data.get_source_names()[::2]:
             for meta_frame in data.get_meta_frames_by_src_name(source):
-                if meta_frame.get_depth_info() is not None:
-                    meta_depth = meta_frame.get_depth_info()
+                meta_depth = meta_frame.get_meta_info(MetaName.META_DEPTH.value)
+                if meta_depth is not None:
                     mask = meta_depth.get_depth()
                     mask = mask.repeat(3, 1, 1).detach().cpu().byte()
                 else:

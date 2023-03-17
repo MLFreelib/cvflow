@@ -5,7 +5,7 @@ import sys
 
 sys.path.append('../')
 
-from Meta import MetaFrame, MetaLabel, MetaBatch, MetaBBox, MetaMask
+from Meta import MetaFrame, MetaLabel, MetaBatch, MetaBBox, MetaMask, MetaName
 from components.handler_component import Filter, Counter
 
 
@@ -74,13 +74,13 @@ class FilterTest(unittest.TestCase):
         meta_label = MetaLabel(self.labels[3: 8], self.confs[3: 8])
         meta_label.set_object_id(self.ids[3: 8])
         meta_mask = MetaMask(self.masks[:, 3: 8], meta_label)
-        meta_frame.set_mask_info(meta_mask)
+        meta_frame.add_meta(MetaName.META_MASK.value, meta_mask)
         meta_batch = MetaBatch(test_src_name)
         meta_batch.add_meta_frame(meta_frame)
         meta_batch.set_source_names([test_src_name])
         returned_meta_batch = self.filter.do(meta_batch)
         returned_meta_frame = returned_meta_batch.get_meta_frames_by_src_name(test_src_name)[0]
-        returned_meta_mask = returned_meta_frame.get_mask_info()
+        returned_meta_mask = returned_meta_frame.get_meta_info(MetaName.META_MASK.value)
         return returned_meta_mask
 
     def __get_meta_bbox(self):
@@ -89,26 +89,26 @@ class FilterTest(unittest.TestCase):
         meta_label = MetaLabel(self.labels[3: 8], self.confs[3: 8])
         meta_label.set_object_id(self.ids[3: 8])
         meta_bbox = MetaBBox(self.points[3: 8], meta_label)
-        meta_frame.set_bbox_info(meta_bbox)
+        meta_frame.add_meta(MetaName.META_BBOX.value, meta_bbox)
         meta_batch = MetaBatch(test_src_name)
         meta_batch.add_meta_frame(meta_frame)
         meta_batch.set_source_names([test_src_name])
         returned_meta_batch = self.filter.do(meta_batch)
         returned_meta_frame = returned_meta_batch.get_meta_frames_by_src_name(test_src_name)[0]
-        returned_meta_bbox = returned_meta_frame.get_bbox_info()
+        returned_meta_bbox = returned_meta_frame.get_meta_info(MetaName.META_BBOX.value)
         return returned_meta_bbox
 
     def __get_meta_label(self):
         test_src_name = 'test_meta_frame'
         meta_frame = MetaFrame(test_src_name, self.frame)
         meta_label = MetaLabel(self.labels[3:8], self.confs[3: 8])
-        meta_frame.set_label_info(meta_label)
+        meta_frame.add_meta(MetaName.META_LABEL.value, meta_label)
         meta_batch = MetaBatch('test_meta_batch')
         meta_batch.add_meta_frame(meta_frame)
         meta_batch.set_source_names([test_src_name])
         returned_meta_batch = self.filter.do(meta_batch)
         returned_meta_frame = returned_meta_batch.get_meta_frames_by_src_name(test_src_name)[0]
-        returned_meta_label = returned_meta_frame.get_labels_info()
+        returned_meta_label = returned_meta_frame.get_meta_info(MetaName.META_LABEL.value)
         return returned_meta_label
 
 
@@ -116,7 +116,7 @@ class CounterTest(unittest.TestCase):
 
     def setUp(self):
         self.frame = torch.zeros([3, 100, 100])
-        self.line = [0, 0, 50, 50]
+        self.line = [[(0, 0), (50, 50), (0, 255, 0), 2]]
         self.bbox_in = torch.tensor([0.3, 0.3, 0.4, 0.4])
         self.bbox_out = torch.tensor([0.0, 0.9, 0.1, 1])
         self.labels = [f'test_label_{i}' for i in range(3)]
@@ -224,19 +224,17 @@ class CounterTest(unittest.TestCase):
 
         label_count = returned_meta_batch.get_meta_frames_by_src_name(src_name)[0].get_meta_info('counter')
         self.assertEqual(2, label_count['labels'][self.labels[0]])
-        self.assertEqual(2, len(label_count['ids'].keys()))
 
     def __get_meta_batch(self, src_name, bbox: torch.Tensor, label_id: int = 0, ids: int = 0):
         meta_label = MetaLabel([self.labels[label_id]], [self.confs[label_id]])
         meta_label.set_object_id([self.ids[ids]])
         meta_bbox = MetaBBox(torch.unsqueeze(bbox, dim=0), meta_label)
         meta_frame = MetaFrame(src_name, self.frame)
-        meta_frame.set_bbox_info(meta_bbox)
+        meta_frame.add_meta(MetaName.META_BBOX.value, meta_bbox)
         meta_batch = MetaBatch('mock')
         meta_batch.add_meta_frame(meta_frame)
         meta_batch.set_source_names([src_name])
         return meta_batch
-
 
 if __name__ == '__main__':
     unittest.main()

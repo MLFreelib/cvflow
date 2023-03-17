@@ -1,6 +1,7 @@
 import os
 import unittest
 import sys
+
 sys.path.append('../')
 
 import cv2
@@ -10,7 +11,7 @@ import torchvision
 from torchvision import models
 from models.mobilestereonet_model import MSNet2D
 
-from Meta import MetaBatch, MetaFrame, MetaBBox, MetaMask, MetaLabel
+from Meta import MetaBatch, MetaFrame, MetaBBox, MetaMask, MetaLabel, MetaName
 from components.model_component import ModelDetection, ModelSegmentation, ModelClassification, ModelDepth
 
 
@@ -40,16 +41,17 @@ class ModelDetectionTest(unittest.TestCase):
             frame = cv2.imread(filename=os.path.join(os.path.dirname(__file__), 'test_data', 'zebra.jpg'))
             meta_frame = _to_meta_frame(frame=frame, src_name=src_name)
             meta_batch.add_meta_frame(meta_frame)
-            meta_batch.add_frames(src_name, meta_frame.get_frame())
 
         self.meta_batch = self.model.do(meta_batch)
 
     def test_do_bbox_exists(self):
-        meta_bboxes = self.meta_batch.get_meta_frames_by_src_name('test_frame0')[0].get_bbox_info()
+        meta_bboxes = self.meta_batch.get_meta_frames_by_src_name('test_frame0')[0].get_meta_info(
+            MetaName.META_BBOX.value)
         self.assertIsNotNone(meta_bboxes)
 
     def test_do_bbox_type_correct(self):
-        meta_bboxes = self.meta_batch.get_meta_frames_by_src_name('test_frame0')[0].get_bbox_info()
+        meta_bboxes = self.meta_batch.get_meta_frames_by_src_name('test_frame0')[0].get_meta_info(
+            MetaName.META_BBOX.value)
         self.assertEqual(MetaBBox, type(meta_bboxes))
 
     def tearDown(self):
@@ -74,16 +76,17 @@ class ModelSegmentationTest(unittest.TestCase):
             frame = cv2.imread(filename=os.path.join(os.path.dirname(__file__), 'test_data', 'mouse.jpeg'))
             meta_frame = _to_meta_frame(frame=frame, src_name=src_name)
             meta_batch.add_meta_frame(meta_frame)
-            meta_batch.add_frames(src_name, meta_frame.get_frame())
 
         self.meta_batch = self.model.do(meta_batch)
 
     def test_do_mask_exists(self):
-        meta_mask = self.meta_batch.get_meta_frames_by_src_name('test_frame0')[0].get_mask_info()
+        meta_mask = self.meta_batch.get_meta_frames_by_src_name('test_frame0')[0].get_meta_info(
+            MetaName.META_MASK.value)
         self.assertIsNotNone(meta_mask)
 
     def test_do_mask_type_correct(self):
-        meta_mask = self.meta_batch.get_meta_frames_by_src_name('test_frame0')[0].get_mask_info()
+        meta_mask = self.meta_batch.get_meta_frames_by_src_name('test_frame0')[0].get_meta_info(
+            MetaName.META_MASK.value)
         self.assertEqual(MetaMask, type(meta_mask))
 
     def tearDown(self):
@@ -108,16 +111,17 @@ class ModelClassificationTest(unittest.TestCase):
             frame = cv2.imread(filename=os.path.join(os.path.dirname(__file__), 'test_data', 'mouse.jpeg'))
             meta_frame = _to_meta_frame(frame=frame, src_name=src_name)
             meta_batch.add_meta_frame(meta_frame)
-            meta_batch.add_frames(src_name, meta_frame.get_frame())
 
         self.meta_batch = self.model.do(meta_batch)
 
     def test_do_mask_exists(self):
-        meta_label = self.meta_batch.get_meta_frames_by_src_name('test_frame0')[0].get_labels_info()
+        meta_label = self.meta_batch.get_meta_frames_by_src_name('test_frame0')[0].get_meta_info(
+            MetaName.META_LABEL.value)
         self.assertIsNotNone(meta_label)
 
     def test_do_mask_type_correct(self):
-        meta_label = self.meta_batch.get_meta_frames_by_src_name('test_frame0')[0].get_labels_info()
+        meta_label = self.meta_batch.get_meta_frames_by_src_name('test_frame0')[0].get_meta_info(
+            MetaName.META_LABEL.value)
         self.assertEqual(MetaLabel, type(meta_label))
 
     def tearDown(self):
@@ -137,16 +141,17 @@ class ModelDepthTest(unittest.TestCase):
         for i in range(2):
             src_name = f'test_frame{i}'
             self.model.add_source(src_name)
-            frame = cv2.imread(filename=os.path.join(os.path.dirname(__file__), 'test_data', f'stereo{stereo_imgs[i]}.png'))
+            frame = cv2.imread(
+                filename=os.path.join(os.path.dirname(__file__), 'test_data', f'stereo{stereo_imgs[i]}.png'))
             frame = cv2.resize(frame, (512, 960))
             meta_frame = _to_meta_frame(frame=frame, src_name=src_name)
             meta_batch.add_meta_frame(meta_frame)
-            meta_batch.add_frames(src_name, meta_frame.get_frame())
 
         self.meta_batch = self.model.do(meta_batch)
 
     def test_do_depth_exists(self):
-        meta_depth = self.meta_batch.get_meta_frames_by_src_name('test_frame0')[0].get_depth_info()
+        meta_depth = self.meta_batch.get_meta_frames_by_src_name('test_frame0')[0].get_meta_info(
+            MetaName.META_DEPTH.value)
         self.assertIsNotNone(meta_depth)
 
     def tearDown(self):
