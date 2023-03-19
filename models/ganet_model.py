@@ -75,9 +75,9 @@ class BasicBlock(nn.Module):
         return out
 
 
-class feature_extraction(nn.Module):
+class GANetInputBlock(nn.Module):
     def __init__(self):
-        super(feature_extraction, self).__init__()
+        super(GANetInputBlock, self).__init__()
         self.inplanes = 32
         self.firstconv = nn.Sequential(convbn(3, 32, 3, 2, 1, 1),
                                        nn.ReLU(inplace=True),
@@ -213,7 +213,7 @@ class PSMNet(nn.Module):
         self.maxdepth = maxdepth
         self.scale = scale
 
-        self.feature_extraction = feature_extraction()
+        self.feature_extraction = GANetInputBlock()
 
         self.dres0 = nn.Sequential(convbn_3d(64, 32, 3, 1, 1),
                                    nn.ReLU(inplace=True),
@@ -338,10 +338,10 @@ class PSMNet(nn.Module):
 
         refimg_fea = self.feature_extraction(left)
         targetimg_fea = self.feature_extraction(right)
-
         # matching
+        # print(self.maxdisp)
         cost = Variable(
-            torch.cuda.FloatTensor(refimg_fea.size()[0], refimg_fea.size()[1] * 2, self.maxdisp // 4,
+            torch.FloatTensor(refimg_fea.size()[0], refimg_fea.size()[1] * 2, self.maxdisp // 4,
                                    refimg_fea.size()[2],
                                    refimg_fea.size()[3]).zero_())
 

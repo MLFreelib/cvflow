@@ -146,3 +146,19 @@ def mobilestereonet(weights = None):
     )
     torch.nn.DataParallel(model)
     return model
+
+def ganet(weights = None):
+    input_block = GANetInputBlock()
+    backbone = GANetBackbone()
+    output_block = GANetOutputBlock()
+    if weights:
+        weight_index = input_block.import_weights(weights)
+        weight_index = backbone.import_weights(weights, weight_index)
+        output_block.import_weights(weights, weight_index)
+    model =  ModelBuilder(
+        input_block=input_block,
+        backbone=backbone,
+        output_block=output_block
+    )
+    torch.nn.DataParallel(model)
+    return model

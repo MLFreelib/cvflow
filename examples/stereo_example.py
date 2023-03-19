@@ -17,9 +17,9 @@ from components.painter_component import Tiler, DepthPainter, BBoxPainter
 from components.reader_component import ReaderBase, ImageReader, VideoReader, CamReader
 from pipeline import Pipeline
 
-# from models.ganet_model import PSMNet as depth_model
-from models.mobilestereonet_model import MSNet2D as depth_model
+
 from models.models import mobilestereonet
+from models.models import ganet
 
 def get_muxer(readers: List[ReaderBase]) -> SourceMuxer:
     muxer = SourceMuxer('muxer', max_batch_size=1)
@@ -61,12 +61,13 @@ def get_videofile_reader(path: str, name: str) -> VideoReader:
 
 
 if __name__ == '__main__':
-    # model = depth_model()
-    # model = torch.nn.DataParallel(model)
-    checkpoint = torch.load(os.path.join(os.path.dirname(__file__), '..', 'tests', 'test_data', 'best1.ckpt'),
-                            map_location=torch.device('cpu'))['model']
-    # model.load_state_dict(checkpoint, strict=False)
-    model = mobilestereonet(checkpoint)
+    # checkpoint = torch.load(os.path.join(os.path.dirname(__file__), '..', 'tests', 'test_data', 'best.ckpt'),
+    #                         map_location=torch.device('cpu'))['model']
+    # model = mobilestereonet(checkpoint)
+    checkpoint = torch.load(os.path.join(os.path.dirname(__file__), '..', 'tests', 'test_data', 'best.pth.tar'),
+                            map_location=torch.device('cpu'))['state_dict']
+    model = ganet(checkpoint)
+    model = torch.nn.DataParallel(model)
     pipeline = Pipeline()
 
     readers = []
@@ -91,7 +92,7 @@ if __name__ == '__main__':
     muxer = get_muxer(readers)
 
     model_depth = get_depth_model('stereo', model, sources=readers)
-    #
+
     model_depth.set_transforms(
         [torchvision.transforms.Resize((512, 960)), torchvision.transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                                                                      std=[0.229, 0.224, 0.225])])
