@@ -1257,9 +1257,9 @@ class GANetInputBlock(nn.Module):
         return output_feature
 
     def forward(self, x):
-        L, R, calib = x
+        L, R = x
 
-        return self.process(L), self.process(R), L, calib
+        return self.process(L), self.process(R), L
 
 
 class hourglass(nn.Module):
@@ -1381,11 +1381,11 @@ class GANetBackbone(nn.Module):
         x = x.view(B, -1, C, D)
         # mesh grid
         calib = torch.FloatTensor([calib])
-        xx = (calib / (self.down * 4.))[:, None] / torch.arange(1, 1 + self.maxdepth // self.down,device='cpu').float()[None, :]
+        xx = (calib / (self.down * 4.))[:, None] / torch.arange(1, 1 + self.maxdepth // self.down).float()[None, :]
         new_D = int(self.maxdepth // self.down)
         xx = xx.view(B, 1, new_D).repeat(1, C, 1)
         xx = xx.view(B, C, new_D, 1)
-        yy = torch.arange(0, C, device='cpu').view(-1, 1).repeat(1, new_D).float()
+        yy = torch.arange(0, C).view(-1, 1).repeat(1, new_D).float()
         yy = yy.view(1, C, new_D, 1).repeat(B, 1, 1, 1)
         grid = torch.cat((xx, yy), -1).float()
 
@@ -1403,7 +1403,7 @@ class GANetBackbone(nn.Module):
     def forward(self, x, out_std=False, out_cost_volume=False):
 
 
-        refimg_fea, targetimg_fea, left, calib = x
+        refimg_fea, targetimg_fea, left = x
 
         # matching
         cost = Variable(
