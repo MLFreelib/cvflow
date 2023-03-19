@@ -136,9 +136,9 @@ def mobilestereonet(weights = None):
     backbone = MobileStereoNetBackbone()
     output_block = DepthOutput()
     if weights:
-        input_block.import_weights(weights)
-        backbone.import_weights(weights)
-        output_block.import_weights(weights)
+        weight_index = input_block.import_weights(weights)
+        weight_index = backbone.import_weights(weights, weight_index)
+        output_block.import_weights(weights, weight_index)
     model =  ModelBuilder(
         input_block=input_block,
         backbone=backbone,

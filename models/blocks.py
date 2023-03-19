@@ -877,6 +877,7 @@ class MobileStereoNetInputBlock(Block):
         weights_list = [_ for _ in self.weights]
         self._block, self.weight_index = import_weights(self._block, self.weight_index,
                                                         weights_list, self.weights)
+        return  self.weight_index
 
 
     def convbn(self, in_channels, out_channels, kernel_size, stride, pad, dilation):
@@ -947,7 +948,7 @@ class MobileStereoNetBackbone(Block):
     """
 
     def __init__(self, maxdisp=192, in_channels=1, out_channels=1, *args, **kwargs):
-        super().__init__(in_channels=1, out_channels=1)
+        super().__init__(in_channels, out_channels)
         self.weights = None
         self.maxdisp = maxdisp
 
@@ -1019,6 +1020,7 @@ class MobileStereoNetBackbone(Block):
         weights_list = [_ for _ in self.weights]
         self._block, self.weight_index = import_weights(self._block, self.weight_index,
                                                         weights_list, self.weights)
+        return  self.weight_index
 
     def convbn(self, in_channels, out_channels, kernel_size, stride, pad, dilation):
         return nn.Sequential(
@@ -1102,11 +1104,14 @@ class DepthOutput(OutputBlock):
             nn.BatchNorm2d(out_channels)
         )
 
-    def import_weights(self, weights):
+    def import_weights(self, weights, weight_index=0):
+        self.weight_index = weight_index
         self.weights = weights
         weights_list = [_ for _ in self.weights]
         self._block, self.weight_index = import_weights(self._block, self.weight_index,
                                                         weights_list, self.weights)
+        return self.weight_index
+
 
     def disparity_regression(self, x, maxdisp):
         assert len(x.shape) == 4
@@ -1495,6 +1500,7 @@ class GANetOutputBlock(OutputBlock):
         weights_list = [_ for _ in self.weights]
         self._block, self.weight_index = import_weights(self._block, self.weight_index,
                                                         weights_list, self.weights)
+        return  self.weight_index
     def off_regress(self, off):
         "Regress offsets in [0, 1] range"
         off = torch.tanh(off)

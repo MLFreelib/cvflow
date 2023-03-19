@@ -61,12 +61,12 @@ def get_videofile_reader(path: str, name: str) -> VideoReader:
 
 
 if __name__ == '__main__':
-    # checkpoint = torch.load(os.path.join(os.path.dirname(__file__), '..', 'tests', 'test_data', 'best.ckpt'),
-    #                         map_location=torch.device('cpu'))['model']
-    # model = mobilestereonet(checkpoint)
-    checkpoint = torch.load(os.path.join(os.path.dirname(__file__), '..', 'tests', 'test_data', 'best.pth.tar'),
-                            map_location=torch.device('cpu'))['state_dict']
-    model = ganet(checkpoint)
+    checkpoint = torch.load(os.path.join(os.path.dirname(__file__), '..', 'tests', 'test_data', 'best.ckpt'),
+                            map_location=torch.device('cpu'))['model']
+    model = mobilestereonet(checkpoint)
+    # checkpoint = torch.load(os.path.join(os.path.dirname(__file__), '..', 'tests', 'test_data', 'best.pth.tar'),
+    #                         map_location=torch.device('cpu'))['state_dict']
+    # model = ganet(checkpoint)
     model = torch.nn.DataParallel(model)
     pipeline = Pipeline()
 
