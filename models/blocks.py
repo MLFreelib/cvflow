@@ -668,16 +668,16 @@ class CRNN(Block):
         return output  # shape: (seq_len, batch, num_class)
 
 
-class MobileV1ResidualBlock(nn.Module):
+class MobileV1ResidualBlock(Block):
     expansion = 1
 
-    def __init__(self, inplanes, planes, stride, downsample, pad, dilation):
-        super(MobileV1ResidualBlock, self).__init__()
+    def __init__(self, in_channels, planes, stride, downsample, pad, dilation, out_channels=None):
+        super(MobileV1ResidualBlock, self).__init__(in_channels, out_channels)
 
         self.stride = stride
         self.downsample = downsample
         self._block = nn.ModuleList([self.downsample,
-                                     self.convbn_dws(inplanes, planes, 3, stride, pad, dilation),
+                                     self.convbn_dws(in_channels, planes, 3, stride, pad, dilation),
                                      self.convbn_dws(planes, planes, 3, 1, pad, dilation, second_relu=False)])
 
     def convbn_dws(self, inp, oup, kernel_size, stride, pad, dilation, second_relu=True):
@@ -717,14 +717,14 @@ class MobileV1ResidualBlock(nn.Module):
         return out
 
 
-class MobileV2ResidualBlock(nn.Module):
-    def __init__(self, inp, oup, stride, expanse_ratio, dilation=1):
-        super(MobileV2ResidualBlock, self).__init__()
+class MobileV2ResidualBlock(Block):
+    def __init__(self, in_channels, out_channels, stride, expanse_ratio, dilation=1):
+        super(MobileV2ResidualBlock, self).__init__(in_channels, out_channels)
         self.stride = stride
         assert stride in [1, 2]
 
-        hidden_dim = int(inp * expanse_ratio)
-        self.use_res_connect = self.stride == 1 and inp == oup
+        hidden_dim = int(in_channels * expanse_ratio)
+        self.use_res_connect = self.stride == 1 and in_channels == out_channels
         pad = dilation
 
         if expanse_ratio == 1:
@@ -734,13 +734,13 @@ class MobileV2ResidualBlock(nn.Module):
                 nn.BatchNorm2d(hidden_dim),
                 nn.ReLU6(inplace=True),
                 # pw-linear
-                nn.Conv2d(hidden_dim, oup, 1, 1, 0, bias=False),
-                nn.BatchNorm2d(oup),
+                nn.Conv2d(hidden_dim, out_channels, 1, 1, 0, bias=False),
+                nn.BatchNorm2d(out_channels),
             )
         else:
             self._block = nn.Sequential(
                 # pw
-                nn.Conv2d(inp, hidden_dim, 1, 1, 0, bias=False),
+                nn.Conv2d(in_channels, hidden_dim, 1, 1, 0, bias=False),
                 nn.BatchNorm2d(hidden_dim),
                 nn.ReLU6(inplace=True),
                 # dw
@@ -748,8 +748,8 @@ class MobileV2ResidualBlock(nn.Module):
                 nn.BatchNorm2d(hidden_dim),
                 nn.ReLU6(inplace=True),
                 # pw-linear
-                nn.Conv2d(hidden_dim, oup, 1, 1, 0, bias=False),
-                nn.BatchNorm2d(oup),
+                nn.Conv2d(hidden_dim, out_channels, 1, 1, 0, bias=False),
+                nn.BatchNorm2d(out_channels),
             )
 
     def forward(self, x):
@@ -759,9 +759,9 @@ class MobileV2ResidualBlock(nn.Module):
             return self._block(x)
 
 
-class MobileStereoFeatureExtractionBlock(nn.Module):
-    def __init__(self, add_relus=False):
-        super(MobileStereoFeatureExtractionBlock, self).__init__()
+class MobileStereoFeatureExtractionBlock(Block):
+    def __init__(self, add_relus=False, in_channels=None, out_channels=None):
+        super(MobileStereoFeatureExtractionBlock, self).__init__(in_channels, out_channels)
 
         self.expanse_ratio = 3
         self.inplanes = 32
@@ -891,9 +891,9 @@ class MobileStereoNetInputBlock(Block):
         return self._block(L), self._block(R), L
 
 
-class hourglass2D(nn.Module):
-    def __init__(self, in_channels):
-        super(hourglass2D, self).__init__()
+class hourglass2D(Block):
+    def __init__(self, in_channels, out_channels=None):
+        super(hourglass2D, self).__init__(in_channels, out_channels)
 
         self.expanse_ratio = 2
 
@@ -1127,16 +1127,16 @@ class DepthOutput(OutputBlock):
 
 
 
-class GANetBasicBlock(nn.Module):
+class GANetBasicBlock(Block):
     expansion = 1
 
-    def __init__(self, inplanes, planes, stride, downsample, pad, dilation):
-        super(GANetBasicBlock, self).__init__()
+    def __init__(self, in_channels, out_channels, stride, downsample, pad, dilation):
+        super(GANetBasicBlock, self).__init__(in_channels, out_channels)
 
-        self.conv1 = nn.Sequential(convbn(inplanes, planes, 3, stride, pad, dilation),
+        self.conv1 = nn.Sequential(convbn(in_channels, out_channels, 3, stride, pad, dilation),
                                    nn.ReLU(inplace=True))
 
-        self.conv2 = convbn(planes, planes, 3, 1, pad, dilation)
+        self.conv2 = convbn(out_channels, out_channels, 3, 1, pad, dilation)
 
 
 
@@ -1157,9 +1157,9 @@ class GANetBasicBlock(nn.Module):
 
         return out
 
-class GANetInputBlock(nn.Module):
-    def __init__(self, calib = 1017.):
-        super(GANetInputBlock, self).__init__()
+class GANetInputBlock(Block):
+    def __init__(self, calib = 1017., in_channels=None, out_channels=None):
+        super(GANetInputBlock, self).__init__(in_channels, out_channels)
         self.inplanes = 32
         self.calib = calib
         self.firstconv = nn.Sequential(convbn(3, 32, 3, 2, 1, 1),
@@ -1262,30 +1262,30 @@ class GANetInputBlock(nn.Module):
         return self.process(L), self.process(R), L
 
 
-class hourglass(nn.Module):
-    def __init__(self, inplanes):
-        super(hourglass, self).__init__()
+class hourglass(Block):
+    def __init__(self, in_channels, out_channels=None):
+        super(hourglass, self).__init__(in_channels, out_channels)
 
-        self.conv1 = nn.Sequential(convbn_3d(inplanes, inplanes * 2, kernel_size=3, stride=2, pad=1),
+        self.conv1 = nn.Sequential(convbn_3d(in_channels, in_channels * 2, kernel_size=3, stride=2, pad=1),
                                    nn.ReLU(inplace=True))
 
-        self.conv2 = convbn_3d(inplanes * 2, inplanes * 2, kernel_size=3, stride=1, pad=1)
+        self.conv2 = convbn_3d(in_channels * 2, in_channels * 2, kernel_size=3, stride=1, pad=1)
 
-        self.conv3 = nn.Sequential(convbn_3d(inplanes * 2, inplanes * 2, kernel_size=3, stride=2, pad=1),
+        self.conv3 = nn.Sequential(convbn_3d(in_channels * 2, in_channels * 2, kernel_size=3, stride=2, pad=1),
                                    nn.ReLU(inplace=True))
 
-        self.conv4 = nn.Sequential(convbn_3d(inplanes * 2, inplanes * 2, kernel_size=3, stride=1, pad=1),
+        self.conv4 = nn.Sequential(convbn_3d(in_channels * 2, in_channels * 2, kernel_size=3, stride=1, pad=1),
                                    nn.ReLU(inplace=True))
 
         self.conv5 = nn.Sequential(
-            nn.ConvTranspose3d(inplanes * 2, inplanes * 2, kernel_size=3, padding=1, output_padding=1, stride=2,
+            nn.ConvTranspose3d(in_channels * 2, in_channels * 2, kernel_size=3, padding=1, output_padding=1, stride=2,
                                bias=False),
-            nn.BatchNorm3d(inplanes * 2))  # +conv2
+            nn.BatchNorm3d(in_channels * 2))  # +conv2
 
         self.conv6 = nn.Sequential(
-            nn.ConvTranspose3d(inplanes * 2, inplanes, kernel_size=3, padding=1, output_padding=1, stride=2,
+            nn.ConvTranspose3d(in_channels * 2, in_channels, kernel_size=3, padding=1, output_padding=1, stride=2,
                                bias=False),
-            nn.BatchNorm3d(inplanes))  # +x
+            nn.BatchNorm3d(in_channels))  # +x
 
         self._block = nn.Sequential(self.conv1, self.conv2,
                                     self.conv3, self.conv4,
@@ -1315,9 +1315,10 @@ class hourglass(nn.Module):
 
 
 
-class GANetBackbone(nn.Module):
-    def __init__(self, maxdisp=192, maxdepth=80, down=2, scale=1, calib=1017.):
-        super(GANetBackbone, self).__init__()
+class GANetBackbone(Block):
+
+    def __init__(self, maxdisp=192, maxdepth=80, down=2, scale=1, calib=1017., in_channels = None, out_channels = None):
+        super(GANetBackbone, self).__init__(in_channels, out_channels)
         self.maxdisp = maxdisp
         self.down = down
         self.maxdepth = maxdepth
@@ -1437,9 +1438,9 @@ class GANetBackbone(nn.Module):
 
 
 
-class GANetOutputBlock(nn.Module):
-    def __init__(self, maxdisp=192, maxdepth=80, down=2, scale=1):
-        super(GANetOutputBlock, self).__init__()
+class GANetOutputBlock(OutputBlock):
+    def __init__(self, maxdisp=192, maxdepth=80, down=2, scale=1, in_channels=None, out_channels=None):
+        super(GANetOutputBlock, self).__init__(in_channels, out_channels)
         self.maxdisp = maxdisp
         self.down = down
         self.maxdepth = maxdepth
