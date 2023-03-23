@@ -375,8 +375,7 @@ class ModelDepth(ModelBase):
             imgL, imgR = pairs
             # imgL, imgR, calib = batch
             with torch.no_grad():
-                # output.append(self._inference(imgL, imgR, calib))
-                output.append(self._inference(imgL, imgR))
+                output.append(self._inference((imgL, imgR)))
         return output
 
     def _add_to_meta_all(self, meta_batch: MetaBatch, src_data: List, predictions, src_size, *args, **kwargs):
@@ -384,7 +383,7 @@ class ModelDepth(ModelBase):
         for i_src_name in range(0, len(self._source_names), 2):
             for i in range(src_size[i_src_name // 2]):
                 meta_frame = meta_batch.get_meta_frames_by_src_name(self._source_names[i_src_name])[i]
-                depth = predictions[prob_i][-1]
+                depth = predictions[prob_i]['depth']
                 meta_depth = MetaDepth(depth)
                 meta_frame.add_meta(MetaName.META_DEPTH.value, meta_depth)
                 prob_i += 1

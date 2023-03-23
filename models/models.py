@@ -1,3 +1,4 @@
+import os
 from typing import Union
 
 from torch import nn
@@ -129,3 +130,35 @@ def yolo_small(in_channels=3, weights_path=None):
         backbone=backbone,
         output_block=output_block
     )
+
+def mobilestereonet(weights = None):
+    input_block = MobileStereoNetInputBlock()
+    backbone = MobileStereoNetBackbone()
+    output_block = DepthOutput()
+    if weights:
+        weight_index = input_block.import_weights(weights)
+        weight_index = backbone.import_weights(weights, weight_index)
+        output_block.import_weights(weights, weight_index)
+    model =  ModelBuilder(
+        input_block=input_block,
+        backbone=backbone,
+        output_block=output_block
+    )
+    torch.nn.DataParallel(model)
+    return model
+
+def ganet(weights = None):
+    input_block = GANetInputBlock()
+    backbone = GANetBackbone()
+    output_block = GANetOutputBlock()
+    if weights:
+        weight_index = input_block.import_weights(weights)
+        weight_index = backbone.import_weights(weights, weight_index)
+        output_block.import_weights(weights, weight_index)
+    model =  ModelBuilder(
+        input_block=input_block,
+        backbone=backbone,
+        output_block=output_block
+    )
+    torch.nn.DataParallel(model)
+    return model
