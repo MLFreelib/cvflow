@@ -1,10 +1,10 @@
 from typing import Union
 
-from torch import nn
-
 from models.blocks import *
+from models.defects.blocks import OutBlock
+from models.defects.ssd300 import SSD300
+from models.defects.vgg19 import InputRescale
 from models.preprocessing import *
-from torch.cuda import amp
 
 
 class ModelBuilder(nn.Module):
@@ -45,6 +45,7 @@ class YOLOBuilder(ModelBuilder):
                                 'labels': i[..., 5],
                                 'scores': i[..., 4]})
         return out
+
 
 # ResNet
 
@@ -128,4 +129,20 @@ def yolo_small(in_channels=3, weights_path=None):
         input_block=input_block,
         backbone=backbone,
         output_block=output_block
+    )
+
+
+def defects_model(path_to_templates=None, emb_size: int = 512, weights=None, is_train=False, device='cuda'):
+    backbone = SSD300(emb_size).to(device)
+    if weights is not None:
+        checkpoint = torch.load(weights)
+        backbone.load_state_dict(checkpoint['model'], strict=False)
+    backbone.is_train = is_train
+    if not is_train:
+        backbone.load_templates(path_to_templates)
+        backbone.build_clusters()
+    return ModelBuilder(
+        input_block=InputRescale(output_size=(300, 300)).to(device),
+        backbone=backbone,
+        output_block=OutBlock(-1, -1).to(device)
     )

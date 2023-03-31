@@ -1,6 +1,7 @@
 import argparse
 import logging
 import logging.config
+import os
 
 
 class Logger:
@@ -94,6 +95,7 @@ argparser.add_argument('--tsize', required=False)
 argparser.add_argument('--fsize', required=False)
 argparser.add_argument('-d', '--device', required=False)
 argparser.add_argument('-l', '--line', required=False)
+argparser.add_argument('--temppath', required=False)
 
 args = vars(argparser.parse_args())
 
@@ -142,6 +144,12 @@ def get_tsize():
         return 2, 2
     except TypeError:
         return 2, 2
+
+
+def get_path_to_templates():
+    temp_path = args['temppath']
+    assert os.path.exists(temp_path)
+    return temp_path
 
 
 def get_fsize():
