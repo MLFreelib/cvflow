@@ -57,7 +57,7 @@ def get_tiler(name: str, tiler_size: tuple, frame_size: tuple = (640, 1280)) -> 
 
 
 if __name__ == '__main__':
-    model = defects_model(weights='../checkpoints/checkpoint_ssd300_1.pth.tar',
+    model = defects_model(weights='../checkpoints/checkpoint_ssd300.pth.tar',
                           path_to_templates=get_path_to_templates(), device=get_device())
 
     pipeline = Pipeline()
@@ -81,8 +81,8 @@ if __name__ == '__main__':
 
     muxer = get_muxer(readers)
     model_det = get_detection_model('detection', model, sources=readers,
-                                    classes=['Crack', 'Dead_Knot', 'Knot_missing', 'Live_Knot', 'Marrow', 'Quartzity',
-                                             'knot_with_crack', 'resin', 'background'])
+                                    classes=['Blue_Stain', 'Crack', 'Dead_Knot', 'Knot_missing', 'Live_Knot', 'Marrow',
+                                             'Quartzity', 'knot_with_crack', 'overgrown', 'resin'])
 
     model_det.set_transforms([torchvision.transforms.Resize((300, 300))])
     model_det.set_source_names([reader.get_name() for reader in readers])

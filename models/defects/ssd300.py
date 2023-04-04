@@ -69,6 +69,7 @@ class SSD300(Block):
         self.template_labels = torch.concat(template_labels, dim=0).to(self.device)
         self.classes = {value: dataset.le.inverse_transform([value])[0]
                         for value in self.template_labels.unique().cpu().tolist()}
+        print(self.classes)
 
     def build_clusters(self):
         classes_count = len(list(self.classes.keys()))
@@ -194,7 +195,6 @@ class SSD300(Block):
         # dist_matrix_mean = torch.cdist(embeddings, self.euclid_mean)
 
 
-        dist_matrix_mean = torch.cdist(embeddings, self.euclid_mean)
         dist_matrix_templates = torch.cdist(embeddings, self.template_embeddings)
         topk_values, topk_indexes = torch.topk(dist_matrix_templates, k=5, dim=1, largest=False)
         topk_labels = self.template_labels[topk_indexes.view(-1)]
@@ -206,6 +206,7 @@ class SSD300(Block):
         mean_dist = torch.zeros_like(topk_labels_mask, device=self.device, dtype=torch.float32)
         mean_dist[topk_labels_mask] = topk_values[topk_labels_mask]
         mean_dist = torch.sum(mean_dist, dim=1) / torch.sum((mean_dist != 0), dim=1)
+        dist_matrix_mean = torch.cdist(embeddings, self.euclid_mean)
 
         scores = torch.zeros(size=(embeddings.shape[0],), device=self.device)
         for label in topk_labels.unique():
@@ -234,7 +235,7 @@ class SSD300(Block):
             best_predicted_locs = cxcy_to_xy(gcxgcy_to_cxcy(best_predicted_locs,
                                                             self.priors_cxcy.to(self.device)[templates_mask]))
 
-            indexes = nms(best_predicted_locs, scores[templates_mask], iou_threshold=0.1)
+            indexes = nms(best_predicted_locs, scores[templates_mask], iou_threshold=0.5)
             predicted_labels.append(labels[indexes])
             predicted_locs.append(best_predicted_locs[indexes])
             predicted_scores.append(scores[templates_mask][indexes])
@@ -242,7 +243,7 @@ class SSD300(Block):
 
         return predicted_locs, predicted_labels, predicted_scores, predicted_embeddings
 
-    def forward(self, images, boxes=None, labels=None, thresholds: Union[List[float], float] = 0.5):
+    def forward(self, images, boxes=None, labels=None, thresholds: Union[List[float], float] = 0.1):
         if self.is_train:
             return self.forward_train(images, boxes, labels)
         else:
