@@ -80,13 +80,8 @@ def get_roi(vs, n, f):
         # check to see if we have reached the end of the stream
         if frame is None:
             break
-        # frame = imutils.resize(frame, width=600)
-        # if the 's' key is selected, we are going to "select" a bounding
-        # box to track
         key = cv2.waitKey(1) & 0xFF
         if key == ord("s"):
-            # select the bounding box of the object we want to track (make
-            # sure you press ENTER or SPACE after selecting the ROI)
             key = cv2.waitKey(1) & 0xFF
             while True:
                 key = cv2.waitKey(1) & 0xFF
@@ -118,10 +113,10 @@ if __name__ == '__main__':
                     help="path to input video file")
     ap.add_argument('-n', '--num_objects', type=str, default=2,
                     help='Number of tracking objects')
-    ap.add_argument('-f','--fpath', type=str, default='conf.txt', help='Path to save bboxes')
+    ap.add_argument('-f','--save_path', type=str, default='conf.txt', help='Path to save bboxes')
     args = vars(ap.parse_args())
 
     video = cv2.VideoCapture(args["video"])
     num = int(args["num_objects"])
-    fpath = args["fpath"]
+    fpath = args["save_path"]
     get_roi(video, num, fpath)

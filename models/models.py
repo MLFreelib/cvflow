@@ -1,3 +1,4 @@
+import os
 from typing import Union
 
 from models.blocks import *
@@ -131,7 +132,6 @@ def yolo_small(in_channels=3, weights_path=None):
         output_block=output_block
     )
 
-
 def defects_model(path_to_templates=None, emb_size: int = 512, weights=None, is_train=False, device='cuda'):
     backbone = SSD300(emb_size).to(device)
     if weights is not None:
@@ -146,3 +146,35 @@ def defects_model(path_to_templates=None, emb_size: int = 512, weights=None, is_
         backbone=backbone,
         output_block=OutBlock(-1, -1).to(device)
     )
+
+def mobilestereonet(weights = None):
+    input_block = MobileStereoNetInputBlock()
+    backbone = MobileStereoNetBackbone()
+    output_block = DepthOutput()
+    if weights:
+        weight_index = input_block.import_weights(weights)
+        weight_index = backbone.import_weights(weights, weight_index)
+        output_block.import_weights(weights, weight_index)
+    model =  ModelBuilder(
+        input_block=input_block,
+        backbone=backbone,
+        output_block=output_block
+    )
+    torch.nn.DataParallel(model)
+    return model
+
+def ganet(weights = None):
+    input_block = GANetInputBlock()
+    backbone = GANetBackbone()
+    output_block = GANetOutputBlock()
+    if weights:
+        weight_index = input_block.import_weights(weights)
+        weight_index = backbone.import_weights(weights, weight_index)
+        output_block.import_weights(weights, weight_index)
+    model =  ModelBuilder(
+        input_block=input_block,
+        backbone=backbone,
+        output_block=output_block
+    )
+    torch.nn.DataParallel(model)
+    return model
