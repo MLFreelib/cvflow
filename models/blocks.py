@@ -16,8 +16,13 @@ from torch.autograd import Variable
 class Block(nn.Module):
     def __init__(self, in_channels, out_channels):
         super().__init__()
+        self.dummy = nn.Parameter(torch.empty(0))
         self.in_channels, self.out_channels = in_channels, out_channels
         self._block = nn.Identity()
+
+    @property
+    def device(self):
+        return self.dummy.device
 
     def forward(self, x):
         return self._block(x)
@@ -39,8 +44,8 @@ class ResNetInputBlock(Block):
 # Output blocks
 
 class OutputFormat(Enum):
-    CONFIDENCE = 'confidence'
-    BBOX = 'bbox'
+    CONFIDENCE = 'scores'
+    BBOX = 'boxes'
     SEM_MASK = 'semantic_mask'
     INST_MASK = 'instance_mask'
     DEPTH = 'depth'
