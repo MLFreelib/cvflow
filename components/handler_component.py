@@ -280,33 +280,36 @@ class DistanceCalculator(ComponentBase):
 
         np_bbox1 = bbox1.detach().cpu().numpy().astype(int)
         np_bbox2 = bbox2.detach().cpu().numpy().astype(int)
-        s_h, s_v = (int(np_bbox1[0] + np_bbox1[2])) // 2, int((np_bbox1[1] + np_bbox1[3])) // 2
-        e_h, e_v = (int(np_bbox2[0] + np_bbox2[2])) // 2, (int(np_bbox2[1] + np_bbox2[3])) // 2,
 
-        h_dist = s_h - e_h
-        v_dist = s_v - e_v
+        x1, y1 = (int(np_bbox1[0] + np_bbox1[2])) // 2, int((np_bbox1[1] + np_bbox1[3])) // 2
+        x2, y2 = (int(np_bbox2[0] + np_bbox2[2])) // 2, (int(np_bbox2[1] + np_bbox2[3])) // 2,
+
+        dx = x1 - x2
+        dy = y1 - y2
+        dx = dx * 53 / 28
+        dy = dy * 45 / 28
+
+        dz = 0
         if meta_frame.get_meta_info(MetaName.META_DEPTH.value):
             depth = meta_frame.get_meta_info(MetaName.META_DEPTH.value).get_depth().clone()
             depth = torchvision.transforms.Resize((cv_shape[:2]))(depth)
             depth = depth.permute(1, 2, 0).detach().cpu().numpy()
-            depth_bbox1 = np.mean(depth[np_bbox1[1]:np_bbox1[3], np_bbox1[0]:np_bbox1[2]])
-            depth_bbox2 = np.mean(depth[np_bbox2[1]:np_bbox2[3], np_bbox2[0]:np_bbox2[2]])
-            depth = 1017. / ((depth_bbox2 + depth_bbox1) // 2)
+            z1 = 1017./np.mean(depth[np_bbox1[1]:np_bbox1[3], np_bbox1[0]:np_bbox1[2]])
+            z2 = 1017./np.mean(depth[np_bbox2[1]:np_bbox2[3], np_bbox2[0]:np_bbox2[2]])
+            dz = z1-z2
+            # depth = 1017. / ((depth2 + depth1) // 2)
 
-            h_dist = h_dist * 53 * (depth - 1) / 28
-            v_dist = v_dist * 45 * (depth - 1) / 28
-
-        dist = (h_dist ** 2 + v_dist ** 2) ** 0.5
+        dist = (dx ** 2 + dy ** 2 + dz ** 2) ** 0.5
 
         frame = frame.detach().cpu()
         frame = frame.permute(1, 2, 0).numpy()
         frame = np.ascontiguousarray(frame)
         color = (randrange(0, 255), randrange(0, 255), randrange(0, 255))
 
-        cv2.line(frame, (s_h, s_v), (e_h, e_v), color=color, thickness=1)
+        cv2.line(frame, (x1, y1), (x2, y2), color=color, thickness=1)
         frame = cv2.putText(frame, str(round(dist)), color=color, fontScale=1, thickness=1,
                             fontFace=cv2.FONT_HERSHEY_SIMPLEX,
-                            org=((s_h + e_h) // 2, (s_v + e_v) // 2))
+                            org=((x1 + x2) // 2, (y1 + y2) // 2))
 
         frame = torch.tensor(frame, device=self.get_device()).permute(2, 0, 1)
 

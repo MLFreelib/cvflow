@@ -9,7 +9,7 @@ import numpy as np
 import torch
 import torchvision
 from torchvision import models
-from models.mobilestereonet_model import MSNet2D
+from models.models import mobilestereonet
 
 from Meta import MetaBatch, MetaFrame, MetaBBox, MetaMask, MetaLabel, MetaName
 from components.model_component import ModelDetection, ModelSegmentation, ModelClassification, ModelDepth
@@ -132,7 +132,7 @@ class ModelClassificationTest(unittest.TestCase):
 class ModelDepthTest(unittest.TestCase):
 
     def setUp(self):
-        self.msn2d = MSNet2D()
+        self.msn2d = mobilestereonet()
         self.msn2d.eval()
         self.model = ModelDepth('depht_test', self.msn2d)
         self.model.set_device('cpu')

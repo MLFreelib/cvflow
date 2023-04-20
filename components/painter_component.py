@@ -81,7 +81,7 @@ class BBoxPainter(Painter):
                     font width
     """
 
-    def __init__(self, name: str, font_size: int = 20, font_width: int = 3):
+    def __init__(self, name: str, font_size: int = 30, font_width: int = 3):
         super().__init__(name)
         self.__font_path = os.path.join(os.path.dirname(__file__), '..', 'fonts', 'OpenSans-VariableFont_wdth,wght.ttf')
         self.__font_size = font_size
@@ -151,7 +151,7 @@ class BBoxPainter(Painter):
             frame = cv2.putText(frame,
                                 text=f'Count of {label}: {str(counts["labels"][label])}',
                                 org=(50, (1 + i) * 30), fontFace=0,
-                                color=(255, 0, 0), thickness=2, lineType=16,
+                                color=(255, 0, 0), thickness=5, lineType=16,
                                 fontScale=0.5)
         return torch.tensor(frame, device=self.get_device()).permute((2, 0, 1))
 
