@@ -114,20 +114,22 @@ class BBoxPainter(Painter):
                     meta_labels = meta_bbox.get_label_info()
                     ids = meta_labels.get_object_ids()
                     labels = meta_labels.get_labels()
+                    bbox = bbox.to(torch.uint8)
+                    mask = ~(bbox[:, 0] - bbox[:, 2]).to(bool) | ~(bbox[:, 1] - bbox[:, 3]).to(bool) | (bbox[:, 1] > bbox[:, 3]) | (bbox[:, 0] > bbox[:, 2])
+                    bbox = bbox[~mask]
+                    confidence = meta_labels.get_confidence()
                     if len(ids) == 0:
-                        meta_objects_info = zip(labels, meta_labels.get_confidence())
-                        full_labels = [f'{label} {round(conf * 100)}%' for label, conf in meta_objects_info]
+                        full_labels = [f'{labels[i]} {round(confidence[i] * 100)}%' for i, check in enumerate(mask) if ~check]
                     else:
-                        meta_objects_info = zip(labels, meta_labels.get_confidence(), ids)
-                        full_labels = [f'{obj_id} {label} {round(conf * 100)}%' for label, conf, obj_id in
-                                       meta_objects_info]
+                        full_labels = [f'{ids[i]} {labels[i]} {round(confidence[i] * 100)}%' for i, check in enumerate(mask) if ~check]
                     frame = meta_frame.get_frame().cpu()
                     if self.__resolution is None:
                         self.__resolution = frame.shape[-2:]
 
                     frame = torchvision.transforms.Resize(self.__resolution)(frame)
-                    bboxes_frame = draw_bounding_boxes(frame,
-                                                       boxes=bbox,
+
+                    bboxes_frame = draw_bounding_boxes(frame.to(torch.uint8),
+                                                       boxes=bbox.to(torch.uint8),
                                                        width=self.__font_width,
                                                        labels=full_labels,
                                                        font_size=self.__font_size,

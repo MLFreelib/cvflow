@@ -1,11 +1,10 @@
 import time
 from enum import Enum
 from typing import List
-
+from tqdm import tqdm
 import torch
 
 from Meta import MetaBatch
-
 from common.utils import Logger
 from components.component_base import ComponentBase
 from components.muxer_component import MuxerBase, SourceMuxer
@@ -22,6 +21,8 @@ class Pipeline:
         self.__components = list()
         self.__signal_names = list()
         self.__logger = self.__create_logger()
+        self.__max_iter = -1
+        self.__bar = True
 
     def add(self, component: ComponentBase):
         r""" Adds a component to the pipeline.
@@ -31,6 +32,12 @@ class Pipeline:
         if not isinstance(component, MuxerBase) and len(self.__components) == 0:
             raise InvalidComponentException('The first element of the pipeline must be of type MuxerBase')
         self.__components.append(component)
+
+    def set_max_iters(self, value: int, bar: bool = True):
+        assert value > 0
+        assert isinstance(value, int)
+        self.__bar = bar
+        self.__max_iter = value
 
     def set_device(self, device: str):
         r""" Sets the device type. Available types: cpu and cuda. """
@@ -61,7 +68,10 @@ class Pipeline:
         all_time = time.time()
         count = 0
         is_stopped = False
-        while not is_stopped:
+        pbar = None
+        if self.__max_iter > 0 and self.__bar:
+            pbar = tqdm(list(range(self.__max_iter)))
+        while not is_stopped and count < self.__max_iter:
             data = MetaBatch('pipe_batch')
             data.add_signal(Mode.__name__)
             data.set_signal(Mode.__name__, Mode.PLAY)
@@ -75,10 +85,13 @@ class Pipeline:
                 else:
                     job_time[comp_name] = (job_time[comp_name] * count + (
                             e_time - s_time)) / (count + 1)
-                            
+
                 if data is not None:
                     if data.get_signal(Mode.__name__) == Mode.STOP:
                         is_stopped = True
+
+                if pbar is not None:
+                    pbar.update(1)
 
             count += 1
 

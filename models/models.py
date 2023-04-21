@@ -18,9 +18,9 @@ class ModelBuilder(nn.Module):
         self.out_block = output_block
         self.count = 1
 
-    def forward(self, x):
+    def forward(self, x, **kwargs):
         x = self.in_block(x)
-        x = self.backbone(x)
+        x = self.backbone(x, **kwargs)
         x = self.out_block(x)
         return x
 

@@ -3,6 +3,7 @@ from queue import Queue
 from typing import Union, List
 
 import cv2
+from tensorboardX import SummaryWriter
 
 from pipeline import Mode
 from Meta import MetaBatch, MetaFrame
@@ -107,3 +108,37 @@ class FileWriterComponent(OuterComponent):
         self._stop = True
         self.__thread.join()
         self._video_writer.release()
+
+
+class TensorBoardOuter(OuterComponent):
+    def __init__(self, name: str):
+        super().__init__(name)
+        self.__writer = SummaryWriter('runs/cvflow_metrics')
+        self.__n_iter = 0
+
+    def do(self, data: Union[MetaBatch, MetaFrame]) -> Union[MetaBatch, MetaFrame]:
+        r""" Displays frames from selected sources in the window. """
+        full_batch = data.get_meta_frames_all()
+        for key in self._source_names:
+            src_loss = dict()
+            frames = full_batch[key]
+            frames_count = 0
+            loss_names = list()
+            for i in range(len(frames)):
+                losses = frames[i].get_meta_info("losses")
+                loss_names.extend(losses)
+                for loss_name in losses:
+                    if src_loss.get(loss_name) is None:
+                        src_loss[loss_name] = losses[loss_name]
+                    else:
+                        src_loss[loss_name] = (src_loss[loss_name] * frames_count + losses[loss_name]) / (frames_count + 1)
+                frames_count += 1
+
+            for loss_name in loss_names:
+                self.__writer.add_scalar(f'{key}_{loss_name}', src_loss[loss_name], self.__n_iter)
+        self.__n_iter += 1
+        return data
+
+    def stop(self):
+        self.__writer.flush()
+        self.__writer.close()
