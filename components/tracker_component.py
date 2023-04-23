@@ -38,7 +38,7 @@ class TrackerBase(ComponentBase):
     def _transform(self, data: torch.Tensor):
         if self._get_transforms():
             for t_transform in self._get_transforms():
-                data = t_transform.forward(data)
+                data = t_transform.forward(data, )
         return data
 
 

@@ -7,11 +7,13 @@ from torch import nn
 from torchvision.ops import nms, box_iou
 from tqdm import tqdm
 
+from Meta import MetaName
 from models.blocks import Block
 from models.defects.blocks import AuxiliaryConvolutions, PredictionConvolutions
-from models.defects.dataset import CustomDataset
-from models.defects.utils import cxcy_to_xy, gcxgcy_to_cxcy, find_jaccard_overlap, get_embeddings, get_seq_triplets
+from models.defects.dataset import DefectsModelDataset
+from models.defects.utils import find_jaccard_overlap, get_embeddings, get_seq_triplets
 from models.defects.vgg19 import VGGBase
+from models.utils import cxcy_to_xy, gcxgcy_to_cxcy
 
 
 class SSD300(Block):
@@ -49,11 +51,12 @@ class SSD300(Block):
         self.path_to_templates = path_to_templates
         template_embeddings = list()
         template_labels = list()
-        dataset = CustomDataset(path_to_templates,
-                                split='templates',
-                                keep_difficult=True, anno_postfix='_anno.txt', img_postfix='.bmp')
+        dataset = DefectsModelDataset(path_to_templates,
+                                      split='templates',
+                                      keep_difficult=True, anno_postfix='_anno.txt', img_postfix='.bmp')
         with tqdm(total=len(dataset)) as t, torch.no_grad():
-            for image, boxes, labels, difficulties in dataset:
+            for sample in dataset:
+                image, boxes, labels = sample['image'], sample[MetaName.META_BBOX.value], sample[MetaName.META_LABEL.value]
                 t.update(1)
 
                 boxes = boxes.to(self.device)
@@ -84,9 +87,9 @@ class SSD300(Block):
 
     def build_background(self):
         template_embeddings = list()
-        dataset = CustomDataset(self.path_to_templates,
-                                split='templates',
-                                keep_difficult=True, anno_postfix='_anno.txt', img_postfix='.bmp')
+        dataset = DefectsModelDataset(self.path_to_templates,
+                                      split='templates',
+                                      keep_difficult=True, anno_postfix='_anno.txt', img_postfix='.bmp')
 
         with tqdm(total=len(dataset)) as t, torch.no_grad():
             for image, boxes, labels, difficulties in dataset:
@@ -148,11 +151,11 @@ class SSD300(Block):
         object_count = [object_labels.shape[0] for object_labels in labels]
 
         prior_for_each_object = self.find_pos_locs(boxes)
-        true_embeddings, true_labels = get_embeddings(embeddings, labels, prior_for_each_object)
+        true_embeddings, true_labels = get_embeddings(embeddings, [torch.tensor(label) for label in labels], prior_for_each_object)
         del embeddings
         unique_values, count_values = torch.unique(true_labels, return_counts=True)
-        triplets = get_seq_triplets(true_embeddings, true_labels,
-                                    self.last_embeddings, self.last_labels)
+        triplets = get_seq_triplets(true_embeddings.to(self.device), true_labels.to(self.device),
+                                    self.last_embeddings.to(self.device), self.last_labels.to(self.device))
 
         with torch.no_grad():
             for i in range(unique_values.shape[0]):
@@ -269,7 +272,7 @@ class SSD300(Block):
         for i in range(batch_size):
             n_objects = boxes[i].size(0)
 
-            overlap = find_jaccard_overlap(boxes[i],
+            overlap = find_jaccard_overlap(boxes[i].to(self.device),
                                            self.priors_xy.to(self.device))  # (n_objects, 8732)
 
             # For each prior, find the object that has the maximum overlap

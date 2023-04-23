@@ -8,7 +8,7 @@ from components.outer_component import DisplayComponent
 from components.painter_component import Tiler, BBoxPainter
 from pipeline import Pipeline
 from set_stream import *
-from models.models import yolo
+from models.models import yolo_small
 import argparse
 
 argparser = argparse.ArgumentParser()
@@ -24,7 +24,7 @@ args = vars(argparser.parse_args())
 
 config = configparser.ConfigParser()
 config.read(args['config'])
-model = yolo(weights_path='/Users/szymanski/Downloads/model.pt')
+model = yolo_small(weights_path='/Users/szymanski/Downloads/model.pt')
 device = 'cpu'
 
 pipeline = Pipeline()

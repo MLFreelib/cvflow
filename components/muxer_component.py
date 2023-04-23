@@ -1,6 +1,7 @@
 from typing import Union, List
 
 import torch
+from torch.utils.data import DataLoader
 
 from Meta import MetaBatch, MetaFrame
 from components.component_base import ComponentBase
@@ -65,4 +66,46 @@ class SourceMuxer(MuxerBase):
         frame = torch.tensor(frame, device=self.get_device())
         frame = frame.permute(2, 0, 1)
         meta_frame = MetaFrame(source_name=src_name, frame=frame)
+        return meta_frame
+
+
+class DataLoaderMuxer(MuxerBase):
+
+    def __init__(self, name: str):
+        super().__init__(name)
+        self.__loaders = list()
+        self.__iters = list()
+        self.__current_pos = 0
+
+    def add_source(self, source: DataLoader):
+        if not isinstance(source, DataLoader):
+            raise TypeError(f'Expected type of source a ReaderBase, received {type(source)}')
+        self.__loaders.append(source)
+        self.__iters.append(iter(source))
+        self._source_names.append(f'{source.__class__.__name__}_{len(self.__loaders)}')
+
+    def do(self, data: Union[MetaBatch, MetaFrame]) -> Union[MetaBatch, MetaFrame]:
+        data.set_source_names(self._source_names)
+        for i, loader in enumerate(self.__iters):
+
+            try:
+                batch = next(loader)
+            except StopIteration:
+                self.__iters[i] = iter(self.__loaders[i])
+                batch = next(self.__iters[i])
+
+            for sample in batch:
+                meta_frame = self.__construct_metaframe(self._source_names[i], sample)
+                data.add_meta_frame(meta_frame)
+
+        return data
+
+    def __construct_metaframe(self, src_name, data: dict):
+        meta_frame = MetaFrame(src_name, data['image'])
+        for key, value in data.items():
+            if key == 'image':
+                continue
+
+            meta_frame.add_meta(key, value)
+
         return meta_frame

@@ -181,14 +181,23 @@ class OutBlock(Block):
     def __init__(self, in_channels, out_channels):
         super().__init__(in_channels, out_channels)
 
-    def forward(self, x):
+    def forward(self, x, **kwargs):
         out = list()
         for i in range(len(x[0])):
-            out.append(
-                {
-                    OutputFormat.BBOX.value: x[0][i],
-                    'labels': x[1][i],
-                    OutputFormat.CONFIDENCE.value: x[2][i]
-                }
-            )
+            if len(x) == 4:
+                out.append(
+                    {
+                        OutputFormat.BBOX.value: x[0][i],
+                        'labels': x[1][i],
+                        OutputFormat.CONFIDENCE.value: x[2][i],
+                        'embeddings': x[3][i]
+                    }
+                )
+            else:
+                out.append(
+                    {
+                        OutputFormat.BBOX.value: x[0][i],
+                        'embeddings': x[1][i]
+                    }
+                )
         return out

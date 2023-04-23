@@ -6,6 +6,7 @@ from PIL import Image
 from sklearn.preprocessing import LabelEncoder
 from torch.utils.data import Dataset
 
+from Meta import MetaName, MetaLabel, MetaBBox
 from models.defects.utils import box2imgsize_box, transform
 
 
@@ -26,19 +27,15 @@ class GetterBase(Dataset):
         # Read objects in this image (bounding boxes, labels, difficulties)
         objects = self.objects[i]
         boxes = torch.FloatTensor(objects['boxes'])  # (n_objects, 4)
-        labels = torch.LongTensor(objects['labels'])  # (n_objects)
+        labels = torch.tensor(objects['labels'])  # (n_objects)
         difficulties = torch.ByteTensor(objects['difficulties'])  # (n_objects)
-
-        # Discard difficult objects, if desired
-        if not self.keep_difficult:
-            boxes = boxes[1 - difficulties]
-            labels = labels[1 - difficulties]
-            difficulties = difficulties[1 - difficulties]
 
         # Apply transformations
         image, boxes, labels, difficulties = transform(image, boxes, labels, difficulties, split=self.split)
+        meta_labels = MetaLabel(labels=labels.detach().numpy(), confidence=np.array([1] * labels.shape[0]))
+        meta_boxes = MetaBBox(points=boxes, label_info=meta_labels)
 
-        return image, boxes, labels, difficulties
+        return {'image': image, MetaName.META_BBOX.value: meta_boxes}
 
     def __len__(self):
         return len(self.images)
@@ -71,7 +68,7 @@ class GetterBase(Dataset):
         return images, boxes, labels, difficulties
 
 
-class CustomDataset(GetterBase):
+class DefectsModelDataset(GetterBase):
 
     def __init__(self, data_folder, split, anno_postfix: str, img_postfix: str, keep_difficult=False,
                  label_aux: int = 0):

@@ -95,7 +95,7 @@ argparser.add_argument('--tsize', required=False)
 argparser.add_argument('--fsize', required=False)
 argparser.add_argument('-d', '--device', required=False)
 argparser.add_argument('-l', '--line', required=False)
-argparser.add_argument('--temppath', required=False)
+argparser.add_argument('--data', required=False)
 
 args = vars(argparser.parse_args())
 
@@ -110,6 +110,12 @@ def get_cam_srcs():
 
 def get_img_srcs():
     return get_src('images')
+
+
+def get_data_srcs():
+    data_path = args['data']
+    assert os.path.exists(data_path)
+    return data_path
 
 
 def get_src(reader_name: str):
@@ -144,12 +150,6 @@ def get_tsize():
         return 2, 2
     except TypeError:
         return 2, 2
-
-
-def get_path_to_templates():
-    temp_path = args['temppath']
-    assert os.path.exists(temp_path)
-    return temp_path
 
 
 def get_fsize():

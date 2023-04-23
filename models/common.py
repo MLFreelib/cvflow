@@ -476,7 +476,7 @@ class DetectMultiBackend(nn.Module):
         elif self.dnn:  # ONNX OpenCV DNN
             im = im.cpu().numpy()  # torch to numpy
             self.net.setInput(im)
-            y = self.net.forward()
+            y = self.net.forward(,
         elif self.onnx:  # ONNX Runtime
             im = im.cpu().numpy()  # torch to numpy
             y = self.session.run([self.session.get_outputs()[0].name], {self.session.get_inputs()[0].name: im})[0]

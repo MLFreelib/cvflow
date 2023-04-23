@@ -4,10 +4,12 @@ from typing import List, Tuple, Union, Any, Dict
 import numpy as np
 import torch
 from torch import Tensor
+from torch.optim import Optimizer
 
-from Meta import MetaBatch, MetaLabel, MetaBBox, MetaMask, MetaDepth, MetaFrame, MetaName
+from Meta import MetaBatch, MetaLabel, MetaBBox, MetaMask, MetaDepth, MetaName
 from components.component_base import ComponentBase
 from models.blocks import OutputFormat
+from models.losses_structures.loss_base import LossBase
 
 
 class ModelBase(ComponentBase):
@@ -24,6 +26,7 @@ class ModelBase(ComponentBase):
         self._inference: torch.nn.Module = model
         self._confidence = 0.8
         self.__label_names = None
+        self.is_train = False
 
     def set_confidence(self, conf: float):
         """ Setting the confidence threshold.
@@ -41,14 +44,24 @@ class ModelBase(ComponentBase):
                                                 data=data,
                                                 device=self.get_device(),
                                                 transform=self._transform)
-        predictions = self._to_inference(batch)
-        self._add_to_meta_all(data, batch, predictions, src_size)
+        if self.is_train:
+            predictions = self._to_train(batch, data)
+            for src_name in data.get_source_names():
+                for meta_frame in data.get_meta_frames_by_src_name(src_name):
+                    meta_frame.add_meta('losses', predictions)
+        else:
+            predictions = self._to_inference(batch)
+            self._add_to_meta_all(data, batch, predictions, src_size)
         return data
 
     def start(self):
         r""" Specifies the device on which the model will be executed. """
         self._inference.to(device=torch.device(self.get_device()))
-        self._inference.eval()
+        self._inference.train() if self.is_train else self._inference.eval()
+
+    def add_training_params(self, optimizer: Optimizer, loss_func: LossBase):
+        self.optimizer = optimizer
+        self.loss_func = loss_func
 
     def stop(self):
         del self._inference
@@ -124,6 +137,13 @@ class ModelBase(ComponentBase):
         with torch.no_grad():
             return self._inference(batch)
 
+    def _to_train(self, batch: torch.Tensor, true_values: MetaBatch):
+        self.optimizer.zero_grad()
+        out = self._inference(batch)
+        losses, loss = self.loss_func(out, true_values)
+        loss.backward()
+        return losses
+
     def _add_to_meta_all(self, meta_batch: MetaBatch, src_data: List, predictions, src_size, *args, **kwargs):
         pass
 
@@ -140,7 +160,7 @@ class ModelBase(ComponentBase):
         """
         if self._get_transforms() is not None:
             for t_transform in self._get_transforms():
-                data = t_transform.forward(data)
+                data = t_transform.forward(data, )
         return data
 
 
@@ -387,3 +407,18 @@ class ModelDepth(ModelBase):
                 meta_depth = MetaDepth(depth)
                 meta_frame.add_meta(MetaName.META_DEPTH.value, meta_depth)
                 prob_i += 1
+
+
+class DefectsModel(ModelDetection):
+
+    def _to_train(self, batch: torch.Tensor, true_values: MetaBatch):
+        self.optimizer.zero_grad()
+        key = list(true_values.get_meta_frames_all().keys())[0]
+        boxes = [value.get_meta_info(MetaName.META_BBOX.value).get_bbox() for value in
+                 true_values.get_meta_frames_by_src_name(key)]
+        labels = [value.get_meta_info(MetaName.META_BBOX.value).get_label_info().get_labels() for value in
+                  true_values.get_meta_frames_by_src_name(key)]
+        out = self._inference(batch, boxes=boxes, labels=labels)
+        losses, loss = self.loss_func(out, true_values)
+        loss.backward()
+        return losses

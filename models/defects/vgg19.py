@@ -7,6 +7,7 @@ from torchvision.transforms import Resize
 
 from models.blocks import Block
 from models.defects.utils import *
+from models.utils import decimate
 
 
 class InputRescale(Block):

@@ -144,5 +144,3 @@ class ImageReader(ReaderBase):
         self.__last_file = self.__last_file + 1 if self.__last_file + 1 < len(self.__files) else self.__last_file
         self.__last_iter = time.time()
         return frame
-
-
