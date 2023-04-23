@@ -2,15 +2,15 @@ import math
 from collections import OrderedDict
 from enum import Enum
 from functools import partial
-from torch.cuda import amp
 
 from torch import nn
 import torch
 
 from models.layers import Conv2dAuto, convbn, convbn_3d
-from models.preprocessing import preprocess_for_YOLO
 import torch.nn.functional as F
 from torch.autograd import Variable
+
+import common.famlinn
 
 
 class Block(nn.Module):
@@ -60,11 +60,12 @@ class ClassificationOutput(OutputBlock):
     def __init__(self, in_channels, out_channels):
         super().__init__(in_channels, out_channels)
         self.avg = nn.AdaptiveAvgPool2d((1, 1))
+        self.view = common.famlinn.TorchTensorVagueView(self.in_channels)
         self.decoder = nn.Linear(in_channels, out_channels)
 
     def forward(self, x):
         x = self.avg(x)
-        x = x.view(-1, self.in_channels)
+        x = self.view(x)
         x = self.decoder(x)
         return {OutputFormat.CONFIDENCE.value: x}
 
@@ -151,12 +152,13 @@ class ResidualBlock(Block):
         super().__init__(in_channels, out_channels)
         self.blocks = nn.Identity()
         self.shortcut = nn.Identity()
+        self.tensorAdd = common.famlinn.TorchTensorAdd()
 
     def forward(self, x):
         residual = x
         if self.should_apply_shortcut: residual = self.shortcut(x)
         x = self.blocks(x)
-        x += residual
+        x = self.tensorAdd(x, residual)
         return x
 
     @property
@@ -170,17 +172,15 @@ class ResNetResidualBlock(ResidualBlock):
         self.expansion, self.downsampling, self.conv = expansion, downsampling, partial(Conv2dAuto,
                                                                                         kernel_size=3,
                                                                                         bias=False)
-        self.shortcut = nn.Sequential(OrderedDict(
-            {
-                'conv': nn.Conv2d(self.in_channels, self.expanded_channels, kernel_size=1,
+        self.shortcut = nn.Sequential(
+            nn.Conv2d(self.in_channels, self.expanded_channels, kernel_size=1,
                                   stride=self.downsampling, bias=False),
-                'bn': nn.BatchNorm2d(self.expanded_channels)
-
-            })) if self.should_apply_shortcut else None
+          nn.BatchNorm2d(self.expanded_channels)
+        ) if self.should_apply_shortcut else None
 
     def conv_bn(self, in_channels, out_channels, conv, *args, **kwargs):
-        return nn.Sequential(OrderedDict({'conv': conv(in_channels, out_channels, *args, **kwargs),
-                                          'bn': nn.BatchNorm2d(out_channels)}))
+        return nn.Sequential(conv(in_channels, out_channels, *args, **kwargs),
+                nn.BatchNorm2d(out_channels))
 
     @property
     def expanded_channels(self):
