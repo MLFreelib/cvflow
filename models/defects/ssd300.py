@@ -56,11 +56,11 @@ class SSD300(Block):
                                       keep_difficult=True, anno_postfix='_anno.txt', img_postfix='.bmp')
         with tqdm(total=len(dataset)) as t, torch.no_grad():
             for sample in dataset:
-                image, boxes, labels = sample['image'], sample[MetaName.META_BBOX.value], sample[MetaName.META_LABEL.value]
+                image, boxes, labels = sample['image'], sample[MetaName.META_BBOX.value].get_bbox(), sample[MetaName.META_BBOX.value].get_label_info().get_labels()
                 t.update(1)
 
                 boxes = boxes.to(self.device)
-                labels = labels.to(self.device)
+                labels = torch.tensor(labels, device=self.device)
                 embeddings = self.forward_embeddings(torch.unsqueeze(image, dim=0).to(device=self.device))
 
                 prior_for_each_object = self.find_pos_locs([boxes])

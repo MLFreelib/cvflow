@@ -71,7 +71,7 @@ class Pipeline:
         pbar = None
         if self.__max_iter > 0 and self.__bar:
             pbar = tqdm(list(range(self.__max_iter)))
-        while not is_stopped and count < self.__max_iter:
+        while not is_stopped and (count < self.__max_iter or self.__max_iter == -1):
             data = MetaBatch('pipe_batch')
             data.add_signal(Mode.__name__)
             data.set_signal(Mode.__name__, Mode.PLAY)
