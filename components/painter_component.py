@@ -114,7 +114,7 @@ class BBoxPainter(Painter):
                     meta_labels = meta_bbox.get_label_info()
                     ids = meta_labels.get_object_ids()
                     labels = meta_labels.get_labels()
-                    bbox = bbox.to(torch.uint8)
+                    bbox = bbox.to(torch.int)
                     mask = ~(bbox[:, 0] - bbox[:, 2]).to(bool) | ~(bbox[:, 1] - bbox[:, 3]).to(bool) | (bbox[:, 1] > bbox[:, 3]) | (bbox[:, 0] > bbox[:, 2])
                     bbox = bbox[~mask]
                     confidence = meta_labels.get_confidence()
@@ -129,7 +129,7 @@ class BBoxPainter(Painter):
                     frame = torchvision.transforms.Resize(self.__resolution)(frame)
 
                     bboxes_frame = draw_bounding_boxes(frame.to(torch.uint8),
-                                                       boxes=bbox.to(torch.uint8),
+                                                       boxes=bbox,
                                                        width=self.__font_width,
                                                        labels=full_labels,
                                                        font_size=self.__font_size,
