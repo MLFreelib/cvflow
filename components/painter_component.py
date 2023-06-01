@@ -110,6 +110,7 @@ class BBoxPainter(Painter):
                 meta_bbox = meta_frame.get_meta_info(MetaName.META_BBOX.value)
                 if meta_bbox is not None:
                     bbox = meta_bbox.get_bbox()
+                    print(bbox)
                     self.__bbox_denormalize(bbox, shape)
                     meta_labels = meta_bbox.get_label_info()
                     ids = meta_labels.get_object_ids()
