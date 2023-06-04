@@ -136,9 +136,7 @@ class ModelBase(ComponentBase):
 
     def _to_inference(self, batch: torch.Tensor, *args, **kwargs) -> Dict:
         with torch.no_grad():
-            t = batch[0].numpy().reshape(640, 640, 3)
-            return self._inference(t)
-
+            return self._inference(batch)
 
     def _to_train(self, batch: torch.Tensor, true_values: MetaBatch):
         self.optimizer.zero_grad()
@@ -212,7 +210,6 @@ class ModelDetection(ModelBase):
             :param src_name: str - source name
         """
         for i in range(len(preds)):
-            # print('i', i, preds[0].boxes)
             boxes = preds[i]['boxes'].cpu()
             labels = preds[i]['labels'].cpu().detach().numpy()
             conf = preds[i]['scores'].cpu().detach().numpy()
@@ -458,7 +455,8 @@ class LiquidModel(ModelDetection):
             :param src_name: str - source name
         """
         for i in range(len(preds)):
-            boxes = preds[i].boxes.xywh.cpu()
+            boxes = preds[i].boxes.xyxy.cpu()
+
             labels = preds[i].boxes.cls
             conf = preds[i].boxes.conf.cpu().numpy()
             if conf is None:

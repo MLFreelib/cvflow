@@ -48,10 +48,7 @@ if __name__ == '__main__':
 
 
     # Load the model
-    model = yolov8('best.pt')
-    img = cv2.imread("/Users/s70c3/Projects/cvflow/examples/liquids/imgs/1.png")
-    # print(img.shape)
-    # result = model.predict([img, img])
+    model = yolov8('lacquer_model.pt')
     pipeline = Pipeline()
 
     readers = []
