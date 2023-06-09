@@ -493,7 +493,8 @@ class DepthOutput(OutputBlock):
     def forward(self, x):
 
         if self.training:
-            cost0, out1, out2, out3, L = x
+            out, L = x
+            cost0, out1, out2, out3, = out
             cost0 = self.classif0(cost0)
             cost1 = self.classif1(out1)
             cost2 = self.classif2(out2)
@@ -522,7 +523,6 @@ class DepthOutput(OutputBlock):
             cost3 = torch.squeeze(cost3, 1)
             pred3 = F.softmax(cost3, dim=1)
             pred3 = self.disparity_regression(pred3, self.maxdisp)
-
             return {OutputFormat.DEPTH.value: [pred0, pred1, pred2, pred3]}
         else:
             x, L = x

@@ -5,7 +5,7 @@ import torch
 from torch.optim import Adam
 
 from torch.utils.data import DataLoader
-from torchvision.transforms import transforms
+from torchvision import transforms
 
 from components.model_component import ModelDetection, DefectsModel, ModelDepth
 from models.losses_structures.stereo_loss import StereoLoss
@@ -49,12 +49,14 @@ if __name__ == '__main__':
     muxer = DataLoaderMuxer(name='data_muxer')
 
     transformation =  transforms.Compose([
-            transforms.ToTensor(),
             transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
 
-    dataset = StereoDataset(data_folder=args['data'], split='train')
-    loader = DataLoader(dataset=dataset, batch_size=4, shuffle=True, collate_fn=collate_fn)
-    muxer.add_source(source=loader)
+    dataset_left = StereoDataset(data_folder=args['data'], split='train', is_left=True)
+    loader_left = DataLoader(dataset=dataset_left, batch_size=2, shuffle=False, collate_fn=collate_fn)
+    dataset_right = StereoDataset(data_folder=args['data'], split='train', is_left=False)
+    loader_right = DataLoader(dataset=dataset_right, batch_size=2, shuffle=False, collate_fn=collate_fn)
+    muxer.add_source(source=loader_left)
+    muxer.add_source(source=loader_right)
     model_depth = get_depth_model('depth', model, sources=muxer.get_source_names(),
                                     transforms=[transformation])
 
