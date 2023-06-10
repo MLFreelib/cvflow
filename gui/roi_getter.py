@@ -1,10 +1,11 @@
 import argparse
+import json
 import time
 from random import randrange
+import configparser
 
 import cv2
 import numpy as np
-
 
 
 def calculate_dist_btw_2_objects(frame, bboxes):
@@ -54,22 +55,24 @@ def calculate_dist_btw_2_objects(frame, bboxes):
 
 def save_config(conf_name, bboxes):
     print(conf_name)
-    conf_header = '''[bboxes]
-values = [
-    '''
+
+
+    config_object = configparser.ConfigParser()
+
     with open(conf_name, 'w') as f:
-        f.writelines(conf_header)
+        points = []
         for i in bboxes:
             print(i)
             x_1 = int(i[0])
             x_2 = int(i[2])
-            y_1 = int(i[1] )
+            y_1 = int(i[1])
             y_2 = int(i[3])
-            f.write('\t{\'points\': ('+ str((x_1, y_1))
-                    +', '+str((x_2, y_2))+'), \'color\': '
-                    +str((randrange(0, 255), randrange(0, 255), randrange(0, 255)))+', \'thickness\': 2},\n')
-        f.write('\t]')
-
+            points.append({"points":((x_1, y_1), (x_2, y_2)),
+                           "color": (randrange(0, 255), randrange(0, 255), randrange(0, 255)),
+                           "thickness": 2
+                          })
+        config_object['bboxes'] = {"values": points}
+        config_object.write(f)
 
 def get_roi(vs, n, f):
     # loop over frames from the video stream

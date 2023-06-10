@@ -1,4 +1,5 @@
 import argparse
+import configparser
 from tkinter import *
 import cv2
 
@@ -30,21 +31,20 @@ def save_config(event):
     global conf_name
     global height_coef
     global width_coef
-    conf_header = '''[Lines]
-values = [
-    '''
+    config_object = configparser.ConfigParser()
     with open(conf_name, 'w') as f:
-        f.writelines(conf_header)
         for i in lines:
-            print(i)
+            points = []
             x_1 = int(i[0] * width_coef)
             x_2 = int(i[2] * width_coef)
             y_1 = int(i[1] * height_coef)
             y_2 = int(i[3] * height_coef)
-            f.write('\t{\'points\': ('+ str((x_1, y_1))
-                    +', '+str((x_2, y_2))+'), \'color\': '
-                    +str((randrange(0, 255), randrange(0, 255), randrange(0, 255)))+', \'thickness\': 2},\n')
-        f.write('\t]')
+            points.append({"points": ((x_1, y_1), (x_2, y_2)),
+                           "color": (randrange(0, 255), randrange(0, 255), randrange(0, 255)),
+                           "thickness": 2
+                           })
+        config_object['Lines'] = {"values": points}
+        config_object.write(f)
 
 
 
