@@ -311,8 +311,9 @@ class ModelSegmentation(ModelBase):
 
     def _to_inference(self, batch: torch.Tensor, *args, **kwargs):
         with torch.no_grad():
-            output = self._inference(batch)['out']
-        return torch.nn.functional.softmax(output, dim=1)
+            output = self._inference(batch)
+        return output
+        # return torch.nn.functional.softmax(output, dim=1)
 
     def _add_to_meta_all(self, meta_batch: MetaBatch, src_data: List, predictions, src_size, *args, **kwargs):
         prob_i = 0
