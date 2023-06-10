@@ -8,8 +8,6 @@ from models.defects.blocks import OutBlock
 from models.defects.ssd300 import SSD300
 from models.defects.vgg19 import InputRescale
 from models.preprocessing import *
-from models.stereo.blocks import GANetInputBlock, GANetBackbone, GANetOutputBlock, DepthOutput, MobileStereoNetBackbone, \
-    MobileStereoNetInputBlock
 
 
 class ModelBuilder(nn.Module):
@@ -151,10 +149,10 @@ def defects_model(path_to_templates=None, emb_size: int = 512, weights=None, is_
         output_block=OutBlock(-1, -1).to(device)
     )
 
-def mobilestereonet(weights = None, is_train=False, device='cuda'):
+def mobilestereonet(weights = None):
     input_block = MobileStereoNetInputBlock()
-    backbone = MobileStereoNetBackbone(training=is_train)
-    output_block = DepthOutput(training=is_train)
+    backbone = MobileStereoNetBackbone()
+    output_block = DepthOutput()
     if weights:
         weight_index = input_block.import_weights(weights)
         weight_index = backbone.import_weights(weights, weight_index)
