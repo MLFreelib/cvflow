@@ -112,7 +112,7 @@ class TestMetaDepth(unittest.TestCase):
 
     def test_points_ValueError_exception_init_masks(self):
         try:
-            MetaDepth(self.depth[0])
+            MetaDepth(self.depth[0][0])
             self.assertTrue(False)
         except ValueError:
             self.assertTrue(True)
