@@ -61,12 +61,9 @@ def get_videofile_reader(path: str, name: str) -> VideoReader:
 
 
 if __name__ == '__main__':
-    checkpoint = torch.load(os.path.join(os.path.dirname(__file__), '../..', 'tests', 'test_data', 'best.ckpt'),
+    checkpoint = torch.load('best.ckpt',
                             map_location=torch.device('cpu'))['model']
     model = mobilestereonet(checkpoint)
-    # checkpoint = torch.load(os.path.join(os.path.dirname(__file__), '..', 'tests', 'test_data', 'best.pth.tar'),
-    #                         map_location=torch.device('cpu'))['state_dict']
-    # model = ganet(checkpoint)
     model = torch.nn.DataParallel(model)
     pipeline = Pipeline()
 
@@ -81,7 +78,7 @@ if __name__ == '__main__':
         readers.append(get_videofile_reader(file_src, os.path.basename(file_src)))
 
     config = configparser.ConfigParser()
-    config.read(os.path.join(os.path.dirname(__file__), '../..', 'tests', 'test_data', 'conf.txt'))
+    config.read('conf.txt')
     bboxes_list = eval(config.get('bboxes', 'values'))
     bboxes = []
     for bb in bboxes_list:
