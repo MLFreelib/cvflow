@@ -160,7 +160,7 @@ class ModelBase(ComponentBase):
         """
         if self._get_transforms() is not None:
             for t_transform in self._get_transforms():
-                data = t_transform.forward(data, )
+                data = t_transform(data, )
         return data
 
 
@@ -364,7 +364,6 @@ class ModelDepth(ModelBase):
 
         connected_sources = list(chunk(connected_sources, 2))
         size_frames = [0] * len(connected_sources)
-
         def clone_data(needed_data):
             cloned_data = needed_data.clone().to(dtype=torch.float, device=device)
             cloned_data = cloned_data.div(255)
@@ -372,7 +371,6 @@ class ModelDepth(ModelBase):
             return cloned_data
 
         for i, src_names in enumerate(connected_sources):
-
             needed_data_left = data.get_frames_by_src_name(src_names[0])
             needed_data_right = data.get_frames_by_src_name(src_names[1])
             size_frames[i] = len(needed_data_right)
@@ -380,23 +378,36 @@ class ModelDepth(ModelBase):
                 continue
 
             needed_data_left = clone_data(needed_data_left)
+
             needed_data_right = clone_data(needed_data_right)
             if need_calib:
                 calib = torch.tensor([calib * 0.54]).float().to(dtype=torch.float, device=device)
                 src_data.append((needed_data_left, needed_data_right, calib))
             else:
                 src_data.append((needed_data_left, needed_data_right))
-
         return src_data, size_frames
 
     def _to_inference(self, batch: torch.Tensor, *args, **kwargs):
         output = []
         for pairs in batch:
             imgL, imgR = pairs
-            # imgL, imgR, calib = batch
             with torch.no_grad():
                 output.append(self._inference((imgL, imgR)))
         return output
+
+    def _to_train(self, batch: torch.Tensor, true_values: MetaBatch):
+        self.optimizer.zero_grad()
+        device = batch[0][0].get_device()
+        device = 'cpu' if device == -1 else device
+        key = list(true_values.get_meta_frames_all().keys())[0]
+        depth = torch.stack([value.get_meta_info(MetaName.META_DEPTH.value).get_depth().to(device)
+                             for value in true_values.get_meta_frames_by_src_name(key)])
+        for pairs in batch:
+            imgL, imgR = pairs
+            out = self._inference((imgL, imgR))
+            losses, loss = self.loss_func(out['depth'], depth)
+            loss.backward()
+        return losses
 
     def _add_to_meta_all(self, meta_batch: MetaBatch, src_data: List, predictions, src_size, *args, **kwargs):
         prob_i = 0
