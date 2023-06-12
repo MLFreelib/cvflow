@@ -181,3 +181,11 @@ def ganet(weights = None):
     torch.nn.DataParallel(model)
     return model
 
+def unet(weights=None):
+    model = torch.load(weights, map_location=torch.device('cpu'))
+    model.eval()
+    return ModelBuilder(
+        input_block=Block(1, 1),
+            backbone=model,
+        output_block=Block(1, 1),
+    )

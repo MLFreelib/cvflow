@@ -306,13 +306,19 @@ class ModelSegmentation(ModelBase):
                     values in the range from 0 to 1.
     """
 
-    def __init__(self, name: str, model: torch.nn.Module):
+    def __init__(self, name: str, model: torch.nn.Module, model_name = 'deeplabv3'):
         super().__init__(name, model)
+        self.model_name = model_name
 
     def _to_inference(self, batch: torch.Tensor, *args, **kwargs):
+
         with torch.no_grad():
-            output = self._inference(batch)['out']
-        return torch.nn.functional.softmax(output, dim=1)
+            if self.model_name =='deeplabv3':
+                output = self._inference(batch)['out']
+                output = torch.nn.functional.softmax(output, dim=1)
+            else:
+                output = self._inference(batch)
+        return output
 
     def _add_to_meta_all(self, meta_batch: MetaBatch, src_data: List, predictions, src_size, *args, **kwargs):
         prob_i = 0
