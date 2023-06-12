@@ -4,9 +4,7 @@ import json
 from tqdm import tqdm
 import os
 import shutil
-
-trains_json_path = 'Разметка2/data/project-4-at-2022-08-24-14-36-42298d34.json'
-trains_data_path = 'Разметка2'
+import argparse
 
 
 def move_to_folder(filename, to_folder, dataset_folder='datasets/russian_plates'):
@@ -119,7 +117,7 @@ def prepare_russian_plates_bboxes(raw_data_folder='raw_data', save_folder='datas
         move_to_folder(val_name, 'val')
 
 
-def prepare_trains_plates_bboxes(data_folder=trains_data_path, trains_json_path=trains_json_path, save_folder='datasets/trains_plates'):
+def prepare_trains_plates_bboxes(data_folder, trains_json_path, save_folder='datasets/trains_plates'):
     with open(trains_json_path) as f:
         data = json.load(f)
         
@@ -191,3 +189,13 @@ def prepare_trains_plates_bboxes(data_folder=trains_data_path, trains_json_path=
     # move val images/labels/annotations to 'val' folder
     for val_name in val_names:
         move_to_folder(val_name, 'val')
+        
+        
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--trains_json_path', type=str, default='Разметка2/data/project-4-at-2022-08-24-14-36-42298d34.json')
+    parser.add_argument('--trains_data_path', type=str, default='Разметка2')
+    args = parser.parse_args()
+    
+    prepare_russian_plates_bboxes()
+    prepare_trains_plates_bboxes(args.trains_data_path, args.trains_json_path)
