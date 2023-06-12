@@ -51,7 +51,6 @@ class SourceMuxer(MuxerBase):
         while True:
             for i in range(source_count):
                 frame = self.__sources[i].read()
-
                 meta_frame = self.__to_meta_frame(frame, self.__sources[i].get_name())
 
                 data.add_meta_frame(meta_frame)

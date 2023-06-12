@@ -1,6 +1,8 @@
 import os
 from typing import Union
 
+from ultralytics import YOLO
+
 from models.blocks import *
 from models.defects.blocks import OutBlock
 from models.defects.ssd300 import SSD300
@@ -181,6 +183,14 @@ def ganet(weights = None):
     torch.nn.DataParallel(model)
     return model
 
+
+def yolov8(weights=None):
+    return ModelBuilder(
+        input_block=Block(1, 1),
+        backbone=YOLO(weights),
+        output_block=Block(1, 1),
+    )
+
 def unet(weights=None):
     model = torch.load(weights, map_location=torch.device('cpu'))
     model.eval()
@@ -189,3 +199,4 @@ def unet(weights=None):
             backbone=model,
         output_block=Block(1, 1),
     )
+

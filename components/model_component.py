@@ -57,7 +57,7 @@ class ModelBase(ComponentBase):
     def start(self):
         r""" Specifies the device on which the model will be executed. """
         self._inference.to(device=torch.device(self.get_device()))
-        self._inference.train() if self.is_train else self._inference.eval()
+        # self._inference.train() if self.is_train else self._inference.eval()
 
     def add_training_params(self, optimizer: Optimizer, loss_func: LossBase):
         self.optimizer = optimizer
@@ -104,6 +104,7 @@ class ModelBase(ComponentBase):
         src_data = list()
         for src_name in connected_sources:
             needed_data = data.get_frames_by_src_name(src_name)
+
             if needed_data is None:
                 continue
 
@@ -149,6 +150,7 @@ class ModelBase(ComponentBase):
 
     def _add_to_meta(self, data: MetaBatch, predictions: list, shape: torch.Tensor, src_name: list, *args, **kwargs):
         pass
+
 
     def _get_transforms(self):
         r""" Returns a list of transformations. """
@@ -346,8 +348,9 @@ class ModelDepth(ModelBase):
                     values in the range from 0 to 1.
     """
 
-    def __init__(self, name: str, model: torch.nn.Module):
+    def __init__(self, name: str, model: torch.nn.Module, training=False):
         super().__init__(name, model)
+
 
     def _to_model_format(self, connected_sources: List[str], data: MetaBatch, device: str, transform,
                          calib=1017.,
@@ -361,8 +364,9 @@ class ModelDepth(ModelBase):
             :return: Tuple[List[Union[Tuple[Any, Any, Any], Tuple[Any, Any]]], List[int]]
         """
         src_data = list()
-        if len(connected_sources) % 2:
-            raise ValueError(f'Expected even number of sources, received {len(connected_sources)}')
+        if not self.is_train:
+            if len(connected_sources) % 2:
+                raise ValueError(f'Expected even number of sources, received {len(connected_sources)}')
 
         def chunk(lst, n) -> List[str]:
             for i in range(0, len(lst), n):
@@ -439,3 +443,52 @@ class DefectsModel(ModelDetection):
         losses, loss = self.loss_func(out, true_values)
         loss.backward()
         return losses
+
+
+class LiquidModel(ModelDetection):
+    def _to_model_format(self, connected_sources: List[str], data: MetaBatch, device: str, transform, *args,
+                         **kwargs) -> Tuple[Tensor, List[Any]]:
+        r""" Returns a list of transformed frames from the MetaBatch.
+            :param connected_sources:
+            :param data: MetaData
+            :param device: str - cuda or cpu
+            :param transform: list of transformations from torch.transform
+            :return: Tuple[Tensor, List[Any]]
+        """
+        src_data = list()
+        for src_name in connected_sources:
+            needed_data = data.get_frames_by_src_name(src_name)
+            if needed_data is None:
+                continue
+            cloned_data = needed_data.clone().to(dtype=torch.float, device=device)
+            cloned_data = transform(cloned_data)
+            src_data.append(cloned_data)
+        return self._to_tensor(src_data)
+    def _add_to_meta(self, data: MetaBatch, preds: list, shape: torch.Tensor, src_name: str, **kwargs):
+        r""" Adds bounding boxes to MetaBatch.
+            :param data: MetaBatch
+            :param preds: A list of floating point values.
+            :param shape: torch.tensor - image resolution.
+            :param src_name: str - source name
+        """
+        for i in range(len(preds)):
+            boxes = preds[i].boxes.xyxy.cpu()
+
+            labels = preds[i].boxes.cls
+            conf = preds[i].boxes.conf.cpu().numpy()
+            if conf is None:
+                conf = 0
+            true_conf = conf > self._confidence
+
+            if np.any(true_conf):
+                conf = conf[true_conf]
+                boxes = boxes[true_conf]
+                label_names = [self.get_labels()[int(ind)] for ind in labels[true_conf]]
+
+                self._bbox_normalize(boxes, shape)
+                meta_frame = data.get_meta_frames_by_src_name(src_name)[i]
+                meta_label = MetaLabel(labels=label_names, confidence=conf)
+
+                meta_frame.add_meta(MetaName.META_BBOX.value, MetaBBox(boxes, meta_label))
+
+
