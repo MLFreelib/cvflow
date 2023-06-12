@@ -13,7 +13,7 @@ from components.muxer_component import SourceMuxer
 from components.outer_component import DisplayComponent
 from components.painter_component import Tiler, MaskPainter
 from components.reader_component import *
-from components.handler_component import Filter
+from components.handler_component import Filter, SizeCalculator
 from pipeline import Pipeline
 
 SEM_CLASSES = [
@@ -85,12 +85,14 @@ if __name__ == '__main__':
                                ])
     mask_painter = MaskPainter('mask_painter')
 
+    sizer = SizeCalculator('sizer')
+
     filter_masks = Filter('mask_filter', ['froth'])
     tiler = get_tiler('tiler', tiler_size=get_tsize(), frame_size=get_fsize())
 
     outer = DisplayComponent('display')
     pipeline.set_device(get_device())
-    pipeline.add_all([muxer, model_segm, filter_masks, mask_painter, tiler, outer])
+    pipeline.add_all([muxer, model_segm, filter_masks, mask_painter, sizer, tiler, outer])
     pipeline.compile()
     pipeline.run()
     pipeline.close()
