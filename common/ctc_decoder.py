@@ -1,6 +1,5 @@
 from collections import defaultdict
 
-import torch
 import numpy as np
 from scipy.special import logsumexp  # log(p1 + p2) = logsumexp([log_p1, log_p2])
 

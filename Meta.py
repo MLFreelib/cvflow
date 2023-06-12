@@ -136,8 +136,8 @@ class MetaDepth:
         return self.__depth
 
     def set_depth(self, depth: torch.tensor):
-        if len(depth.shape) != 3:
-            raise ValueError(f"Expected mask shape 3, but received {len(depth.shape)}")
+        if len(depth.shape) != 3 and len(depth.shape) != 2:
+            raise ValueError(f"Expected mask shape 3 or 2, but received {len(depth.shape)}")
 
         self.__depth: torch.tensor = depth
 
