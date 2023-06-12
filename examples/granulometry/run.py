@@ -39,7 +39,7 @@ def get_muxer(readers: List[ReaderBase]) -> SourceMuxer:
 def get_segmentation_model(name: str, model: torch.nn.Module, sources: List[ReaderBase], classes: List[str],
                            transforms: list = None,
                            confidence = .8) -> ModelSegmentation:
-    model_segm = ModelSegmentation(name, model)
+    model_segm = ModelSegmentation(name, model, 'unet')
     model_segm.set_labels(classes)
     for src in sources:
         model_segm.add_source(src.get_name())
