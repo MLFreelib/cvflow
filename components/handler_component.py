@@ -1,4 +1,3 @@
-import math
 from random import randrange
 from typing import List, Iterable
 
@@ -7,6 +6,9 @@ import numpy as np
 import pandas as pd
 import torch
 import torchvision
+from ultralytics import YOLO
+import easyocr
+import pyzbar.pyzbar as pyzbar
 
 from Meta import MetaBatch, MetaFrame, MetaLabel, MetaBBox, MetaName
 from components.component_base import ComponentBase
@@ -269,7 +271,7 @@ class DistanceCalculator(ComponentBase):
             self.__bbox_normalize(torch.unsqueeze(bbox, dim=0), meta_frame.get_frame().detach().cpu().numpy().shape)
 
     def __calculate_distance(self, bbox1: torch.Tensor, bbox2: torch.Tensor, meta_frame: MetaFrame) -> MetaFrame:
-        r""" Checks distance between two objects.
+        r""" Checks whether the object crosses the line.
             :param bbox: torch.Tensor
                         bounding box.
             :param shape: tuple
@@ -295,9 +297,9 @@ class DistanceCalculator(ComponentBase):
             depth = meta_frame.get_meta_info(MetaName.META_DEPTH.value).get_depth().clone()
             depth = torchvision.transforms.Resize((cv_shape[:2]))(depth)
             depth = depth.permute(1, 2, 0).detach().cpu().numpy()
-            z1 = 1017. / np.mean(depth[np_bbox1[1]:np_bbox1[3], np_bbox1[0]:np_bbox1[2]])
-            z2 = 1017. / np.mean(depth[np_bbox2[1]:np_bbox2[3], np_bbox2[0]:np_bbox2[2]])
-            dz = z1 - z2
+            z1 = 1017./np.mean(depth[np_bbox1[1]:np_bbox1[3], np_bbox1[0]:np_bbox1[2]])
+            z2 = 1017./np.mean(depth[np_bbox2[1]:np_bbox2[3], np_bbox2[0]:np_bbox2[2]])
+            dz = z1-z2
             # depth = 1017. / ((depth2 + depth1) // 2)
 
         dist = (dx ** 2 + dy ** 2 + dz ** 2) ** 0.5
@@ -337,9 +339,8 @@ class DistanceCalculator(ComponentBase):
         bboxes[:, (0, 2)] = bboxes[:, (0, 2)].div(shape[2])
         bboxes[:, (1, 3)] = bboxes[:, (1, 3)].div(shape[1])
 
-
-class SizeCalculator(ComponentBase):
-    r""" Calcucate min, average and maximun size of objects on the screen ."""
+class Codes(ComponentBase):
+    r""" Read QR- and barcodes. """
 
     def __init__(self, name: str):
         r"""
@@ -347,78 +348,99 @@ class SizeCalculator(ComponentBase):
                     name of component.
         """
         super().__init__(name)
-        self.__sizes = dict()
-        self.__checked_ids = dict()
+        self.__labels = set()  # unique decoding results
 
     def do(self, data: MetaBatch) -> MetaBatch:
-        r""" Counts objects. """
+        r""" Read codes from all frames. """
         for src_name in data.get_source_names():
             meta_frames = data.get_meta_frames_by_src_name(src_name)
             for meta_frame in meta_frames:
                 frame = meta_frame.get_frame()
+                img = frame.detach().cpu().permute(1, 2, 0).numpy()
+                frame = self.draw_bboxes_and_write_text(img)
                 meta_frame.set_frame(frame)
-                if meta_frame.get_meta_info(MetaName.META_MASK.value) is not None:
-                    self.__update(meta_frame,
-                                  meta_frame.get_frame().detach().cpu().numpy().shape, src_name)
         return data
 
-    def __update(self, meta_frame: MetaFrame, shape: Iterable[int], source: str):
-        r""" Updates the current number of counted objects.
-            :param meta_bbox: MetaBBox
-                            metadata about the bounding boxes for the frame.
-            :param shape: Iterable[int]
-                            shape of frame.
-            :param source: str
-                            the source from which the frame was received.
+    def draw_bboxes_and_write_text(self, img):
+        r""" Draw bounds by 4 points and printing qr- or barcode decoding result """
+        img = np.ascontiguousarray(img)
+        decoded_objects = pyzbar.decode(img)
+        for obj in decoded_objects:
+            points = obj.polygon
+            text = obj.data.decode('UTF-8')
+            if len(points) > 4:
+                points = cv2.convexHull(np.array([point for point in points], dtype=np.float32))
+                points = list(map(tuple, np.squeeze(points)))
+            n = len(points)
+            for i in range(n):
+                cv2.line(img, points[i], points[(i + 1) % n], (255, 0, 0), 3)
+            cv2.putText(img, text, (points[0].x, points[0].y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 0, 0), 1,
+                        cv2.LINE_AA)
+            if text not in self.__labels:
+                print(text)
+            self.__labels.add(text)
+        return torch.tensor(img, device=self.get_device()).permute(2, 0, 1)
+
+
+class SerialNumbers(ComponentBase):
+    r""" Read QR- and barcodes. """
+
+    def __init__(self, name: str):
+        r"""
+            :param name: str
+                    name of component.
         """
-        if source not in list(self.__checked_ids.keys()):
-            self.__checked_ids[source] = dict()
-            self.__sizes[source] = {'labels': dict(), 'size': dict()}
+        super().__init__(name)
+        self.__labels = set()  # unique decoding results
+        self.model = YOLO("../yolo_codes_checkpoint.pt")
+        self.reader = easyocr.Reader(['ru'],
+                                     model_storage_directory='../',
+                                     user_network_directory='../',
+                                     recog_network='custom_example')
 
-        meta_mask = meta_frame.get_meta_info(MetaName.META_MASK.value)
-        mask = meta_mask.get_mask()
-        meta_frame = self.__calculate_sizes(mask=mask, meta_frame=meta_frame)
+    def do(self, data: MetaBatch) -> MetaBatch:
+        r""" Read codes from all frames. """
+        for src_name in data.get_source_names():
+            meta_frames = data.get_meta_frames_by_src_name(src_name)
+            for meta_frame in meta_frames:
+                frame = meta_frame.get_frame()
+                img = frame.detach().cpu().permute(1, 2, 0).numpy()
+                frame = self.draw_bboxes_and_write_text(img)
+                meta_frame.set_frame(frame)
+        return data
 
-    def __calculate_sizes(self, mask: torch.Tensor, meta_frame: MetaFrame) -> MetaFrame:
-        r""" Checks whether the object crosses the line.
-            :param mask: torch.Tensor
-                        bounding box.
-            :param shape: tuple
-                        shape of frame.
-        """
-        frame = meta_frame.get_frame()
-        shape = meta_frame.get_frame().size()
-        cv_shape = (*shape[1:], shape[0])
-
-        cv_image = mask.detach().cpu().numpy().astype(np.uint8).reshape(256, 256)
-        cv_image = cv2.erode(cv_image, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5)), iterations=1)
-        cnts, _ = cv2.findContours(cv_image, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-        cnts = list(filter(lambda cnt: cv2.contourArea(cnt) > 20, cnts))
-        shape = cv_image.shape
-
-        sizes = [cv2.contourArea(cnt) for cnt in cnts]
-        min_size = round(min(sizes), 2)
-        max_size = round(max(sizes), 2)
-        avg_size = round(sum(sizes) / len(sizes), 2)
-
-        frame = frame.detach().cpu()
-        frame = frame.permute(1, 2, 0).numpy()
-        frame = np.ascontiguousarray(frame)
-        frame = cv2.putText(frame, f"Min: {min_size}",
-                            color=(255, 255, 255), fontScale=0.7, thickness=1,
-                            fontFace=cv2.FONT_HERSHEY_SIMPLEX,
-                            org=(50, 50))
-
-        frame = cv2.putText(frame, f"Max: {max_size}",
-                            color=(255, 255, 255), fontScale=0.7, thickness=1,
-                            fontFace=cv2.FONT_HERSHEY_SIMPLEX,
-                            org=(50, 70))
-        frame = cv2.putText(frame, f"Avg: {avg_size}",
-                            color=(255, 255, 255), fontScale=0.7, thickness=1,
-                            fontFace=cv2.FONT_HERSHEY_SIMPLEX,
-                            org=(50, 90))
-
-        frame = torch.tensor(frame, device=self.get_device()).permute(2, 0, 1)
-
-        meta_frame.set_frame(frame)
-        return meta_frame
+    def draw_bboxes_and_write_text(self, img):
+        r""" Draw bounds by 4 points and printing qr- or barcode decoding result """
+        img = np.ascontiguousarray(img)
+        res = self.model(img)
+        result = self.reader.readtext(img)
+        if len(result) != 0:
+            for i in range(len(result)):
+                text = result[i][1]
+                if result[i][2] < 0.75:
+                    continue
+                if text not in self.__labels:
+                    print(text)
+                    self.__labels.add(text)
+        ## Когда распознавание и YOLO станут лучше работать, можно использовать этот код
+        # for pred in res[0].boxes.data:
+        #     x1, y1, x2, y2 = int(pred[0]), int(pred[1]), int(pred[2]), int(pred[3])
+        #     img_part = img[y1:y2, x1:x2]
+        #     result = self.reader.readtext(img_part)
+        #     if len(result) == 0:
+        #         continue
+        #     text = ""
+        #     print(result)
+        #     for i in range(len(result)):
+        #         if len(text) < len(result[i][1]):
+        #             text = result[i][1]
+        #     if text not in self.__labels:
+        #         print(text)
+        #         self.__labels.add(text)
+        #     cnt += 1
+        for pred in res[0].boxes.data:
+            x1, y1, x2, y2 = int(pred[0]), int(pred[1]), int(pred[2]), int(pred[3])
+            if pred[4] <= 0.5:
+                continue
+            img = cv2.rectangle(img, (x1, y1), (x2, y2), (255, 0, 0), 2)
+        return torch.tensor(img, device=self.get_device()).permute(2, 0, 1)

@@ -8,3 +8,6 @@ tqdm>=4.64.1
 scikit-learn>=1.0.2
 ultralytics>=8.0.107
 matplotlib>=3.7.1
+easyocr~=1.7
+pyzbar~=0.1.9
+tensorboardX~=2.6.1

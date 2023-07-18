@@ -77,6 +77,13 @@ if __name__ == '__main__':
     for file_src in file_srcs:
         readers.append(get_videofile_reader(file_src, os.path.basename(file_src)))
 
+    name = None
+    file_srcs = get_img_srcs()
+    for i_file_srcs in range(len(file_srcs)):
+        name = f'{file_srcs[i_file_srcs]}_{i_file_srcs}'
+        readers.append(ImageReader(file_srcs[i_file_srcs], name))
+
+
     config = configparser.ConfigParser()
     config.read('conf.txt')
     bboxes_list = eval(config.get('bboxes', 'values'))
@@ -102,7 +109,7 @@ if __name__ == '__main__':
 
     outer = DisplayComponent('file')
 
-    pipeline.set_device('cpu')
+    pipeline.set_device('cuda')
     pipeline.add_all([muxer, model_depth,tracker, dist, depth_painter, bbox_painter, tiler, outer])
     pipeline.compile()
     pipeline.run()
