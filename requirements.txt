@@ -6,3 +6,6 @@ opencv-python~=4.5.5.64
 dlib~=19.24.0
 tqdm~=4.64.1
 scikit-learn~=1.0.2
+easyocr~=1.7
+pyzbar~=0.1.9
+tensorboardX~=2.6.1
