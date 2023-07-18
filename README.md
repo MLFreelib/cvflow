@@ -126,7 +126,7 @@ CVFlow - набор алгоритмов на основе компьютерн�
 
 - Пример распознавания
 
-![Plate detection](readmedata/PlateDetection.png)
+![Plate detection](readmedata/plates_recogn.jpg)
 
 - Измерения
 
