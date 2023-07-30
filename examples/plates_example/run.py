@@ -6,7 +6,7 @@ from common.utils import *
 
 from typing import List
 import torch
-import torchvision
+
 from components.model_component import ModelDetectionDiffLabels
 from components.muxer_component import SourceMuxer
 from components.outer_component import DisplayComponent
