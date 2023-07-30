@@ -17,10 +17,6 @@ CHAR2LABEL = {char: i + 1 for i, char in enumerate(CHARS)}
 LABEL2CHAR = {label: char for char, label in CHAR2LABEL.items()}
 
 
-# yolo_checkpoint = '../checkpoints/plates_sd.pt'
-# crnn_checkpoint = '../checkpoints/crnn_014000_loss1.8461857752828725.pt'#crnn_012000_loss1.6033634845448912.pt'
-
-
 class PlatesModel(nn.Module):
     def __init__(self, yolo_checkpoint=None, crnn_checkpoint=None):
         super(PlatesModel, self).__init__()
