@@ -117,8 +117,8 @@ class YOLOHead(nn.Module):
                     wh = (wh * 2) ** 2 * self.anchor_grid[i]  # wh
                     y = torch.cat((xy, wh, conf), 4)
                 z.append(y.view(bs, -1, self.no))
-
-        return x if self.training else (torch.cat(z, 1),) if self.export else (torch.cat(z, 1), x)
+        out = (torch.cat(z, 1), x)
+        return out
 
     def _make_grid(self, nx=20, ny=20, i=0):
         d = self.anchors[i].device
@@ -128,8 +128,8 @@ class YOLOHead(nn.Module):
         anchor_grid = (self.anchors[i] * self.stride[i]).view((1, self.na, 1, 1, 2)).expand(shape).float()
         return grid, anchor_grid
 
-    def import_weights(self, weights):
-        self.weights = weights
+    def import_weights(self, weights_path):
+        self.weights = torch.load(weights_path)
         weights_list = [_ for _ in self.weights]
         weight_index = self.weight_index
         self.m[0].weight = nn.Parameter(self.weights[weights_list[weight_index]])
@@ -525,16 +525,13 @@ class PANet(Block):
         self.bnc31 = CSPBottleneck(bn_ins[0][0], bn_ins[0][1], e=0.5, bottlenecks_n=bottlenecks_n, bs=False)
         self.conv2 = YOLOConv(conv_ins[1][0], conv_ins[1][1], p=0, shortcut=(4, 0), outs=self.outs)
         self.upsample2 = nn.Upsample(scale_factor=2, mode='nearest')
-        self.bnc32 = CSPBottleneck(bn_ins[1][0], bn_ins[1][1], e=0.5, bottlenecks_n=bottlenecks_n,
-                                   save_copy=self.bn_outs,
+        self.bnc32 = CSPBottleneck(bn_ins[1][0], bn_ins[1][1], e=0.5, bottlenecks_n=bottlenecks_n, save_copy=self.bn_outs,
                                    pre_save=False, bs=False)
         self.conv3 = YOLOConv(conv_ins[2][0], conv_ins[2][1], k=3, s=2, p=1)
-        self.bnc33 = CSPBottleneck(bn_ins[2][0], bn_ins[2][1], e=0.5, bottlenecks_n=bottlenecks_n,
-                                   save_copy=self.bn_outs,
+        self.bnc33 = CSPBottleneck(bn_ins[2][0], bn_ins[2][1], e=0.5, bottlenecks_n=bottlenecks_n, save_copy=self.bn_outs,
                                    pre_save=False, bs=False)
         self.conv4 = YOLOConv(conv_ins[3][0], conv_ins[3][1], k=3, s=2, p=1)
-        self.bnc34 = CSPBottleneck(bn_ins[3][0], bn_ins[3][1], e=0.5, bottlenecks_n=bottlenecks_n,
-                                   save_copy=self.bn_outs,
+        self.bnc34 = CSPBottleneck(bn_ins[3][0], bn_ins[3][1], e=0.5, bottlenecks_n=bottlenecks_n, save_copy=self.bn_outs,
                                    pre_save=False, bs=False)
         self._block = nn.Sequential(
             self.conv1,
@@ -582,7 +579,6 @@ class PANet(Block):
                     i.cv2.layers[0].bias = nn.Parameter(self.weights[weights_list[weight_index + 3]])
                     weight_index += 4
         self.weight_index = weight_index
-
 
 class CRNN(Block):
 
