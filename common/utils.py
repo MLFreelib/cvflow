@@ -96,8 +96,15 @@ argparser.add_argument('-d', '--device', required=False)
 argparser.add_argument('-l', '--line', required=False)
 argparser.add_argument('--data', required=False)
 argparser.add_argument('--temppath', required=False)
+argparser.add_argument('-w', '--weights', required=False)
 
 args = vars(argparser.parse_args())
+
+
+def get_weights():
+    weights_path = args['weights']
+    assert os.path.exists(weights_path)
+    return weights_path
 
 
 def get_video_file_srcs():
@@ -124,6 +131,7 @@ def get_src(reader_name: str):
     if srcs is not None:
         readers = srcs.split(',')
     return readers
+
 
 def get_path_to_templates():
     temp_path = args['temppath']

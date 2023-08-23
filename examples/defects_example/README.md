@@ -18,7 +18,7 @@
 
 Пример запуска:
 
-        python3 run.py --videofile {file_path},{file_path} --temppath {directory with templates}
+        python3 run.py --videofile {file_path},{file_path} --temppath {directory with templates} --w {path_to_weights}
 
 ## Обучение
 
