@@ -50,3 +50,16 @@ python3 config_gui.py -v <video_file> -n <path_to_config_file>
 ```
 python3 objects_counter_example.py --videofile <path_to_video> -f <path_to_fonts> -c <path_to_config_file>
 ```
+
+### Plates detection example
+1. Run command:
+```
+python3 config_gui.py -v <video_file> -n <path_to_config_file>
+```
+2. Press save and close the window.
+
+#### Running
+```
+python3 examples/plates_example/run.py --videofile <path_to_video> -f <path_to_fonts> -c <path_to_config_file>
+```
+
