@@ -146,15 +146,11 @@ class StereoCalibration(object):
 
 if __name__ == '__main__':
     ap = argparse.ArgumentParser()
-    ap.add_argument("-v1", "--video1", type=str,
-                    help="path to  first input video file")
-    ap.add_argument("-v2", "--video2", type=str,
-                    help="path to  first input video file")
-    ap.add_argument('-f','--save_path', type=str, default='conf.txt', help='Path to save bboxes')
+
     args = vars(ap.parse_args())
 
-    v1 = cv2.VideoCapture(args["video1"])
-    v2 = cv2.VideoCapture(args["video2"])
-    fpath = args["save_path"]
+    v1 = cv2.VideoCapture(args["videofile"][0])
+    v2 = cv2.VideoCapture(args["videofile"][1])
+    fpath = args["destination"]
     calib = StereoCalibration(fpath)
     calib.read_images(v1, v2)
