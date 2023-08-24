@@ -215,8 +215,7 @@ def non_max_suppression(prediction,
     return output
 
 
-def preprocess_for_YOLO(im, stride, size=640):
-    device = ('cuda' if torch.cuda.is_available() else 'cpu')
+def preprocess_for_YOLO(im, stride, device='cpu', size=640):
     shape0, shape1 = [], []
     x = torch.tensor([])
     if im.shape[0] < 5:  # image in CHW
