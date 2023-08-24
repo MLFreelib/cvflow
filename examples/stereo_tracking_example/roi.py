@@ -3,6 +3,7 @@ import json
 import time
 from random import randrange
 import configparser
+from common.utils import argparser  as ap
 
 import cv2
 import numpy as np
@@ -111,15 +112,10 @@ def get_roi(vs, n, f):
         cv2.imshow("Frame", frame)
 
 if __name__ == '__main__':
-    ap = argparse.ArgumentParser()
-    ap.add_argument("-v", "--video", type=str,
-                    help="path to input video file")
-    ap.add_argument('-n', '--num_objects', type=str, default=2,
-                    help='Number of tracking objects')
-    ap.add_argument('-f','--save_path', type=str, default='conf.txt', help='Path to save bboxes')
+    #
     args = vars(ap.parse_args())
 
-    video = cv2.VideoCapture(args["video"])
-    num = int(args["num_objects"])
-    fpath = args["save_path"]
+    video = cv2.VideoCapture(args["videofile"])
+    num = int(args["num"])
+    fpath = args["destination"]
     get_roi(video, num, fpath)

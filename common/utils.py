@@ -97,6 +97,8 @@ argparser.add_argument('-l', '--line', required=False)
 argparser.add_argument('--data', required=False)
 argparser.add_argument('--temppath', required=False)
 argparser.add_argument('-w', '--weights', required=False)
+argparser.add_argument('-n', '--num', required=False, help='Number of tracking objects')
+argparser.add_argument('-d', '--destination', required=False)
 
 args = vars(argparser.parse_args())
 
