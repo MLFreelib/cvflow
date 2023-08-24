@@ -2,6 +2,7 @@ import argparse
 import logging
 import logging.config
 import os
+import configparser
 
 
 class Logger:
@@ -169,7 +170,13 @@ def get_device():
 
 def get_line():
     try:
-        return [int(v) for v in args['line'].split(',')]
+        config = configparser.ConfigParser()
+        config.read(args['line'])
+        lines_list = eval(config.get('Lines', 'values'))
+        lines = []
+        for line in lines_list:
+            lines.append((line['points'][0], line['points'][1], line['color'], line['thickness']))
+        return lines
     except ValueError:
         return None
     except AttributeError:
