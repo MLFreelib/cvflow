@@ -55,15 +55,11 @@ def calculate_dist_btw_2_objects(frame, bboxes):
 
 
 def save_config(conf_name, bboxes):
-    print(conf_name)
-
-
     config_object = configparser.ConfigParser()
 
     with open(conf_name, 'w') as f:
         points = []
         for i in bboxes:
-            print(i)
             x_1 = int(i[0])
             x_2 = int(i[2])
             y_1 = int(i[1])

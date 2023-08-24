@@ -86,7 +86,7 @@ if __name__ == '__main__':
 
 
     config = configparser.ConfigParser()
-    config.read('conf.txt')
+    config.read(args['config'])
     bboxes_list = eval(config.get('bboxes', 'values'))
     bboxes = []
     for bb in bboxes_list:
@@ -110,7 +110,7 @@ if __name__ == '__main__':
 
     outer = DisplayComponent('file')
 
-    pipeline.set_device('cuda')
+    pipeline.set_device(get_device())
     pipeline.add_all([muxer, model_depth,tracker, dist, depth_painter, bbox_painter, tiler, outer])
     pipeline.compile()
     pipeline.run()

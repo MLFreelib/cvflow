@@ -92,14 +92,14 @@ argparser.add_argument('--images', required=False)
 argparser.add_argument('-c', '--confidence', required=False)
 argparser.add_argument('--tsize', required=False)
 argparser.add_argument('--fsize', required=False)
-argparser.add_argument('-d', '--device', required=False)
+argparser.add_argument('-d', '--device', required=False, default='cpu')
 argparser.add_argument('-l', '--line', required=False)
 argparser.add_argument('--data', required=False)
 argparser.add_argument('--temppath', required=False)
 argparser.add_argument('-w', '--weights', required=False)
 argparser.add_argument('-n', '--num', required=False, help='Number of tracking objects')
-argparser.add_argument('-d', '--destination', required=False)
-
+argparser.add_argument('--destination', required=False)
+argparser.add_argument('--config', required=False)
 args = vars(argparser.parse_args())
 
 
