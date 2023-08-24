@@ -42,7 +42,7 @@ def get_tiler(name: str, tiler_size: tuple, frame_size: tuple = (640, 1280)) -> 
 
 
 if __name__ == '__main__':
-    model = defects_model(weights='../checkpoints/checkpoint_ssd300.pth.tar',
+    model = defects_model(weights=get_weights(),
                           path_to_templates=get_path_to_templates(), device=get_device())
 
     pipeline = Pipeline()

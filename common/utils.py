@@ -90,16 +90,23 @@ argparser.add_argument('--usbcam', required=False)
 argparser.add_argument('--videofile', required=False)
 argparser.add_argument('--images', required=False)
 argparser.add_argument('-c', '--confidence', required=False)
-argparser.add_argument('-f', '--font', required=False)
 argparser.add_argument('--tsize', required=False)
 argparser.add_argument('--fsize', required=False)
 argparser.add_argument('-d', '--device', required=False)
 argparser.add_argument('-l', '--line', required=False)
 argparser.add_argument('--data', required=False)
+argparser.add_argument('--temppath', required=False)
+argparser.add_argument('-w', '--weights', required=False)
 argparser.add_argument('-n', '--num', required=False, help='Number of tracking objects')
 argparser.add_argument('-d', '--destination', required=False)
 
 args = vars(argparser.parse_args())
+
+
+def get_weights():
+    weights_path = args['weights']
+    assert os.path.exists(weights_path)
+    return weights_path
 
 
 def get_video_file_srcs():
@@ -126,6 +133,12 @@ def get_src(reader_name: str):
     if srcs is not None:
         readers = srcs.split(',')
     return readers
+
+
+def get_path_to_templates():
+    temp_path = args['temppath']
+    assert os.path.exists(temp_path)
+    return temp_path
 
 
 def get_confidence():

@@ -47,16 +47,17 @@ class SSD300(Block):
         self.euclid_max_dist = None
         self.path_to_templates = None
 
-    def load_templates(self, path_to_templates: str, format_img: str = 'jpg'):
+    def load_templates(self, path_to_templates: str, format_img: str = '.bmp'):
         self.path_to_templates = path_to_templates
         template_embeddings = list()
         template_labels = list()
         dataset = DefectsModelDataset(path_to_templates,
                                       split='templates',
-                                      keep_difficult=True, anno_postfix='_anno.txt', img_postfix='.bmp')
+                                      keep_difficult=True, anno_postfix='_anno.txt', img_postfix=format_img)
         with tqdm(total=len(dataset)) as t, torch.no_grad():
             for sample in dataset:
-                image, boxes, labels = sample['image'], sample[MetaName.META_BBOX.value].get_bbox(), sample[MetaName.META_BBOX.value].get_label_info().get_labels()
+                image, boxes, labels = sample['image'], sample[MetaName.META_BBOX.value].get_bbox(), \
+                                       sample[MetaName.META_BBOX.value].get_label_info().get_labels()
                 t.update(1)
 
                 boxes = boxes.to(self.device)
@@ -72,7 +73,6 @@ class SSD300(Block):
         self.template_labels = torch.concat(template_labels, dim=0).to(self.device)
         self.classes = {value: dataset.le.inverse_transform([value])[0]
                         for value in self.template_labels.unique().cpu().tolist()}
-        print(self.classes)
 
     def build_clusters(self):
         classes_count = len(list(self.classes.keys()))
