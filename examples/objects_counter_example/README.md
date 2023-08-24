@@ -16,5 +16,5 @@ python3 run.py --videofile <path_to_video> -l <path_to_config_file> -w <path_to_
 ### Пример практического применения
 
 Ниже приведён пример работы функций определения пересечений черты в системе безопасности на заводе. Код использовался без изменений, зоны, в которых должна включаться система оповещения о наличии опасности размечалась с помощь утилиты line_gui.py
-![рисунок 1](https://drive.google.com/file/d/1HXmgYyNH03WexuGDE-5mmxYSwbxVm8cJ/view?usp=sharing)
-![рисунок 2](https://drive.google.com/file/d/1OkjOZM_UBRAURytw_PtSODpPuqjEA5-r/view?usp=sharing)
+![Рисунок 1](https://github.com/MLFreelib/cvflow/assets/44303944/6da6d63c-2157-4154-8e4b-1099db67e204)
+![Рисунок 2](https://github.com/MLFreelib/cvflow/assets/44303944/89800181-fc1b-41b3-850d-80f57ea2b4fc)
