@@ -4,12 +4,15 @@
 Пример запуска скрипта:  
 С использованием usb-камеры:
 ```angular2html
-python3 [script name] --usbcam /dev/video0 --font ../fonts/OpenSans-VariableFont_wdth,wght.ttf --fsize 1280,1920
+python3 [название скрипта] --usbcam /dev/video0 --font ../fonts/OpenSans-VariableFont_wdth,wght.ttf --fsize 1280,1920
 ```   
 С использованием файла видео:
 ```angular2html
-python3 [script name] --videofile {file_path},{file_path} --font ../fonts/OpenSans-VariableFont_wdth,wght.ttf --fsize 1280,1920
+python3 [название скрипта] --videofile {file_path},{file_path} --font ../fonts/OpenSans-VariableFont_wdth,wght.ttf --fsize 1280,1920
 ```
+Примеры скриптов:
+* run - для обработки данных
+* train - для обучения модели
 
 ### Команды
 
@@ -24,7 +27,7 @@ python3 [script name] --videofile {file_path},{file_path} --font ../fonts/OpenSa
 * -n или --num - количество отслеживаемых объектов
 * -d или --destination - пути сохранения
 * -w или --weights - пути к чекпоинтам (через ",", если требуется загрузить несколько чекпоинтов)
-
+* --data - путь к данным для обучения
 
 
 ### Создание областей интереса для отслеживания
@@ -49,7 +52,7 @@ python3 config_gui.py -v <video_file> -n <path_to_config_file>
 Компоненты библиотеки возможно обучить на другие задачи.
 Для обучения необходимо зайти в директорию с алгоритмом, который нужно обучить и прописать команду:
 
-    python3 train.py --data {path to data}
+    python3 train.py --data {путь к данным}
 
 Таким образом модель обучить на данных, путь к которым указан вместо {path to data}.
 

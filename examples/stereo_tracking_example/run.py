@@ -16,7 +16,7 @@ from components.tracker_component import ManualROICorrelationBasedTracker
 from components.painter_component import Tiler, DepthPainter, BBoxPainter
 from components.reader_component import ReaderBase, ImageReader, VideoReader, CamReader
 from pipeline import Pipeline
-
+from common.utils import argparser as ap
 
 from models.models import mobilestereonet
 from models.models import ganet
@@ -61,8 +61,9 @@ def get_videofile_reader(path: str, name: str) -> VideoReader:
 
 
 if __name__ == '__main__':
-    checkpoint = torch.load('best.ckpt',
-                            map_location=torch.device('cpu'))['model']
+    args = vars(ap.parse_args())
+    checkpoint = torch.load(args['weights'],
+                            map_location=torch.device(args['device']))['model']
     model = mobilestereonet(checkpoint)
     model = torch.nn.DataParallel(model)
     pipeline = Pipeline()

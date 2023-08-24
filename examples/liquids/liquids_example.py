@@ -19,6 +19,8 @@ from pipeline import Pipeline
 
 from ultralytics import YOLO
 
+from common.utils import argparser as ap
+
 def get_muxer(readers: List[ReaderBase]) -> SourceMuxer:
     muxer = SourceMuxer('muxer', max_batch_size=1)
     for reader in readers:
@@ -46,9 +48,10 @@ def get_tiler(name: str, tiler_size: tuple, frame_size: tuple = (640, 1280)) -> 
 
 if __name__ == '__main__':
 
+    args = vars(ap.parse_args())
 
     # Load the model
-    model = yolov8('lacquer_model.pt')
+    model = yolov8(args['weights'])
     pipeline = Pipeline()
 
     readers = []

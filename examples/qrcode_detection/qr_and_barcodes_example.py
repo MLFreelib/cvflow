@@ -11,6 +11,7 @@ from components.painter_component import Tiler
 from components.reader_component import ReaderBase, ImageReader, VideoReader, CamReader
 from pipeline import Pipeline
 
+from common.utils import argparser as ap
 
 def get_muxer(readers: List[ReaderBase]) -> SourceMuxer:
     muxer = SourceMuxer('muxer', max_batch_size=1)
@@ -38,7 +39,7 @@ def get_img_reader(path: str, name: str) -> ImageReader:
 
 
 if __name__ == '__main__':
-
+    args = vars(ap.parse_args())
     pipeline = Pipeline()
 
     readers = []
@@ -62,7 +63,7 @@ if __name__ == '__main__':
     tiler = get_tiler('tiler', tiler_size=get_tsize(), frame_size=get_fsize())
     outer = DisplayComponent('file')
 
-    pipeline.set_device('cpu')
+    pipeline.set_device(args['device'])
     pipeline.add_all([muxer, codes, tiler, outer])
     pipeline.compile()
     pipeline.run()
