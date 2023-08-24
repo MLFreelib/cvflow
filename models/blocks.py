@@ -128,8 +128,11 @@ class YOLOHead(nn.Module):
         anchor_grid = (self.anchors[i] * self.stride[i]).view((1, self.na, 1, 1, 2)).expand(shape).float()
         return grid, anchor_grid
 
-    def import_weights(self, weights_path):
-        self.weights = torch.load(weights_path)
+    def import_weights(self, weights=None, weights_path=None):
+        if weights:
+            self.weights = weights
+        else:
+            self.weights = torch.load(weights_path)
         weights_list = [_ for _ in self.weights]
         weight_index = self.weight_index
         self.m[0].weight = nn.Parameter(self.weights[weights_list[weight_index]])
