@@ -12,7 +12,8 @@ from set_stream import *
 from common.utils import *
 from models.models import yolo_large
 
-model = yolo_large(weights_path=) #'/Users/szymanski/PycharmProjects/cvflow_old/examples/model.pt'
+weights_path = get_weights()
+model = yolo_large(weights_path=weights_path)
 device = 'cpu'
 
 pipeline = Pipeline()
