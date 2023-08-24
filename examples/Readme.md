@@ -63,3 +63,11 @@ python3 config_gui.py -v <video_file> -n <path_to_config_file>
 python3 examples/plates_example/run.py --videofile <path_to_video> -f <path_to_fonts> -c <path_to_config_file>
 ```
 
+## Обучение
+
+Для обучения необходимо зайти в директорию с алгоритмом, который нужно обучить и прописать команду:
+
+    python3 train.py --data {path to data}
+
+Таким образом модель обучить на данных, путь к которым указан вместо {path to data}.
+
