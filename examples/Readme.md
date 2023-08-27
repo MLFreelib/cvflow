@@ -4,11 +4,11 @@
 Пример запуска скрипта:  
 С использованием usb-камеры:
 ```angular2html
-python3 [название скрипта] --usbcam /dev/video0 --font ../fonts/OpenSans-VariableFont_wdth,wght.ttf --fsize 1280,1920
+python3 [название скрипта] --usbcam /dev/video0 --fsize 1280,1920
 ```   
 С использованием файла видео:
 ```angular2html
-python3 [название скрипта] --videofile {file_path},{file_path} --font ../fonts/OpenSans-VariableFont_wdth,wght.ttf --fsize 1280,1920
+python3 [название скрипта] --videofile {file_path},{file_path} --fsize 1280,1920
 ```
 Примеры скриптов:
 * run - для обработки данных
