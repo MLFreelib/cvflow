@@ -83,7 +83,6 @@ class BBoxPainter(Painter):
 
     def __init__(self, name: str, font_size: int = 30, font_width: int = 3):
         super().__init__(name)
-        self.__font_path = os.path.join(os.path.dirname(__file__), '..', 'fonts', 'OpenSans-VariableFont_wdth,wght.ttf')
         self.__font_size = font_size
         self.__font_width = font_width
         self.__colors = dict()
@@ -92,10 +91,6 @@ class BBoxPainter(Painter):
     def set_font_size(self, font_size: int):
         if isinstance(font_size, int):
             self.__font_size = font_size
-
-    def set_font(self, font_path: str):
-        if isinstance(font_path, str):
-            self.__font_path = font_path
 
     def set_font_width(self, font_width: int):
         if isinstance(font_width, int):
@@ -110,7 +105,6 @@ class BBoxPainter(Painter):
                 meta_bbox = meta_frame.get_meta_info(MetaName.META_BBOX.value)
                 if meta_bbox is not None:
                     bbox = meta_bbox.get_bbox()
-                    print(bbox)
                     self.__bbox_denormalize(bbox, shape)
                     meta_labels = meta_bbox.get_label_info()
                     ids = meta_labels.get_object_ids()
@@ -134,7 +128,6 @@ class BBoxPainter(Painter):
                                                        width=self.__font_width,
                                                        labels=full_labels,
                                                        font_size=self.__font_size,
-                                                       font=self.__font_path,
                                                        colors=self.__get_colors(labels))
 
                     counter = meta_frame.get_meta_info('counter')
@@ -160,16 +153,6 @@ class BBoxPainter(Painter):
 
     def start(self):
         r""" Checks types and sets default values. """
-
-        if self.__font_path is None:
-            raise FileNotFoundError(f'Font is a required parameter')
-
-        if not os.path.exists(self.__font_path):
-            raise FileNotFoundError(f'Font {self.__font_path} not found')
-
-        _, file_extension = os.path.splitext(self.__font_path)
-        if file_extension != '.ttf':
-            raise ValueError(f'Expected .ttf, actual {file_extension}')
 
         if self.__font_width <= 0:
             self.__font_width = 5

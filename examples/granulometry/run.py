@@ -15,6 +15,7 @@ from components.painter_component import Tiler, MaskPainter
 from components.reader_component import *
 from components.handler_component import Filter, SizeCalculator
 from pipeline import Pipeline
+from common.utils import argparser as ap
 
 SEM_CLASSES = [
     'froth'
@@ -55,7 +56,8 @@ def get_tiler(name: str, tiler_size: tuple, frame_size: tuple = (640, 1280)) -> 
 
 
 if __name__ == '__main__':
-    model = unet(weights='unetplusplus_weights.pt')
+    args = vars(ap.parse_args())
+    model = unet(weights=args['weights'])
     pipeline = Pipeline()
 
     readers = []

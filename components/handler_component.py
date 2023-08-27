@@ -297,9 +297,9 @@ class DistanceCalculator(ComponentBase):
             depth = meta_frame.get_meta_info(MetaName.META_DEPTH.value).get_depth().clone()
             depth = torchvision.transforms.Resize((cv_shape[:2]))(depth)
             depth = depth.permute(1, 2, 0).detach().cpu().numpy()
-            z1 = 1017./np.mean(depth[np_bbox1[1]:np_bbox1[3], np_bbox1[0]:np_bbox1[2]])
-            z2 = 1017./np.mean(depth[np_bbox2[1]:np_bbox2[3], np_bbox2[0]:np_bbox2[2]])
-            dz = z1-z2
+            z1 = 1017. / np.mean(depth[np_bbox1[1]:np_bbox1[3], np_bbox1[0]:np_bbox1[2]])
+            z2 = 1017. / np.mean(depth[np_bbox2[1]:np_bbox2[3], np_bbox2[0]:np_bbox2[2]])
+            dz = z1 - z2
             # depth = 1017. / ((depth2 + depth1) // 2)
 
         dist = (dx ** 2 + dy ** 2 + dz ** 2) ** 0.5
@@ -338,6 +338,7 @@ class DistanceCalculator(ComponentBase):
         """
         bboxes[:, (0, 2)] = bboxes[:, (0, 2)].div(shape[2])
         bboxes[:, (1, 3)] = bboxes[:, (1, 3)].div(shape[1])
+
 
 class Codes(ComponentBase):
     r""" Read QR- and barcodes. """
@@ -444,3 +445,89 @@ class SerialNumbers(ComponentBase):
                 continue
             img = cv2.rectangle(img, (x1, y1), (x2, y2), (255, 0, 0), 2)
         return torch.tensor(img, device=self.get_device()).permute(2, 0, 1)
+
+
+class SizeCalculator(ComponentBase):
+    r""" Calcucate min, average and maximun size of objects on the screen ."""
+
+    def __init__(self, name: str):
+        r"""
+            :param name: str
+                    name of component.
+        """
+        super().__init__(name)
+        self.__sizes = dict()
+        self.__checked_ids = dict()
+
+    def do(self, data: MetaBatch) -> MetaBatch:
+        r""" Counts objects. """
+        for src_name in data.get_source_names():
+            meta_frames = data.get_meta_frames_by_src_name(src_name)
+            for meta_frame in meta_frames:
+                frame = meta_frame.get_frame()
+                meta_frame.set_frame(frame)
+                if meta_frame.get_meta_info(MetaName.META_MASK.value) is not None:
+                    self.__update(meta_frame,
+                                  meta_frame.get_frame().detach().cpu().numpy().shape, src_name)
+        return data
+
+    def __update(self, meta_frame: MetaFrame, shape: Iterable[int], source: str):
+        r""" Updates the current number of counted objects.
+            :param meta_bbox: MetaBBox
+                            metadata about the bounding boxes for the frame.
+            :param shape: Iterable[int]
+                            shape of frame.
+            :param source: str
+                            the source from which the frame was received.
+        """
+        if source not in list(self.__checked_ids.keys()):
+            self.__checked_ids[source] = dict()
+            self.__sizes[source] = {'labels': dict(), 'size': dict()}
+
+        meta_mask = meta_frame.get_meta_info(MetaName.META_MASK.value)
+        mask = meta_mask.get_mask()
+        meta_frame = self.__calculate_sizes(mask=mask, meta_frame=meta_frame)
+
+    def __calculate_sizes(self, mask: torch.Tensor, meta_frame: MetaFrame) -> MetaFrame:
+        r""" Checks whether the object crosses the line.
+            :param mask: torch.Tensor
+                        bounding box.
+            :param shape: tuple
+                        shape of frame.
+        """
+        frame = meta_frame.get_frame()
+        shape = meta_frame.get_frame().size()
+        cv_shape = (*shape[1:], shape[0])
+
+        cv_image = mask.detach().cpu().numpy().astype(np.uint8).reshape(256, 256)
+        cv_image = cv2.erode(cv_image, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5)), iterations=1)
+        cnts, _ = cv2.findContours(cv_image, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        cnts = list(filter(lambda cnt: cv2.contourArea(cnt) > 20, cnts))
+        shape = cv_image.shape
+
+        sizes = [cv2.contourArea(cnt) for cnt in cnts]
+        min_size = round(min(sizes), 2)
+        max_size = round(max(sizes), 2)
+        avg_size = round(sum(sizes) / len(sizes), 2)
+
+        frame = frame.detach().cpu()
+        frame = frame.permute(1, 2, 0).numpy()
+        frame = np.ascontiguousarray(frame)
+        frame = cv2.putText(frame, f"Min: {min_size}",
+                            color=(255, 255, 255), fontScale=0.7, thickness=1,
+                            fontFace=cv2.FONT_HERSHEY_SIMPLEX,
+                            org=(50, 50))
+
+        frame = cv2.putText(frame, f"Max: {max_size}",
+                            color=(255, 255, 255), fontScale=0.7, thickness=1,
+                            fontFace=cv2.FONT_HERSHEY_SIMPLEX,
+                            org=(50, 70))
+        frame = cv2.putText(frame, f"Avg: {avg_size}",
+                            color=(255, 255, 255), fontScale=0.7, thickness=1,
+                            fontFace=cv2.FONT_HERSHEY_SIMPLEX,
+                            org=(50, 90))
+
+        frame = torch.tensor(frame, device=self.get_device()).permute(2, 0, 1)
+
+        meta_frame.set_frame(frame)
+        return meta_frame

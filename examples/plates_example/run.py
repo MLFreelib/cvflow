@@ -53,8 +53,7 @@ def get_tiler(name: str, tiler_size: tuple, frame_size: tuple = (640, 1280)) -> 
 
 if __name__ == '__main__':
     
-    yolo_checkpoint = '../checkpoints/plates_sd.pt'
-    crnn_checkpoint = '../checkpoints/crnn_014000_loss1.8461857752828725.pt'#crnn_012000_loss1.6033634845448912.pt'
+    yolo_checkpoint, crnn_checkpoint = get_weights().split(',')
 
 
     model = PlatesModel(yolo_checkpoint=yolo_checkpoint, crnn_checkpoint=crnn_checkpoint)
