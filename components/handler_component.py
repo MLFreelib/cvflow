@@ -506,9 +506,14 @@ class SizeCalculator(ComponentBase):
         shape = cv_image.shape
 
         sizes = [cv2.contourArea(cnt) for cnt in cnts]
-        min_size = round(min(sizes), 2)
-        max_size = round(max(sizes), 2)
-        avg_size = round(sum(sizes) / len(sizes), 2)
+        try:
+            min_size = round(min(sizes), 2)
+            max_size = round(max(sizes), 2)
+            avg_size = round(sum(sizes) / len(sizes), 2)
+        except ValueError:
+            min_size = 0
+            max_size = 0
+            avg_size = 0
 
         frame = frame.detach().cpu()
         frame = frame.permute(1, 2, 0).numpy()

@@ -1,8 +1,8 @@
 import sys
 
-from models.models import unet
 
 sys.path.append('../')
+from models.models import unet
 
 from typing import List
 import torch
