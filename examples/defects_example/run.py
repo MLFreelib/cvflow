@@ -1,8 +1,9 @@
 import sys
 
+sys.path.append('../../')
+
 from models.models import defects_model
 
-sys.path.append('../')
 
 from common.utils import *
 
@@ -60,6 +61,7 @@ if __name__ == '__main__':
 
     name = None
     file_srcs = get_img_srcs()
+    print(file_srcs)
     for i_file_srcs in range(len(file_srcs)):
         name = f'{file_srcs[i_file_srcs]}_{i_file_srcs}'
         readers.append(ImageReader(file_srcs[i_file_srcs], name))

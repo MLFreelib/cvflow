@@ -314,5 +314,5 @@ def box2imgsize_box(image_path: str, box) -> List[int]:
     new_box = np.array(box)
     new_box[[0, 2]] *= size[0]
     new_box[[1, 3]] *= size[1]
-    new_box = new_box.astype(np.int)
+    new_box = new_box.astype(np.int8)
     return list(new_box)
