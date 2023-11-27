@@ -254,7 +254,8 @@ CVFlow - набор алгоритмов на основе компьютерн�
 
 
 ### Запуск алгоритма
-
+python3 line_gui.py -v <video_file> -n <path_to_config_file>
+python3 run.py --videofile <path_to_video> -l <path_to_config_file> -w <path_to_weights>
 </details>
 
 
