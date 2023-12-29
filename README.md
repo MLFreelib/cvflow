@@ -169,7 +169,7 @@ CVFlow - набор алгоритмов на основе компьютерн�
 
 ### Запуск алгоритма
 
-python3 plates_example/run.py --videofile <path_to_video> --weights <path_to_weights>
+    python3 plates_example/run.py --videofile <path_to_video> --weights <path_to_weights>
 
 
 ### Результаты
@@ -221,10 +221,19 @@ python3 plates_example/run.py --videofile <path_to_video> --weights <path_to_wei
 
 </details>
 
-### Запуск алгоритма
 
 <details open>
 <summary><b>Распознавание QR и штрихкодов</b></summary>
+
+### Запуск алгоритма
+
+  1) Открыть директорию со скриптом
+
+    cd examples/qrcode_detection
+    
+  2) Пример команды для запуска:
+  
+    python run.py --images ../../tests/test_data/qrcodes
 
 ### Об алгоритме
 
