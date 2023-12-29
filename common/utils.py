@@ -107,7 +107,9 @@ args = vars(argparser.parse_args())
 
 def get_weights():
     weights_path = args['weights']
-    assert os.path.exists(weights_path)
+    weights_path_list = weights_path.split(',')
+    for weight in weights_path_list:
+        assert os.path.exists(weight)
     return weights_path
 
 
