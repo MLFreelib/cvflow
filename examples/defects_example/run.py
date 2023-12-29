@@ -69,7 +69,7 @@ if __name__ == '__main__':
     muxer = get_muxer(readers)
     model_det = get_detection_model('detection', model, sources=readers,
                                     classes=['Blue_Stain', 'Crack', 'Dead_Knot', 'Knot_missing', 'Live_Knot', 'Marrow',
-                                             'Quartzity', 'knot_with_crack', 'overgrown', 'resin'])
+                                             'Quartzity', 'knot_with_crack', 'overgrown', 'resin'], confidence=get_confidence())
 
     model_det.set_transforms([torchvision.transforms.Resize((300, 300))])
     model_det.set_source_names([reader.get_name() for reader in readers])
