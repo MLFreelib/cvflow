@@ -139,8 +139,12 @@ CVFlow - набор алгоритмов на основе компьютерн�
 
     cd examples/defects_example
     
-  2) Пример команды для запуска:
-  
+  2) Скачать шаблоны для примера из [ссылка на веса]([[https://statanly.com/info/weight](https://drive.google.com/drive/folders/1-b0MccOAo2v6yGwBywqBCJc5MZkyUFYc)](https://drive.google.com/drive/folders/1YPBDpGG3spgh7J8HKUtmDJi7KX7BwNmJ?usp=sharing)) из папки "Дефекты на поверхностях" и распакуйте его куда угодно. Название архива "templates"
+     
+  4) Пример команды для запуска:  
+     
+   --temppath - путь к шаблоннам, которые были скачаны из предыдущего пункта.
+     
     python run.py --images ../../tests/test_data/flaw_wood.jpg --weights ../../tests/test/checkpoint_ssd300.pth.tar --temppath <path_to_templates>
 
 
