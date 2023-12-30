@@ -53,7 +53,7 @@ class SSD300(Block):
         template_labels = list()
         dataset = DefectsModelDataset(path_to_templates,
                                       split='templates',
-                                      keep_difficult=True, anno_postfix='_anno.txt', img_postfix=format_img)
+                                      keep_difficult=True, anno_postfix='.txt', img_postfix=format_img)
         with tqdm(total=len(dataset)) as t, torch.no_grad():
             for sample in dataset:
                 image, boxes, labels = sample['image'], sample[MetaName.META_BBOX.value].get_bbox(), \
@@ -219,16 +219,21 @@ class SSD300(Block):
 
         return scores, topk_mode.values
 
-    def forward_eval(self, embeddings, threshold: float = 0.9):
+    def forward_eval(self, embeddings, threshold: float = 0.0):
         predicted_labels = list()
         predicted_locs = list()
         predicted_scores = list()
         predicted_embeddings = list()
 
         for i in range(embeddings.shape[0]):
-            scores, labels = self.get_scores(embeddings[i])
+            scores, labels = self.get_score2(embeddings[i])
             dist_matrix = torch.cdist(embeddings[i], self.template_embeddings)
-            templates_mask = (scores > threshold)
+            templates_mask = (scores > .9297) & (scores < .9299)
+            # print(scores[templates_mask])
+            # print(templates_mask.nonzero()[0])
+            for e, j in enumerate(templates_mask.nonzero()):
+                if e != 7:
+                    templates_mask[j] = False
             _, best_templates = torch.min(dist_matrix, dim=1)
             best_templates = best_templates[templates_mask]
             best_template_embeddings = self.template_embeddings[best_templates]
