@@ -1,7 +1,7 @@
 import sys
 
+sys.path.append('../../')
 
-sys.path.append('../')
 from models.models import unet
 
 from typing import List
