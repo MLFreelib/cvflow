@@ -1,5 +1,7 @@
 import sys
-#sys.path.append('../')
+
+sys.path.append('../')
+
 import torch
 import torch.nn as nn
 from PIL import Image
@@ -33,6 +35,7 @@ class PlatesModel(nn.Module):
         if crnn_checkpoint:
             self.crnn.load_state_dict(torch.load(crnn_checkpoint, map_location=self.device), strict=False)
         self.crnn.to(self.device)
+
 
     def forward(self, imgs, threshold=0.8):
         """
