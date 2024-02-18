@@ -73,7 +73,7 @@ if __name__ == '__main__':
 
     muxer = get_muxer(readers)
     transforms = [Resize((640,640))]
-    model_det = get_detection_model('detection', model, sources=readers, classes=[], transforms=transforms, confidence=0.8)
+    model_det = get_detection_model('detection', model, sources=readers, classes=[], transforms=transforms, confidence=get_confidence())
 
     bbox_painter = BBoxPainter('bboxer')
 
