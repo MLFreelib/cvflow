@@ -57,7 +57,7 @@ def get_tiler(name: str, tiler_size: tuple, frame_size: tuple = (640, 1280)) -> 
 
 if __name__ == '__main__':
     args = vars(ap.parse_args())
-    model = unet(weights=args['weights'])
+    model = unet(weights=args['weights'], device=args['device'])
     pipeline = Pipeline()
 
     readers = []
