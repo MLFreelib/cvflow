@@ -251,7 +251,7 @@ class ModelDetectionDiffLabels(ModelDetection):
             boxes = preds[i]['boxes'].cpu()
             label_names = preds[i]['labels']
             conf = preds[i]['scores'].cpu().detach().numpy()
-            true_conf = conf > 0.25
+            true_conf = conf > self._confidence
 
             if np.any(true_conf):
                 conf = conf[true_conf]
