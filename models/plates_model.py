@@ -65,20 +65,22 @@ class PlatesModel(nn.Module):
                 if w == 0 or h == 0:
                     continue
                 correct_indexes.append(j)
-                cr = crop(img, y, x, h, w)
-                cr = resize(cr, [self.img_height, self.img_width]).unsqueeze(0)
-                # cr = (cr / 127.5) - 1.0
-                # cr_save = cr.permute(1, 2, 0).cpu().detach().numpy()
-                # plt.imsave('temp.png', cr_save)
-                with torch.no_grad():
-                    cr = cr.to(self.device)
-                    logits = self.crnn(cr)
-                    log_probs = torch.nn.functional.log_softmax(logits, dim=2)
-                    preds = ctc_decode(log_probs, method='beam_search', beam_size=10,
-                                       label2char=LABEL2CHAR)
-                    platesset.append(''.join(preds[0]))
+                # cr = crop(img, y, x, h, w)
+                # cr = resize(cr, [self.img_height, self.img_width]).unsqueeze(0)
+                
+                ## cr = (cr / 127.5) - 1.0
+                ## cr_save = cr.permute(1, 2, 0).cpu().detach().numpy()
+                ## plt.imsave('temp.png', cr_save)
+                
+                # with torch.no_grad():
+                #     cr = cr.to(self.device)
+                #     logits = self.crnn(cr)
+                #     log_probs = torch.nn.functional.log_softmax(logits, dim=2)
+                #     preds = ctc_decode(log_probs, method='beam_search', beam_size=10,
+                #                        label2char=LABEL2CHAR)
+                #     platesset.append(''.join(preds[0]))
 
-            det[i]['labels'] = platesset
+            det[i]['labels'] = ['NULL'] * len(bbset) # platesset
             det[i]['scores'] = conf[correct_indexes]
             det[i]['boxes'] = bbset[correct_indexes]
 

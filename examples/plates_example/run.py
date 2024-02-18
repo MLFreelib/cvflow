@@ -72,7 +72,7 @@ if __name__ == '__main__':
         readers.append(get_videofile_reader(file_srcs[i_file_srcs], name))
 
     muxer = get_muxer(readers)
-    transforms = [Resize((128,128))]
+    transforms = [Resize((640,640))]
     model_det = get_detection_model('detection', model, sources=readers, classes=[], transforms=transforms, confidence=0.8)
 
     bbox_painter = BBoxPainter('bboxer')
