@@ -1,5 +1,7 @@
 import sys
+
 sys.path.append('../')
+
 import torch
 import torch.nn as nn
 from PIL import Image
@@ -23,8 +25,8 @@ class PlatesModel(nn.Module):
         self.img_width = 256
         self.img_height = 64
 
-        #self.yolo_model = torch.hub.load('ultralytics/yolov5', 'custom', path=yolo_checkpoint)  # local model
-        self.yolo_model = yolo_small(weights_path=yolo_checkpoint)
+        self.yolo_model = torch.hub.load('ultralytics/yolov5', 'custom', path=yolo_checkpoint)  # local model
+        #self.yolo_model = yolo_small(weights_path=yolo_checkpoint)
 
         self.crnn = CRNN(in_channels=1, out_channels=None, img_height=self.img_height, img_width=self.img_width,
                          num_class=self.num_class)
@@ -34,7 +36,8 @@ class PlatesModel(nn.Module):
             self.crnn.load_state_dict(torch.load(crnn_checkpoint, map_location=self.device), strict=False)
         self.crnn.to(self.device)
 
-    def forward(self, imgs, threshold=0.5):
+
+    def forward(self, imgs, threshold=0.8):
         """
         :param imgs: tensor [N, 3, W, H]
         """
