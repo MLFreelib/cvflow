@@ -215,7 +215,7 @@ def non_max_suppression(prediction,
     return output
 
 
-def preprocess_for_YOLO(im, stride, device='cpu', size=640):
+def preprocess_for_YOLO(im, device='cpu', size=640):
     shape0, shape1 = [], []
     x = torch.tensor([])
     if im.shape[0] < 5:  # image in CHW
@@ -226,6 +226,7 @@ def preprocess_for_YOLO(im, stride, device='cpu', size=640):
     shape1.append([y * g for y in s])
     x.to(device)
     im.to(device)
-    x = torch.cat((x, letterbox(im)[0].unsqueeze(0)))
+    x = torch.cat((x.to(device), letterbox(im)[0].unsqueeze(0).to(device)))
     x = torch.permute(x, (0, 3, 1, 2))
     return x
+
