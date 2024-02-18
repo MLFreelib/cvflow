@@ -1,5 +1,4 @@
 import sys
-
 sys.path.append('../')
 import torch
 import torch.nn as nn
@@ -18,24 +17,24 @@ LABEL2CHAR = {label: char for char, label in CHAR2LABEL.items()}
 
 
 class PlatesModel(nn.Module):
-    def __init__(self, yolo_checkpoint=None, crnn_checkpoint=None):
+    def __init__(self, yolo_checkpoint=None, crnn_checkpoint=None, device='cpu'):
         super(PlatesModel, self).__init__()
         self.num_class = len(LABEL2CHAR) + 1
         self.img_width = 256
         self.img_height = 64
 
-        # self.yolo_model = torch.hub.load('ultralytics/yolov5', 'custom', path=yolo_checkpoint)  # local model
+        #self.yolo_model = torch.hub.load('ultralytics/yolov5', 'custom', path=yolo_checkpoint)  # local model
         self.yolo_model = yolo_small(weights_path=yolo_checkpoint)
 
         self.crnn = CRNN(in_channels=1, out_channels=None, img_height=self.img_height, img_width=self.img_width,
                          num_class=self.num_class)
 
-        self.device = 'cuda' if next(self.crnn.parameters()).is_cuda else 'cpu'
+        self.device = device
         if crnn_checkpoint:
-            self.crnn.load_state_dict(torch.load(crnn_checkpoint, map_location=self.device))
+            self.crnn.load_state_dict(torch.load(crnn_checkpoint, map_location=self.device), strict=False)
         self.crnn.to(self.device)
 
-    def forward(self, imgs):
+    def forward(self, imgs, threshold=0.5):
         """
         :param imgs: tensor [N, 3, W, H]
         """
@@ -49,7 +48,7 @@ class PlatesModel(nn.Module):
             conf = det[i]['scores'][~zero_mask]
             bbset = bbset[~zero_mask]
 
-            true_conf = conf > 0.25
+            true_conf = conf > threshold
 
             conf = conf[true_conf]
             bbset = bbset[true_conf]
@@ -66,20 +65,22 @@ class PlatesModel(nn.Module):
                 if w == 0 or h == 0:
                     continue
                 correct_indexes.append(j)
-                cr = crop(img, y, x, h, w)
-                cr = resize(cr, [self.img_height, self.img_width]).unsqueeze(0)
-                # cr = (cr / 127.5) - 1.0
-                # cr_save = cr.permute(1, 2, 0).cpu().detach().numpy()
-                # plt.imsave('temp.png', cr_save)
-                with torch.no_grad():
-                    cr = cr.to(self.device)
-                    logits = self.crnn(cr)
-                    log_probs = torch.nn.functional.log_softmax(logits, dim=2)
-                    preds = ctc_decode(log_probs, method='beam_search', beam_size=10,
-                                       label2char=LABEL2CHAR)
-                    platesset.append(''.join(preds[0]))
+                # cr = crop(img, y, x, h, w)
+                # cr = resize(cr, [self.img_height, self.img_width]).unsqueeze(0)
+                
+                ## cr = (cr / 127.5) - 1.0
+                ## cr_save = cr.permute(1, 2, 0).cpu().detach().numpy()
+                ## plt.imsave('temp.png', cr_save)
+                
+                # with torch.no_grad():
+                #     cr = cr.to(self.device)
+                #     logits = self.crnn(cr)
+                #     log_probs = torch.nn.functional.log_softmax(logits, dim=2)
+                #     preds = ctc_decode(log_probs, method='beam_search', beam_size=10,
+                #                        label2char=LABEL2CHAR)
+                #     platesset.append(''.join(preds[0]))
 
-            det[i]['labels'] = platesset
+            det[i]['labels'] = ['NULL'] * len(bbset) # platesset
             det[i]['scores'] = conf[correct_indexes]
             det[i]['boxes'] = bbset[correct_indexes]
 

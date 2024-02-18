@@ -109,7 +109,7 @@ def get_weights():
     weights_path = args['weights']
     weights_path_list = weights_path.split(',')
     for weight in weights_path_list:
-        assert os.path.exists(weight)
+        assert os.path.exists(weight), f'Weights path does not exist. {weight}'
     return weights_path
 
 

@@ -13,6 +13,7 @@ from components.outer_component import DisplayComponent
 from components.painter_component import Tiler, BBoxPainter
 from components.reader_component import CamReader, VideoReader, ReaderBase, ImageReader
 from components.handler_component import Filter, Counter
+from torchvision.transforms import Resize
 
 from pipeline import Pipeline
 from models.plates_model import PlatesModel
@@ -56,7 +57,7 @@ if __name__ == '__main__':
     yolo_checkpoint, crnn_checkpoint = get_weights().split(',')
 
 
-    model = PlatesModel(yolo_checkpoint=yolo_checkpoint, crnn_checkpoint=crnn_checkpoint)
+    model = PlatesModel(yolo_checkpoint=yolo_checkpoint, crnn_checkpoint=crnn_checkpoint, device=get_device())
     pipeline = Pipeline()
 
     readers = []
@@ -71,7 +72,8 @@ if __name__ == '__main__':
         readers.append(get_videofile_reader(file_srcs[i_file_srcs], name))
 
     muxer = get_muxer(readers)
-    model_det = get_detection_model('detection', model, sources=readers, classes=[])
+    transforms = [Resize((640,640))]
+    model_det = get_detection_model('detection', model, sources=readers, classes=[], transforms=transforms, confidence=get_confidence())
 
     bbox_painter = BBoxPainter('bboxer')
 
