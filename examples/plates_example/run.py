@@ -57,7 +57,7 @@ if __name__ == '__main__':
     yolo_checkpoint, crnn_checkpoint = get_weights().split(',')
 
 
-    model = PlatesModel(yolo_checkpoint=yolo_checkpoint, crnn_checkpoint=crnn_checkpoint)
+    model = PlatesModel(yolo_checkpoint=yolo_checkpoint, crnn_checkpoint=crnn_checkpoint, device=get_device())
     pipeline = Pipeline()
 
     readers = []
@@ -72,8 +72,8 @@ if __name__ == '__main__':
         readers.append(get_videofile_reader(file_srcs[i_file_srcs], name))
 
     muxer = get_muxer(readers)
-    transforms = [Resize((640,640))]
-    model_det = get_detection_model('detection', model, sources=readers, classes=[], transforms=transforms,)
+    transforms = [Resize((128,128))]
+    model_det = get_detection_model('detection', model, sources=readers, classes=[], transforms=transforms, confidence=0.8)
 
     bbox_painter = BBoxPainter('bboxer')
 

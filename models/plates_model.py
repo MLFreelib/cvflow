@@ -17,7 +17,7 @@ LABEL2CHAR = {label: char for char, label in CHAR2LABEL.items()}
 
 
 class PlatesModel(nn.Module):
-    def __init__(self, yolo_checkpoint=None, crnn_checkpoint=None):
+    def __init__(self, yolo_checkpoint=None, crnn_checkpoint=None, device='cpu'):
         super(PlatesModel, self).__init__()
         self.num_class = len(LABEL2CHAR) + 1
         self.img_width = 256
@@ -29,12 +29,12 @@ class PlatesModel(nn.Module):
         self.crnn = CRNN(in_channels=1, out_channels=None, img_height=self.img_height, img_width=self.img_width,
                          num_class=self.num_class)
 
-        self.device = 'cuda' if next(self.crnn.parameters()).is_cuda else 'cpu'
+        self.device = device
         if crnn_checkpoint:
             self.crnn.load_state_dict(torch.load(crnn_checkpoint, map_location=self.device), strict=False)
         self.crnn.to(self.device)
 
-    def forward(self, imgs):
+    def forward(self, imgs, threshold=0.5):
         """
         :param imgs: tensor [N, 3, W, H]
         """
@@ -48,7 +48,7 @@ class PlatesModel(nn.Module):
             conf = det[i]['scores'][~zero_mask]
             bbset = bbset[~zero_mask]
 
-            true_conf = conf > 0.25
+            true_conf = conf > threshold
 
             conf = conf[true_conf]
             bbset = bbset[true_conf]
