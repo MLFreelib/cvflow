@@ -104,17 +104,15 @@ class BBoxPainter(Painter):
                 shape = meta_frame.get_frame().shape
                 meta_bbox = meta_frame.get_meta_info(MetaName.META_BBOX.value)
                 if meta_bbox is not None:
-                    meta_labels = meta_bbox.get_label_info()
-                    confidence = meta_labels.get_confidence()
-                    limit = int((confidence > self.threshold).sum())
-                    meta_labels = meta_labels
-                    bbox = meta_bbox.get_bbox()[:limit]
+                    bbox = meta_bbox.get_bbox()
                     self.__bbox_denormalize(bbox, shape)
-                    ids = meta_labels.get_object_ids()[:limit]
-                    labels = meta_labels.get_labels()[:limit]
+                    meta_labels = meta_bbox.get_label_info()
+                    ids = meta_labels.get_object_ids()
+                    labels = meta_labels.get_labels()
                     bbox = bbox.to(torch.int)
                     mask = ~(bbox[:, 0] - bbox[:, 2]).to(bool) | ~(bbox[:, 1] - bbox[:, 3]).to(bool) | (bbox[:, 1] > bbox[:, 3]) | (bbox[:, 0] > bbox[:, 2])
                     bbox = bbox[~mask]
+                    confidence = meta_labels.get_confidence()
                     if len(ids) == 0:
                         full_labels = [f'{labels[i]} {round(confidence[i] * 100)}%' for i, check in enumerate(mask) if ~check]
                     else:
