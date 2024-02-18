@@ -25,6 +25,9 @@ class ModelBuilder(nn.Module):
         self.device = device
 
     def forward(self, x, **kwargs):
+        self.in_block.to(self.device)
+        self.backbone.to(self.device)
+        self.out_block.to(self.device)
         x = self.in_block(x)
         x = self.backbone(x, **kwargs)
         x = self.out_block(x)
@@ -41,6 +44,9 @@ class YOLOBuilder(ModelBuilder):
                 x = preprocess_for_YOLO(x, device=self.device)
                 shape1 = x.shape[2:]
                 self.count += 1
+                self.in_block.to(self.device)
+                self.backbone.to(self.device)
+                self.out_block.to(self.device)
                 x = self.in_block(x)
                 x = self.backbone(x)
                 x = self.out_block(x)
