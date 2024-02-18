@@ -15,12 +15,14 @@ from models.stereo.blocks import GANetInputBlock, GANetBackbone, GANetOutputBloc
 class ModelBuilder(nn.Module):
     def __init__(self, input_block: Union[Block, nn.Module],
                  backbone: Union[Block, nn.Module],
-                 output_block: Union[Block, nn.Module]):
+                 output_block: Union[Block, nn.Module],
+                 device='cpu'):
         super().__init__()
         self.in_block = input_block
         self.backbone = backbone
         self.out_block = output_block
         self.count = 1
+        self.device = device
 
     def forward(self, x, **kwargs):
         x = self.in_block(x)
@@ -36,7 +38,7 @@ class YOLOBuilder(ModelBuilder):
         for x in imgs:
             with amp.autocast(enabled=autocast):
                 shape0 = x.shape[1:]
-                x = preprocess_for_YOLO(x, [1, 1, 1])
+                x = preprocess_for_YOLO(x, device=self.device)
                 shape1 = x.shape[2:]
                 self.count += 1
                 x = self.in_block(x)
