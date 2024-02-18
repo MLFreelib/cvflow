@@ -1,5 +1,4 @@
 import sys
-
 sys.path.append('../')
 import torch
 import torch.nn as nn
@@ -24,7 +23,7 @@ class PlatesModel(nn.Module):
         self.img_width = 256
         self.img_height = 64
 
-        # self.yolo_model = torch.hub.load('ultralytics/yolov5', 'custom', path=yolo_checkpoint)  # local model
+        #self.yolo_model = torch.hub.load('ultralytics/yolov5', 'custom', path=yolo_checkpoint)  # local model
         self.yolo_model = yolo_small(weights_path=yolo_checkpoint)
 
         self.crnn = CRNN(in_channels=1, out_channels=None, img_height=self.img_height, img_width=self.img_width,
@@ -32,7 +31,7 @@ class PlatesModel(nn.Module):
 
         self.device = 'cuda' if next(self.crnn.parameters()).is_cuda else 'cpu'
         if crnn_checkpoint:
-            self.crnn.load_state_dict(torch.load(crnn_checkpoint, map_location=self.device))
+            self.crnn.load_state_dict(torch.load(crnn_checkpoint, map_location=self.device), strict=False)
         self.crnn.to(self.device)
 
     def forward(self, imgs):
