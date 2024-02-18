@@ -107,7 +107,7 @@ def yolo_large(in_channels=3, weights_path=None):
         backbone.import_weights(weights_path)
     output_block = YOLOHead(anchors=anchors)
     if weights_path:
-        output_block.import_weights(weights_path)
+        output_block.import_weights(weights_path=weights_path)
     return YOLOBuilder(
         input_block=input_block,
         backbone=backbone,
@@ -129,7 +129,7 @@ def yolo_small(in_channels=3, weights_path=None):
         backbone.import_weights(weights_path)
     output_block = YOLOHead(anchors=anchors, weight_index=backbone.weight_index + 1, ch=(128, 256, 512), nc=1)
     if weights_path:
-        output_block.import_weights(weights_path)
+        output_block.import_weights(weights_path=weights_path)
     return YOLOBuilder(
         input_block=input_block,
         backbone=backbone,
