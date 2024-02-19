@@ -1,7 +1,5 @@
 import sys
 
-sys.path.append('../')
-
 from typing import List
 import torch
 import torchvision

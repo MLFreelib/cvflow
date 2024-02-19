@@ -1,7 +1,4 @@
 import os
-import sys
-
-sys.path.append('../')
 
 from typing import List
 from common.utils import *

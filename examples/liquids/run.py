@@ -4,8 +4,6 @@ import cv2
 
 from models.models import defects_model, yolov8
 
-sys.path.append('../')
-
 from common.utils import *
 
 import torch

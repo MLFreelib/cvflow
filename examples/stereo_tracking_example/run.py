@@ -2,8 +2,6 @@ import configparser
 import os
 import sys
 
-sys.path.append('../../')
-
 from typing import List
 import torch
 import torchvision

@@ -12,8 +12,6 @@ from models.losses_structures.stereo_loss import StereoLoss
 from models.models import  mobilestereonet
 from models.stereo.dataset import StereoDataset
 
-sys.path.append('../')
-
 from common.utils import *
 
 import torchvision
