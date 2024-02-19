@@ -204,7 +204,7 @@ def unet(weights=None, device='cpu'):
     model.eval()
     return ModelBuilder(
         input_block=Block(1, 1),
-            backbone=model,
+        backbone=model,
         output_block=Block(1, 1),
     )
 
