@@ -3,6 +3,9 @@ import logging
 import logging.config
 import os
 import configparser
+import warnings
+
+import torch
 
 
 class Logger:
@@ -183,7 +186,11 @@ def get_fsize():
 
 
 def get_device():
-    return 'cpu' if args['device'] is None else args['device']
+    device = 'cpu' if args['device'] is None else args['device']
+    if (not torch.cuda.is_available()) and (device == 'cuda'):
+        warnings.warn('GPU не доступно на устройстве, автоматически выбрано CPU.')
+        device = 'cpu'
+    return device
 
 
 def get_line():
