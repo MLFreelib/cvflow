@@ -199,8 +199,8 @@ def yolov8(weights=None):
         output_block=Block(1, 1),
     )
 
-def unet(weights=None):
-    model = torch.load(weights, map_location=torch.device('cpu'))
+def unet(weights=None, device='cpu'):
+    model = torch.load(weights, map_location=torch.device(device))
     model.eval()
     return ModelBuilder(
         input_block=Block(1, 1),
