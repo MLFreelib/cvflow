@@ -2,8 +2,6 @@ import sys
 
 import configparser
 
-sys.path.append('../')
-
 from typing import List
 import torch
 from components.model_component import ModelDetection

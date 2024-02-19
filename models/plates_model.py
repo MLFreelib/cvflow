@@ -1,17 +1,14 @@
-import sys
-
-sys.path.append('../')
-
 import torch
 import torch.nn as nn
 from PIL import Image
-from models.blocks import CRNN
 from common.ctc_decoder import ctc_decode
 import numpy as np
 from torchvision.transforms.functional import crop, resize, rgb_to_grayscale
-from models.models import yolo_small
+from models.models import yolo_small, CRNN
 import cv2
 import matplotlib.pyplot as plt
+from ultralytics import YOLO
+from torch import hub
 
 CHARS = '0123456789АВЕКМНОРСТУХ'
 CHAR2LABEL = {char: i + 1 for i, char in enumerate(CHARS)}
@@ -25,8 +22,9 @@ class PlatesModel(nn.Module):
         self.img_width = 256
         self.img_height = 64
 
-        self.yolo_model = torch.hub.load('ultralytics/yolov5', 'custom', path=yolo_checkpoint)  # local model
         #self.yolo_model = yolo_small(weights_path=yolo_checkpoint)
+        self.yolo_model = YOLO(yolo_checkpoint)
+        #self.yolo_model = hub.load('ultralytics/yolov5', 'yolov5s', pretrained=True)
 
         self.crnn = CRNN(in_channels=1, out_channels=None, img_height=self.img_height, img_width=self.img_width,
                          num_class=self.num_class)

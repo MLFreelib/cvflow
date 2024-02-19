@@ -3,8 +3,6 @@ import unittest
 import torch
 import sys
 
-sys.path.append('../')
-
 from Meta import MetaFrame, MetaLabel, MetaBatch, MetaBBox, MetaMask, MetaName
 from components.handler_component import Filter, Counter
 

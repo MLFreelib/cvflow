@@ -271,3 +271,9 @@ dmypy.json
 # Cython debug symbols
 cython_debug/
 
+*.ipynb
+*datasets/
+*raw_data/
+*.yaml
+*.jpg
+*.pt

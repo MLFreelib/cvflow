@@ -1,7 +1,3 @@
-import sys
-
-sys.path.append('../')
-
 from common.utils import *
 
 from typing import List
@@ -17,6 +13,8 @@ from torchvision.transforms import Resize
 
 from pipeline import Pipeline
 from models.plates_model import PlatesModel
+from models.models import yolov8
+
 
 def get_usb_cam(path: str, name: str) -> CamReader:
     return CamReader(path, name)
@@ -36,7 +34,7 @@ def get_muxer(readers: List[ReaderBase]) -> SourceMuxer:
 def get_detection_model(name: str, model: torch.nn.Module, sources: List[ReaderBase], classes: List[str],
                         transforms: list = None,
 
-                        confidence: float = 0.8) -> ModelDetectionDiffLabels:
+                        confidence: float = 0.25) -> ModelDetectionDiffLabels:
     model_det = ModelDetectionDiffLabels(name, model)
     #model_det.set_labels(classes)
     for src in sources:
@@ -57,7 +55,7 @@ if __name__ == '__main__':
     yolo_checkpoint, crnn_checkpoint = get_weights().split(',')
 
 
-    model = PlatesModel(yolo_checkpoint=yolo_checkpoint, crnn_checkpoint=crnn_checkpoint, device=get_device())
+    model = yolov8(yolo_checkpoint)#PlatesModel(yolo_checkpoint=yolo_checkpoint, crnn_checkpoint=crnn_checkpoint, device=get_device())
     pipeline = Pipeline()
 
     readers = []
@@ -77,7 +75,7 @@ if __name__ == '__main__':
 
     bbox_painter = BBoxPainter('bboxer')
 
-    tiler = get_tiler('LicencePlates', tiler_size=get_tsize(), frame_size=get_fsize())
+    tiler = get_tiler('tiler', tiler_size=get_tsize(), frame_size=get_fsize())
 
     outer = DisplayComponent('display')
     pipeline.set_device(get_device())

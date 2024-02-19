@@ -2,8 +2,6 @@ import sys
 
 
 sys.path.append('../')
-sys.path.append('../../')
-sys.path.append('../../../')
 from components.outer_component import DisplayComponent
 from components.painter_component import Tiler, BBoxPainter
 from components.reader_component import *
