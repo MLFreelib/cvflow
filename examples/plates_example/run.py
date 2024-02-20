@@ -36,7 +36,7 @@ def get_detection_model(name: str, model: torch.nn.Module, sources: List[ReaderB
 
                         confidence: float = 0.25) -> ModelDetectionDiffLabels:
     model_det = ModelDetectionDiffLabels(name, model)
-    #model_det.set_labels(classes)
+    # model_det.set_labels(classes)
     for src in sources:
         model_det.add_source(src.get_name())
     model_det.set_transforms(transforms)
@@ -51,11 +51,11 @@ def get_tiler(name: str, tiler_size: tuple, frame_size: tuple = (640, 1280)) -> 
 
 
 if __name__ == '__main__':
-    
+
     yolo_checkpoint, crnn_checkpoint = get_weights().split(',')
 
-
-    model = yolov8(yolo_checkpoint)#PlatesModel(yolo_checkpoint=yolo_checkpoint, crnn_checkpoint=crnn_checkpoint, device=get_device())
+    model = yolov8(
+        yolo_checkpoint)  # PlatesModel(yolo_checkpoint=yolo_checkpoint, crnn_checkpoint=crnn_checkpoint, device=get_device())
     pipeline = Pipeline()
 
     readers = []
@@ -70,10 +70,11 @@ if __name__ == '__main__':
         readers.append(get_videofile_reader(file_srcs[i_file_srcs], name))
 
     muxer = get_muxer(readers)
-    transforms = [Resize((640,640))]
-    model_det = get_detection_model('detection', model, sources=readers, classes=[], transforms=transforms, confidence=get_confidence())
+    transforms = [Resize((640, 640))]
+    model_det = get_detection_model('detection', model, sources=readers, classes=[], transforms=transforms,
+                                    confidence=get_confidence())
 
-    bbox_painter = BBoxPainter('bboxer')
+    bbox_painter = BBoxPainter('bboxer', get_font_size())
 
     tiler = get_tiler('tiler', tiler_size=get_tsize(), frame_size=get_fsize())
 

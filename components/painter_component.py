@@ -127,9 +127,9 @@ class BBoxPainter(Painter):
                                                        boxes=bbox,
                                                        width=self.__font_width,
                                                        labels=full_labels,
-                                                       # font_size=self.__font_size,
                                                        font_size=self.__font_size,
-                                                       colors=self.__get_colors(labels))
+                                                       colors=self.__get_colors(labels),
+                                                       font='arial.ttf')
 
                     counter = meta_frame.get_meta_info('counter')
                     if counter is not None:

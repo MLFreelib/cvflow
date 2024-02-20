@@ -104,6 +104,9 @@ argparser.add_argument('-w', '--weights', required=False)
 argparser.add_argument('-n', '--num', required=False, help='Number of tracking objects')
 argparser.add_argument('--destination', required=False)
 argparser.add_argument('--config', required=False)
+argparser.add_argument('-f', '--font', required=False)
+argparser.add_argument('--fontsize', required=False)
+
 
 args = vars(argparser.parse_args())
 
@@ -162,6 +165,10 @@ def get_confidence():
 def get_font():
     return args['font']
 
+
+def get_font_size():
+    font_size = 12 if args['fontsize'] < 0 else args['fontsize']
+    return int(font_size)
 
 def get_tsize():
     try:
