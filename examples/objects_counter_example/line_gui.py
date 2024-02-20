@@ -32,6 +32,7 @@ def save_config(event):
     global height_coef
     global width_coef
     config_object = configparser.ConfigParser()
+    points = []
     with open(conf_name, 'w') as f:
         for i in lines:
             points = []
