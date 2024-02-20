@@ -10,8 +10,6 @@ from models.defects.dataset import DefectsModelDataset
 from models.losses_structures.defects_loss import MultiBoxLoss
 from models.models import defects_model
 
-sys.path.append('../')
-
 from common.utils import *
 
 import torchvision

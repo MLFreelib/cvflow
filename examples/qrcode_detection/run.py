@@ -1,7 +1,5 @@
 import sys
 
-sys.path.append('../')
-
 from typing import List
 from common.utils import *
 from components.handler_component import Codes
