@@ -11,6 +11,9 @@ from models.layers import Conv2dAuto, convbn, convbn_3d
 from models.preprocessing import preprocess_for_YOLO
 import torch.nn.functional as F
 from torch.autograd import Variable
+from torchvision.transforms import functional as F
+from torchvision.transforms.functional import rgb_to_grayscale
+from common.ctc_decoder import ctc_decode
 
 
 class Block(nn.Module):
@@ -583,12 +586,18 @@ class PANet(Block):
                     weight_index += 4
         self.weight_index = weight_index
 
+
+# fixed constants for plates model
+CHARS = '0123456789АВЕКМНОРСТУХ'
+CHAR2LABEL = {char: i + 1 for i, char in enumerate(CHARS)}
+LABEL2CHAR = {label: char for char, label in CHAR2LABEL.items()}
 class CRNN(Block):
 
     def __init__(self, in_channels, out_channels, img_height, img_width, num_class,
                  map_to_seq_hidden=64, rnn_hidden=256, leaky_relu=False):
         super(CRNN, self).__init__(in_channels, out_channels)
-
+        self.img_width = img_width
+        self.img_height = img_height
         self.cnn, (output_channel, output_height, output_width) = \
             self._cnn_backbone(in_channels, img_height, img_width, leaky_relu)
 
@@ -655,19 +664,39 @@ class CRNN(Block):
             channels[-1], img_height // 16 - 1, img_width // 4 - 1
         return cnn, (output_channel, output_height, output_width)
 
-    def forward(self, images):
+    def forward(self, det):
         # shape of images: (batch, channel, height, width)
-
-        conv = self.cnn(images)
+        # det is object of type ultralytics.engine.results
+        bboxes = det[0].boxes
+        # bboxes is a tensor of (4, # of bboxes)
+        image = det[0].orig_img # np.ndarray
+        # get crops from image using bboxes
+        crops = []
+        for bbox in bboxes:
+            left, top, right, bottom = bbox.xyxy[0] # extracting coordinates]
+            crop = image[int(top):int(bottom), int(left):int(right), :] # crop image
+            crop = torch.from_numpy(crop).permute(2, 0, 1).float() # convert to tensor and permute dimensions
+            #crop = (crop / 127.5) - 1.0
+            # print(crop.shape)
+            crop = rgb_to_grayscale(F.resize(crop, [self.img_height, self.img_width]))
+            crops.append(crop.unsqueeze(0))
+            
+        crops_tensor = torch.cat(crops, dim=0)
+        conv = self.cnn(crops_tensor)
         batch, channel, height, width = conv.size()
 
         conv = conv.view(batch, channel * height, width)
         conv = conv.permute(2, 0, 1)  # (width, batch, feature)
+        
         seq = self.map_to_seq(conv)
 
         recurrent, _ = self.rnn1(seq)
         recurrent, _ = self.rnn2(recurrent)
 
-        output = self.dense(recurrent)
-        return output  # shape: (seq_len, batch, num_class)
+        crnn_output = self.dense(recurrent) # crnn output shape: (seq_len, batch, num_class)
+        log_probs = torch.nn.functional.log_softmax(crnn_output, dim=-1)
+        labels = ctc_decode(log_probs, method='beam_search', beam_size=1, label2char=LABEL2CHAR)
+        labels = [''.join(x) for x in labels]
+        setattr(det[0], 'labels', labels)  # add labels to det object
+        return det
 

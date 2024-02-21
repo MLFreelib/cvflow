@@ -13,7 +13,7 @@ from torchvision.transforms import Resize
 
 from pipeline import Pipeline
 from models.plates_model import PlatesModel
-from models.models import yolov8
+from models.models import yolov8, plates_model
 
 
 def get_usb_cam(path: str, name: str) -> CamReader:
@@ -55,7 +55,8 @@ if __name__ == '__main__':
     yolo_checkpoint, crnn_checkpoint = get_weights().split(',')
 
 
-    model = yolov8(yolo_checkpoint)#PlatesModel(yolo_checkpoint=yolo_checkpoint, crnn_checkpoint=crnn_checkpoint, device=get_device())
+    #model = yolov8(yolo_checkpoint)#PlatesModel(yolo_checkpoint=yolo_checkpoint, crnn_checkpoint=crnn_checkpoint, device=get_device())
+    model = plates_model(yolo_checkpoint, crnn_checkpoint)#, device=get_device())
     pipeline = Pipeline()
 
     readers = []

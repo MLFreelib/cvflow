@@ -198,6 +198,16 @@ def yolov8(weights=None):
         backbone=YOLO(weights),
         output_block=Block(1, 1),
     )
+    
+def plates_model(yolo_checkpoint, crnn_checkpoint):#, device='cpu'):
+    state_dict = torch.load(crnn_checkpoint)
+    crnn = CRNN(1, None, 64, 256, 23)
+    crnn.load_state_dict(state_dict, strict=False)
+    return ModelBuilder(
+        input_block=Block(1, 1),
+        backbone=YOLO(yolo_checkpoint),
+        output_block=crnn,  # 23 is the unique number of chars for the plates
+    )
 
 def unet(weights=None, device='cpu'):
     model = torch.load(weights, map_location=torch.device(device))
