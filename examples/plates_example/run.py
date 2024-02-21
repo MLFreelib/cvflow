@@ -12,7 +12,6 @@ from components.handler_component import Filter, Counter
 from torchvision.transforms import Resize
 
 from pipeline import Pipeline
-from models.plates_model import PlatesModel
 from models.models import yolov8, plates_model
 
 
@@ -36,7 +35,6 @@ def get_detection_model(name: str, model: torch.nn.Module, sources: List[ReaderB
 
                         confidence: float = 0.25) -> ModelDetectionDiffLabels:
     model_det = ModelDetectionDiffLabels(name, model)
-    #model_det.set_labels(classes)
     for src in sources:
         model_det.add_source(src.get_name())
     model_det.set_transforms(transforms)
@@ -55,8 +53,8 @@ if __name__ == '__main__':
     yolo_checkpoint, crnn_checkpoint = get_weights().split(',')
 
 
-    #model = yolov8(yolo_checkpoint)#PlatesModel(yolo_checkpoint=yolo_checkpoint, crnn_checkpoint=crnn_checkpoint, device=get_device())
-    model = plates_model(yolo_checkpoint, crnn_checkpoint)#, device=get_device())
+    #model = yolov8(yolo_checkpoint)
+    model = plates_model(yolo_checkpoint, crnn_checkpoint) #, device=get_device())
     pipeline = Pipeline()
 
     readers = []

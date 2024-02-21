@@ -176,7 +176,7 @@ python -m examples.stereo_tracking_example.run --videofile examples/stereo_track
 Алгормитм по распозаванию номеров состоит из двух моделей: YOLOv8n для детекции номеров и
 CRNN для распознавания текстовых последовательностей.
 
-Убедитесь, что загружена папка с весами в папку `examples/checkpoints/plates`. Веса можно скачать по [ссылке](https://drive.google.com/drive/folders/1Y8INJvMM5FiG2FFbggo87E0ll9-lyjw5?usp=share_link) или использовать скрипт для скачивания `download_weights.py`.
+Убедитесь, что загружена папка с весами в папку `examples/checkpoints/plates`. Веса можно скачать по [ссылке](https://drive.google.com/drive/folders/1Y8INJvMM5FiG2FFbggo87E0ll9-lyjw5?usp=share_link) или использовать скрипт для скачивания `download_weights.sh`.
 
 ### Запуск алгоритма
 
@@ -186,6 +186,7 @@ python -m examples.plates_example.run --videofile <path_to_video> --weights <pat
 Note: веса передаются в формате .pt для через запятую. Первым идет файл весов для yolo.
 По умолчанию используются веса из папки `examples/checkpoints/plates`.
 
+Для запуска алгоритма на видео с поездами используйте веса для `yolov8_plates_trains.pt`.
 
 ### Результаты
 
