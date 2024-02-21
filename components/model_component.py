@@ -247,26 +247,9 @@ class ModelDetectionDiffLabels(ModelDetection):
             :param shape: torch.tensor - image resolution.
             :param src_name: str - source name
         """
-        # for i in range(len(preds)):
-        #     boxes = preds[i]['boxes'].cpu()
-        #     label_names = preds[i]['labels']
-        #     conf = preds[i]['scores'].cpu().detach().numpy()
-        #     true_conf = conf > self._confidence
-
-        #     if np.any(true_conf):
-        #         conf = conf[true_conf]
-        #         boxes = boxes[true_conf]
-        #         label_names = np.array(label_names)[true_conf]
-        #         self._bbox_normalize(boxes, shape)
-        #         meta_frame = data.get_meta_frames_by_src_name(src_name)[i]
-        #         meta_label = MetaLabel(labels=label_names, confidence=conf)
-
-        #         meta_frame.add_meta(MetaName.META_BBOX.value, MetaBBox(boxes, meta_label))
-                
         for i in range(len(preds)):
             boxes = preds[i].boxes.xyxy.cpu()
-
-            labels = preds[i].boxes.cls
+            labels = preds[i].labels
             conf = preds[i].boxes.conf.cpu().numpy()
             if conf is None:
                 conf = 0
@@ -275,11 +258,10 @@ class ModelDetectionDiffLabels(ModelDetection):
             if np.any(true_conf):
                 conf = conf[true_conf]
                 boxes = boxes[true_conf]
-                # label_names = [self.get_labels()[int(ind)] for ind in labels[true_conf]]
-
                 self._bbox_normalize(boxes, shape)
                 meta_frame = data.get_meta_frames_by_src_name(src_name)[i]
-                meta_label = MetaLabel(labels=['plate'] * len(labels[true_conf]), confidence=conf)
+                # meta_label = MetaLabel(labels=['plate'] * len(preds[i].boxes), confidence=conf)
+                meta_label = MetaLabel(labels=labels, confidence=conf)
 
                 meta_frame.add_meta(MetaName.META_BBOX.value, MetaBBox(boxes, meta_label))
 
