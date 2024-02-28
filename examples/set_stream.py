@@ -44,7 +44,7 @@ def get_muxer(readers: List[ReaderBase]) -> SourceMuxer:
 
 def get_detection_model(name: str, model: torch.nn.Module, sources: List[ReaderBase], classes: List[str],
                         transforms: list = None,
-                        confidence: float = 0.25) -> ModelDetection:
+                        confidence: float = 0.5) -> ModelDetection:
     model_det = ModelDetection(name, model)
     model_det.set_labels(classes)
     for src in sources:

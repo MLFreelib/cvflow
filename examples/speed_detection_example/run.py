@@ -4,14 +4,15 @@ sys.path.append('../../components')
 from components.outer_component import DisplayComponent
 from components.painter_component import Tiler, BBoxPainter
 from components.reader_component import *
+from components.handler_component import *
 from pipeline import Pipeline
 from examples.set_stream import *
 from common.utils import *
-from models.models import yolo_large
+from models.models import yolov8
 
 if __name__ == '__main__':
     weights_path = get_weights()
-    model = yolo_large(weights_path=weights_path)
+    model = yolov8(weights=weights_path)
     device = get_device()
 
     pipeline = Pipeline()
@@ -30,16 +31,14 @@ if __name__ == '__main__':
 
     muxer = get_muxer(readers)
     model_det = get_detection_model('detection', model, sources=readers, classes=COCO_INSTANCE_CATEGORY_NAMES)
-    #lines = get_line()
-
-    #counter = get_counter('counter', lines)
     bbox_painter = BBoxPainter('bboxer')
+    speed_detector = SpeedDetector('speed_detector', base_speed=90)
 
     tiler = get_tiler('tiler', tiler_size=(2, 2), frame_size=(1440, 2160))
 
     outer = DisplayComponent('display')
 
     pipeline.set_device('cpu')
-    pipeline.add_all([muxer, model_det, bbox_painter, tiler, outer])
+    pipeline.add_all([muxer, model_det, speed_detector, bbox_painter, tiler, outer])
     pipeline.compile()
     pipeline.run()
