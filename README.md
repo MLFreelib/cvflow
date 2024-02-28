@@ -19,7 +19,7 @@ CVFlow - набор алгоритмов на основе компьютерн�
 
 3) После установки python/Anaconda откройте консоль и введите команду(В случае Anaconda необходимо вводить в созданной 
 выше среде):
-   - Для Max OS X необходимо сначала ввести:
+   - Для Mac OS X необходимо сначала ввести:
    
           brew install zbar
    - Для Linux необходимо сначала ввести:
@@ -269,9 +269,11 @@ Note: веса передаются в формате .pt для через за
 <summary><b>Классификация транспортных средств</b></summary>
 
 ### Запуск алгоритма
+   Скачайте [веса](https://drive.google.com/file/d/1A5vtooMwaz2TPBdQQWuDnV7qIg5oC8bA/view?usp=drive_link)
+
     python3 examples/objects_counter_example/line_gui.py -v <video_file> -n <path_to_config_file>
 
-    python3 -m examples/objects_counter_example/run.py --videofile <path_to_video> -l <path_to_config_file> -w <path_to_weights>
+    python3 -m examples.objects_counter_example.run --videofile <path_to_video> -l <path_to_config_file> -w <path_to_weights>
 
 
 ### Об алгоритме
@@ -337,8 +339,9 @@ Note: веса передаются в формате .pt для через за
 <summary><b>Определения скорости объектов по видеопотоку</b></summary>
 
 ### Запуск алгоритма
+Скачайте веса: [веса для speed_detection](https://drive.google.com/file/d/1A5vtooMwaz2TPBdQQWuDnV7qIg5oC8bA/view?usp=drive_link)
+python3 -m examples.speed_detection_example.run --videofile <path_to_video> -w <path_to_weights>
 
-python3 -m examples/speed_detection_example/run.py --videofile <path_to_video> -w <path_to_weights>
 
 ### Об алгоритме
 
