@@ -1,6 +1,3 @@
-import sys
-
-sys.path.append('../../components')
 from components.outer_component import DisplayComponent
 from components.painter_component import Tiler, BBoxPainter
 from components.reader_component import *
