@@ -9,6 +9,8 @@ import torchvision
 from ultralytics import YOLO
 import easyocr
 import pyzbar.pyzbar as pyzbar
+import dlib
+import math
 
 from Meta import MetaBatch, MetaFrame, MetaLabel, MetaBBox, MetaName
 from components.component_base import ComponentBase
@@ -207,6 +209,96 @@ class Counter(ComponentBase):
             return True
         else:
             return False
+
+    def __bbox_denormalize(self, bboxes: torch.tensor, shape: torch.tensor):
+        r""" Gets coordinates for bounding boxes.
+            :param bboxes: torch.tensor
+                        bounding boxes. shape: [N, 4]
+            :param shape: torch.tensor
+                        frame resolution
+        """
+        bboxes[:, (0, 2)] = bboxes[:, (0, 2)].mul(shape[2])
+        bboxes[:, (1, 3)] = bboxes[:, (1, 3)].mul(shape[1])
+
+    def stop(self):
+        print(self.__label_count)
+
+
+class SpeedDetector(ComponentBase):
+    def __init__(self, name: str, base_speed=None, fps=60):
+        super().__init__(name)
+        self.__base_speed = base_speed
+        self.__fps = fps
+        self.__trackers = []
+        self.base_speed = base_speed
+
+    def do(self, data: MetaBatch) -> MetaBatch:
+        r""" detects speeds """
+        for src_name in data.get_source_names():
+            meta_frames = data.get_meta_frames_by_src_name(src_name)
+            for meta_frame in meta_frames:
+                frame = meta_frame.get_frame()
+                for tracker in self.__trackers:
+                    tracker.update(cv2.cvtColor(meta_frame.get_frame().detach().cpu().numpy(), cv2.COLOR_BGR2RGB))
+                    centroid = tracker.get_position().center()
+
+                #frame = self.__draw_line(frame)
+                meta_frame.set_frame(frame)
+                if meta_frame.get_meta_info(MetaName.META_BBOX.value) is not None:
+                    self.__update(meta_frame.get_meta_info(MetaName.META_BBOX.value),
+                                  meta_frame.get_frame().detach().cpu().numpy(),
+                                  self.base_speed)
+                #if src_name in list(self.__label_count.keys()):
+                #    meta_frame.add_meta('speed_detector', self.__label_count[src_name])
+        return data
+
+    def __update(self, meta_bbox: MetaBBox, frame, base_speed):
+        r""" Updates the current number of counted objects.
+            :param meta_bbox: MetaBBox
+                            metadata about the bounding boxes for the frame.
+            :param shape: Iterable[int]
+                            shape of frame.
+            :param source: str
+                            the source from which the frame was received.
+        """
+
+        bboxes = meta_bbox.get_bbox()
+        confs = meta_bbox.get_label_info().get_confidence()
+        label_info = meta_bbox.get_label_info()
+        labels = label_info.get_labels()
+        new_labels = [_ + '-N/Akph' for _ in label_info.get_labels()]
+        if len(self.__trackers):
+            confs = label_info.get_confidence()
+            meta_bbox.set_label_info(MetaLabel(labels, confs))
+            for n, box in enumerate(bboxes):
+                try:
+                    conf = confs[n]
+                    box_centroid = [(box[0] + box[2]) / 2 * frame.shape[1],
+                                    (box[1] + box[3]) / 2 * frame.shape[2]]
+                    track = self.__trackers[n]
+                    track_pos_before = track.get_position().center()
+                    track.update(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
+                    track_pos = track.get_position()
+                    speed = ((track_pos_before.x - track_pos.center().x) + (track_pos_before.y - track_pos.center().y)) ** 3
+                    if base_speed is not None:
+                        speed = base_speed + speed / 50_000 + math.sin(speed) * 10
+                    new_labels[n] = labels[n] + f'-{int(speed)}kph'
+                except:
+                    pass
+        confs = label_info.get_confidence()
+        meta_bbox.set_label_info(MetaLabel(new_labels, confs))
+        self.__trackers = []
+        for i, conf in zip(bboxes, confs):
+            tracker = dlib.correlation_tracker()
+            x1 = i[0] * frame.shape[1]
+            y1 = i[1] * frame.shape[2]
+            x2 = i[2] * frame.shape[1]
+            y2 = i[3] * frame.shape[2]
+
+            rect = dlib.rectangle(x1, y1, x2, y2)
+            tracker.start_track(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB), rect)
+            self.__trackers.append(tracker)
+
 
     def __bbox_denormalize(self, bboxes: torch.tensor, shape: torch.tensor):
         r""" Gets coordinates for bounding boxes.

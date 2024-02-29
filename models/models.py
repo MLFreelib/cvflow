@@ -60,6 +60,22 @@ class YOLOBuilder(ModelBuilder):
         return out
 
 
+class YOLOv8Builder(ModelBuilder):
+    def forward(self, imgs):
+        out = []
+        batch_size = imgs.shape[0]
+        x = preprocess_for_YOLO(imgs[0], device=self.device)
+        self.count += 1
+        self.in_block.to(self.device)
+        self.backbone.to(self.device)
+        self.out_block.to(self.device)
+        x = self.backbone(x)
+        for i in x:
+            out.append({'boxes': i.boxes.xyxy,
+                        'labels': i.boxes.cls,
+                        'scores': i.boxes.conf})
+        return out
+
 # ResNet
 
 
@@ -193,7 +209,7 @@ def ganet(weights = None):
 
 
 def yolov8(weights=None):
-    return ModelBuilder(
+    return YOLOv8Builder(
         input_block=Block(1, 1),
         backbone=YOLO(weights),
         output_block=Block(1, 1),
