@@ -81,7 +81,6 @@ class YOLOHead(nn.Module):
         self.na = len(anchors[0]) // 2  # number of anchors
         self.grid = [torch.zeros(1)] * self.nl  # init grid
         self.anchor_grid = [torch.zeros(1)] * self.nl  # init anchor grid
-        print(self.no, self.na, self.no * self.na)
         self.register_buffer('anchors', torch.tensor(anchors).float().view(self.nl, -1, 2))  # shape(nl,na,2)
         self.m = nn.ModuleList(nn.Conv2d(x, self.no * self.na, 1) for x in ch)  # output conv
         self.inplace = inplace  # use in-place ops (e.g. slice assignment)
@@ -140,13 +139,10 @@ class YOLOHead(nn.Module):
         weight_index = self.weight_index
         self.m[0].weight = nn.Parameter(self.weights[weights_list[weight_index]])
         self.m[0].bias = nn.Parameter(self.weights[weights_list[weight_index + 1]])
-        print('SHAPE(0)', self.m[0].weight.shape, self.m[0].bias.shape)
         self.m[1].weight = nn.Parameter(self.weights[weights_list[weight_index + 2]])
         self.m[1].bias = nn.Parameter(self.weights[weights_list[weight_index + 3]])
-        print('SHAPE(1)', self.m[1].weight.shape, self.m[1].bias.shape)
         self.m[2].weight = nn.Parameter(self.weights[weights_list[weight_index + 4]])
         self.m[2].bias = nn.Parameter(self.weights[weights_list[weight_index + 5]])
-        print('SHAPE(2)', self.m[2].weight.shape, self.m[2].bias.shape)
         weight_index += 6
 
 
