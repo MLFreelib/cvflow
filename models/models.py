@@ -186,12 +186,13 @@ def mobilestereonet(weights = None, is_train=False, device='cuda'):
     model =  ModelBuilder(
         input_block=input_block,
         backbone=backbone,
-        output_block=output_block
+        output_block=output_block,
+        device=device
     )
-    torch.nn.DataParallel(model)
+    torch.nn.DataParallel(model, device_ids=[0])
     return model
 
-def ganet(weights = None):
+def ganet(weights = None,  is_train=False, device='cuda'):
     input_block = GANetInputBlock()
     backbone = GANetBackbone()
     output_block = GANetOutputBlock()
@@ -202,7 +203,8 @@ def ganet(weights = None):
     model =  ModelBuilder(
         input_block=input_block,
         backbone=backbone,
-        output_block=output_block
+        output_block=output_block,
+        device=device
     )
     torch.nn.DataParallel(model)
     return model
@@ -227,10 +229,12 @@ def plates_model(yolo_checkpoint, crnn_checkpoint):#, device='cpu'):
 
 def unet(weights=None, device='cpu'):
     model = torch.load(weights, map_location=torch.device(device))
+    model.to(device)
     model.eval()
     return ModelBuilder(
         input_block=Block(1, 1),
         backbone=model,
         output_block=Block(1, 1),
+        device=device
     )
 
