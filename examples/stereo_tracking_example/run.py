@@ -62,7 +62,7 @@ if __name__ == '__main__':
     args = vars(ap.parse_args())
     checkpoint = torch.load(args['weights'],
                             map_location=torch.device(args['device']))['model']
-    model = mobilestereonet(checkpoint)
+    model = mobilestereonet(checkpoint, device=args['device'])
     model = torch.nn.DataParallel(model)
     pipeline = Pipeline()
 

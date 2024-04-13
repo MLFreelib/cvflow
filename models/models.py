@@ -2,7 +2,6 @@ import os
 from typing import Union
 
 from ultralytics import YOLO
-
 from models.blocks import *
 from models.defects.blocks import OutBlock
 from models.defects.ssd300 import SSD300
@@ -175,7 +174,7 @@ def defects_model(path_to_templates=None, emb_size: int = 512, weights=None, is_
         output_block=OutBlock(-1, -1).to(device)
     )
 
-def mobilestereonet(weights = None, is_train=False, device='cuda'):
+def mobilestereonet(weights = None, is_train=False, device='cpu'):
     input_block = MobileStereoNetInputBlock()
     backbone = MobileStereoNetBackbone(training=is_train)
     output_block = DepthOutput(training=is_train)
@@ -189,7 +188,7 @@ def mobilestereonet(weights = None, is_train=False, device='cuda'):
         output_block=output_block,
         device=device
     )
-    torch.nn.DataParallel(model, device_ids=[0])
+    torch.nn.DataParallel(model)
     return model
 
 def ganet(weights = None,  is_train=False, device='cuda'):
@@ -229,7 +228,6 @@ def plates_model(yolo_checkpoint, crnn_checkpoint):#, device='cpu'):
 
 def unet(weights=None, device='cpu'):
     model = torch.load(weights, map_location=torch.device(device))
-    model.to(device)
     model.eval()
     return ModelBuilder(
         input_block=Block(1, 1),
