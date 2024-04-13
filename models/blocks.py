@@ -37,7 +37,8 @@ class ResNetInputBlock(Block):
     def __init__(self, in_channels, out_channels, activation=nn.ReLU):
         super().__init__(in_channels, out_channels)
         self._block = nn.Sequential(
-            nn.Conv2d(in_channels, out_channels, kernel_size=7, stride=2, padding=3, bias=False),
+            nn.Conv2d(in_channels, out_channels, kernel_size=7,
+                      stride=2, padding=3, bias=False),
             nn.BatchNorm2d(out_channels),
             activation(),
             nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
@@ -81,8 +82,10 @@ class YOLOHead(nn.Module):
         self.na = len(anchors[0]) // 2  # number of anchors
         self.grid = [torch.zeros(1)] * self.nl  # init grid
         self.anchor_grid = [torch.zeros(1)] * self.nl  # init anchor grid
-        self.register_buffer('anchors', torch.tensor(anchors).float().view(self.nl, -1, 2))  # shape(nl,na,2)
-        self.m = nn.ModuleList(nn.Conv2d(x, self.no * self.na, 1) for x in ch)  # output conv
+        self.register_buffer('anchors', torch.tensor(
+            anchors).float().view(self.nl, -1, 2))  # shape(nl,na,2)
+        self.m = nn.ModuleList(nn.Conv2d(x, self.no * self.na, 1)
+                               for x in ch)  # output conv
         self.inplace = inplace  # use in-place ops (e.g. slice assignment)
         self.stride = torch.tensor([8., 16., 32.])
         self.weights = None
@@ -105,16 +108,21 @@ class YOLOHead(nn.Module):
         for i in range(self.nl):
             x[i] = self.m[i](x[i])  # conv
             bs, _, ny, nx = x[i].shape  # x(bs,255,20,20) to x(bs,3,20,20,85)
-            x[i] = x[i].view(bs, self.na, self.no, ny, nx).permute(0, 1, 3, 4, 2).contiguous()
+            x[i] = x[i].view(bs, self.na, self.no, ny, nx).permute(
+                0, 1, 3, 4, 2).contiguous()
             if not self.training:  # inference
                 if self.grid[i].shape[2:4] != x[i].shape[2:4]:
-                    self.grid[i], self.anchor_grid[i] = self._make_grid(nx, ny, i)
+                    self.grid[i], self.anchor_grid[i] = self._make_grid(
+                        nx, ny, i)
                 y = x[i].sigmoid()
                 if self.inplace:
-                    y[..., 0:2] = (y[..., 0:2] * 2 + self.grid[i]) * self.stride[i]  # xy
-                    y[..., 2:4] = (y[..., 2:4] * 2) ** 2 * self.anchor_grid[i]  # wh
+                    y[..., 0:2] = (y[..., 0:2] * 2 + self.grid[i]
+                                   ) * self.stride[i]  # xy
+                    y[..., 2:4] = (y[..., 2:4] * 2) ** 2 * \
+                        self.anchor_grid[i]  # wh
                 else:  # for YOLOv5 on AWS Inferentia https://github.com/ultralytics/yolov5/pull/2953
-                    xy, wh, conf = y.split((2, 2, self.nc + 1), 4)  # y.tensor_split((2, 4, 5), 4)  # torch 1.8.0
+                    # y.tensor_split((2, 4, 5), 4)  # torch 1.8.0
+                    xy, wh, conf = y.split((2, 2, self.nc + 1), 4)
                     xy = (xy * 2 + self.grid[i]) * self.stride[i]  # xy
                     wh = (wh * 2) ** 2 * self.anchor_grid[i]  # wh
                     y = torch.cat((xy, wh, conf), 4)
@@ -125,9 +133,11 @@ class YOLOHead(nn.Module):
     def _make_grid(self, nx=20, ny=20, i=0):
         d = self.anchors[i].device
         shape = 1, self.na, ny, nx, 2
-        yv, xv = torch.meshgrid(torch.arange(ny, device=d), torch.arange(nx, device=d))
+        yv, xv = torch.meshgrid(torch.arange(
+            ny, device=d), torch.arange(nx, device=d))
         grid = torch.stack((xv, yv), 2).expand(shape) - 0.5
-        anchor_grid = (self.anchors[i] * self.stride[i]).view((1, self.na, 1, 1, 2)).expand(shape).float()
+        anchor_grid = (self.anchors[i] * self.stride[i]
+                       ).view((1, self.na, 1, 1, 2)).expand(shape).float()
         return grid, anchor_grid
 
     def import_weights(self, weights=None, weights_path=None):
@@ -137,12 +147,18 @@ class YOLOHead(nn.Module):
             self.weights = torch.load(weights_path)
         weights_list = [_ for _ in self.weights]
         weight_index = self.weight_index
-        self.m[0].weight = nn.Parameter(self.weights[weights_list[weight_index]])
-        self.m[0].bias = nn.Parameter(self.weights[weights_list[weight_index + 1]])
-        self.m[1].weight = nn.Parameter(self.weights[weights_list[weight_index + 2]])
-        self.m[1].bias = nn.Parameter(self.weights[weights_list[weight_index + 3]])
-        self.m[2].weight = nn.Parameter(self.weights[weights_list[weight_index + 4]])
-        self.m[2].bias = nn.Parameter(self.weights[weights_list[weight_index + 5]])
+        self.m[0].weight = nn.Parameter(
+            self.weights[weights_list[weight_index]])
+        self.m[0].bias = nn.Parameter(
+            self.weights[weights_list[weight_index + 1]])
+        self.m[1].weight = nn.Parameter(
+            self.weights[weights_list[weight_index + 2]])
+        self.m[1].bias = nn.Parameter(
+            self.weights[weights_list[weight_index + 3]])
+        self.m[2].weight = nn.Parameter(
+            self.weights[weights_list[weight_index + 4]])
+        self.m[2].bias = nn.Parameter(
+            self.weights[weights_list[weight_index + 5]])
         weight_index += 6
 
 
@@ -156,7 +172,8 @@ class ResidualBlock(Block):
 
     def forward(self, x):
         residual = x
-        if self.should_apply_shortcut: residual = self.shortcut(x)
+        if self.should_apply_shortcut:
+            residual = self.shortcut(x)
         x = self.blocks(x)
         x += residual
         return x
@@ -200,9 +217,11 @@ class ResNetBasicBlock(ResNetResidualBlock):
         super().__init__(in_channels, out_channels, *args, **kwargs)
         self.relu = activation
         self.blocks = nn.Sequential(
-            self.conv_bn(self.in_channels, self.out_channels, conv=self.conv, bias=False, stride=self.downsampling),
+            self.conv_bn(self.in_channels, self.out_channels,
+                         conv=self.conv, bias=False, stride=self.downsampling),
             self.relu(),
-            self.conv_bn(self.out_channels, self.expanded_channels, conv=self.conv, bias=False),
+            self.conv_bn(self.out_channels, self.expanded_channels,
+                         conv=self.conv, bias=False),
         )
 
 
@@ -210,13 +229,17 @@ class ResNetBottleNeckBlock(ResNetResidualBlock):
     expansion = 4
 
     def __init__(self, in_channels, out_channels, activation=nn.ReLU, *args, **kwargs):
-        super().__init__(in_channels=in_channels, out_channels=out_channels, expansion=self.expansion, *args, **kwargs)
+        super().__init__(in_channels=in_channels, out_channels=out_channels,
+                         expansion=self.expansion, *args, **kwargs)
         self.blocks = nn.Sequential(
-            self.conv_bn(self.in_channels, self.out_channels, self.conv, kernel_size=1),
+            self.conv_bn(self.in_channels, self.out_channels,
+                         self.conv, kernel_size=1),
             activation(),
-            self.conv_bn(self.out_channels, self.out_channels, self.conv, kernel_size=3, stride=self.downsampling),
+            self.conv_bn(self.out_channels, self.out_channels,
+                         self.conv, kernel_size=3, stride=self.downsampling),
             activation(),
-            self.conv_bn(self.out_channels, self.expanded_channels, self.conv, kernel_size=1),
+            self.conv_bn(self.out_channels, self.expanded_channels,
+                         self.conv, kernel_size=1),
         )
 
 
@@ -227,7 +250,8 @@ class ResNetLayer(Block):
         downsampling = 2 if in_channels != out_channels else 1
 
         self._block = nn.Sequential(
-            block(in_channels, out_channels, *args, **kwargs, downsampling=downsampling),
+            block(in_channels, out_channels, *args, **
+                  kwargs, downsampling=downsampling),
             *[block(out_channels * block.expansion,
                     out_channels, downsampling=1, *args, **kwargs) for _ in range(n - 1)]
         )
@@ -296,7 +320,8 @@ class Conv(nn.Module):
         # nn.BatchNorm2d(c2, eps=0.001, momentum=0.03, affine=True, track_running_stats=True),
 
         self.layers = nn.Sequential(
-            nn.Conv2d(c1, c2, kernel_size=k, stride=s, padding=p, bias=False, groups=g),
+            nn.Conv2d(c1, c2, kernel_size=k, stride=s,
+                      padding=p, bias=False, groups=g),
             nn.BatchNorm2d(c2),
             nn.SiLU(inplace=True)
         )
@@ -314,7 +339,8 @@ class YOLOConv(nn.Module):
         self.shortcut = shortcut
         self.outs = outs
         self.layers = nn.Sequential(
-            nn.Conv2d(c1, c2, kernel_size=k, stride=s, padding=p, bias=False, groups=g),
+            nn.Conv2d(c1, c2, kernel_size=k, stride=s,
+                      padding=p, bias=False, groups=g),
             nn.BatchNorm2d(c2),
             nn.SiLU(inplace=True)
         )
@@ -362,7 +388,8 @@ class CSPBottleneck(nn.Module):
         self.shortcut = shortcut
         self.outs = outs
         self.bn = bottlenecks_n
-        self.m = nn.Sequential(*(Bottleneck(h, h, e=1, shortcut=bs) for _ in range(bottlenecks_n)))
+        self.m = nn.Sequential(*(Bottleneck(h, h, e=1, shortcut=bs)
+                               for _ in range(bottlenecks_n)))
 
     def forward(self, x):
         x1 = self.cv1(x)
@@ -415,7 +442,8 @@ class YOLOLayer(Block):
         downsampling = 2 if in_channels != out_channels else 1
         layers = []
         if not save_bn:
-            conv = YOLOConv(in_channels, out_channels, k=k, s=s, p=p, shortcut=shortcut, outs=out)
+            conv = YOLOConv(in_channels, out_channels, k=k,
+                            s=s, p=p, shortcut=shortcut, outs=out)
         else:
             conv = YOLOConv(in_channels, out_channels, k=k, s=s, p=p)
         layers.append(conv)
@@ -450,7 +478,8 @@ class CSPDarknet(Block):
         c2_sizes = list(blocks_sizes[1:])
         c2_sizes.append(out_channels)
         self._block = nn.Sequential(
-            YOLOConv(in_channels, blocks_sizes[0], k=in_kernel, s=in_stride, p=in_padding),
+            YOLOConv(in_channels, blocks_sizes[0],
+                     k=in_kernel, s=in_stride, p=in_padding),
             *[YOLOLayer(i[0], i[1], self.skip_outs, k=i[2], s=i[3], p=i[4], bottlenecks_n=i[5], shortcut=i[6],
                         out=self.skip_outs, save_bn=True)
               for i in zip(blocks_sizes, c2_sizes, kernels, strides, paddings, bottlenecks, shortcuts)],
@@ -467,42 +496,62 @@ class CSPDarknet(Block):
         weights_list = [_ for _ in self.weights]
         for layer in self._block:
             if isinstance(layer, Conv):
-                layer.layers[0].weight = nn.Parameter(self.weights[weights_list[weight_index]])
-                layer.layers[0].bias = nn.Parameter(self.weights[weights_list[weight_index + 1]])
+                layer.layers[0].weight = nn.Parameter(
+                    self.weights[weights_list[weight_index]])
+                layer.layers[0].bias = nn.Parameter(
+                    self.weights[weights_list[weight_index + 1]])
                 conv_index += 1
                 weight_index += 2
             if isinstance(layer, YOLOConv):
-                layer.layers[0].weight = nn.Parameter(self.weights[weights_list[weight_index]])
-                layer.layers[0].bias = nn.Parameter(self.weights[weights_list[weight_index + 1]])
+                layer.layers[0].weight = nn.Parameter(
+                    self.weights[weights_list[weight_index]])
+                layer.layers[0].bias = nn.Parameter(
+                    self.weights[weights_list[weight_index + 1]])
                 conv_index += 1
                 weight_index += 2
             if isinstance(layer, SPP):
-                layer.cv1.layers[0].weight = nn.Parameter(self.weights[weights_list[weight_index]])
-                layer.cv1.layers[0].bias = nn.Parameter(self.weights[weights_list[weight_index + 1]])
-                layer.cv2.layers[0].weight = nn.Parameter(self.weights[weights_list[weight_index + 2]])
-                layer.cv2.layers[0].bias = nn.Parameter(self.weights[weights_list[weight_index + 3]])
+                layer.cv1.layers[0].weight = nn.Parameter(
+                    self.weights[weights_list[weight_index]])
+                layer.cv1.layers[0].bias = nn.Parameter(
+                    self.weights[weights_list[weight_index + 1]])
+                layer.cv2.layers[0].weight = nn.Parameter(
+                    self.weights[weights_list[weight_index + 2]])
+                layer.cv2.layers[0].bias = nn.Parameter(
+                    self.weights[weights_list[weight_index + 3]])
                 weight_index += 4
             if isinstance(layer, YOLOLayer):
                 for _ in layer._block:
                     if isinstance(_, YOLOConv):
 
-                        _.layers[0].weight = nn.Parameter(self.weights[weights_list[weight_index]])
-                        _.layers[0].bias = nn.Parameter(self.weights[weights_list[weight_index + 1]])
+                        _.layers[0].weight = nn.Parameter(
+                            self.weights[weights_list[weight_index]])
+                        _.layers[0].bias = nn.Parameter(
+                            self.weights[weights_list[weight_index + 1]])
                         conv_index += 1
                         weight_index += 2
                     elif isinstance(_, CSPBottleneck):
-                        _.cv1.layers[0].weight = nn.Parameter(self.weights[weights_list[weight_index]])
-                        _.cv1.layers[0].bias = nn.Parameter(self.weights[weights_list[weight_index + 1]])
-                        _.cv2.layers[0].weight = nn.Parameter(self.weights[weights_list[weight_index + 2]])
-                        _.cv2.layers[0].bias = nn.Parameter(self.weights[weights_list[weight_index + 3]])
-                        _.cv3.layers[0].weight = nn.Parameter(self.weights[weights_list[weight_index + 4]])
-                        _.cv3.layers[0].bias = nn.Parameter(self.weights[weights_list[weight_index + 5]])
+                        _.cv1.layers[0].weight = nn.Parameter(
+                            self.weights[weights_list[weight_index]])
+                        _.cv1.layers[0].bias = nn.Parameter(
+                            self.weights[weights_list[weight_index + 1]])
+                        _.cv2.layers[0].weight = nn.Parameter(
+                            self.weights[weights_list[weight_index + 2]])
+                        _.cv2.layers[0].bias = nn.Parameter(
+                            self.weights[weights_list[weight_index + 3]])
+                        _.cv3.layers[0].weight = nn.Parameter(
+                            self.weights[weights_list[weight_index + 4]])
+                        _.cv3.layers[0].bias = nn.Parameter(
+                            self.weights[weights_list[weight_index + 5]])
                         weight_index += 6
                         for i in _.m:
-                            i.cv1.layers[0].weight = nn.Parameter(self.weights[weights_list[weight_index]])
-                            i.cv1.layers[0].bias = nn.Parameter(self.weights[weights_list[weight_index + 1]])
-                            i.cv2.layers[0].weight = nn.Parameter(self.weights[weights_list[weight_index + 2]])
-                            i.cv2.layers[0].bias = nn.Parameter(self.weights[weights_list[weight_index + 3]])
+                            i.cv1.layers[0].weight = nn.Parameter(
+                                self.weights[weights_list[weight_index]])
+                            i.cv1.layers[0].bias = nn.Parameter(
+                                self.weights[weights_list[weight_index + 1]])
+                            i.cv2.layers[0].weight = nn.Parameter(
+                                self.weights[weights_list[weight_index + 2]])
+                            i.cv2.layers[0].bias = nn.Parameter(
+                                self.weights[weights_list[weight_index + 3]])
                             weight_index += 4
         self.weight_index = weight_index
 
@@ -522,10 +571,13 @@ class PANet(Block):
                   (in_channels // 2, in_channels // 4),
                   (in_channels // 2, in_channels // 2),
                   (in_channels, in_channels)]
-        self.conv1 = YOLOConv(conv_ins[0][0], conv_ins[0][1], p=0, shortcut=(1, 0), outs=self.outs)
+        self.conv1 = YOLOConv(
+            conv_ins[0][0], conv_ins[0][1], p=0, shortcut=(1, 0), outs=self.outs)
         self.upsample1 = nn.Upsample(scale_factor=2, mode='nearest')
-        self.bnc31 = CSPBottleneck(bn_ins[0][0], bn_ins[0][1], e=0.5, bottlenecks_n=bottlenecks_n, bs=False)
-        self.conv2 = YOLOConv(conv_ins[1][0], conv_ins[1][1], p=0, shortcut=(4, 0), outs=self.outs)
+        self.bnc31 = CSPBottleneck(
+            bn_ins[0][0], bn_ins[0][1], e=0.5, bottlenecks_n=bottlenecks_n, bs=False)
+        self.conv2 = YOLOConv(
+            conv_ins[1][0], conv_ins[1][1], p=0, shortcut=(4, 0), outs=self.outs)
         self.upsample2 = nn.Upsample(scale_factor=2, mode='nearest')
         self.bnc32 = CSPBottleneck(bn_ins[1][0], bn_ins[1][1], e=0.5, bottlenecks_n=bottlenecks_n, save_copy=self.bn_outs,
                                    pre_save=False, bs=False)
@@ -563,22 +615,34 @@ class PANet(Block):
         weights_list = [_ for _ in self.weights]
         for layer in self._block:
             if isinstance(layer, YOLOConv):
-                layer.layers[0].weight = nn.Parameter(self.weights[weights_list[weight_index]])
-                layer.layers[0].bias = nn.Parameter(self.weights[weights_list[weight_index + 1]])
+                layer.layers[0].weight = nn.Parameter(
+                    self.weights[weights_list[weight_index]])
+                layer.layers[0].bias = nn.Parameter(
+                    self.weights[weights_list[weight_index + 1]])
                 weight_index += 2
             if isinstance(layer, CSPBottleneck):
-                layer.cv1.layers[0].weight = nn.Parameter(self.weights[weights_list[weight_index]])
-                layer.cv1.layers[0].bias = nn.Parameter(self.weights[weights_list[weight_index + 1]])
-                layer.cv2.layers[0].weight = nn.Parameter(self.weights[weights_list[weight_index + 2]])
-                layer.cv2.layers[0].bias = nn.Parameter(self.weights[weights_list[weight_index + 3]])
-                layer.cv3.layers[0].weight = nn.Parameter(self.weights[weights_list[weight_index + 4]])
-                layer.cv3.layers[0].bias = nn.Parameter(self.weights[weights_list[weight_index + 5]])
+                layer.cv1.layers[0].weight = nn.Parameter(
+                    self.weights[weights_list[weight_index]])
+                layer.cv1.layers[0].bias = nn.Parameter(
+                    self.weights[weights_list[weight_index + 1]])
+                layer.cv2.layers[0].weight = nn.Parameter(
+                    self.weights[weights_list[weight_index + 2]])
+                layer.cv2.layers[0].bias = nn.Parameter(
+                    self.weights[weights_list[weight_index + 3]])
+                layer.cv3.layers[0].weight = nn.Parameter(
+                    self.weights[weights_list[weight_index + 4]])
+                layer.cv3.layers[0].bias = nn.Parameter(
+                    self.weights[weights_list[weight_index + 5]])
                 weight_index += 6
                 for i in layer.m:
-                    i.cv1.layers[0].weight = nn.Parameter(self.weights[weights_list[weight_index]])
-                    i.cv1.layers[0].bias = nn.Parameter(self.weights[weights_list[weight_index + 1]])
-                    i.cv2.layers[0].weight = nn.Parameter(self.weights[weights_list[weight_index + 2]])
-                    i.cv2.layers[0].bias = nn.Parameter(self.weights[weights_list[weight_index + 3]])
+                    i.cv1.layers[0].weight = nn.Parameter(
+                        self.weights[weights_list[weight_index]])
+                    i.cv1.layers[0].bias = nn.Parameter(
+                        self.weights[weights_list[weight_index + 1]])
+                    i.cv2.layers[0].weight = nn.Parameter(
+                        self.weights[weights_list[weight_index + 2]])
+                    i.cv2.layers[0].bias = nn.Parameter(
+                        self.weights[weights_list[weight_index + 3]])
                     weight_index += 4
         self.weight_index = weight_index
 
@@ -587,6 +651,8 @@ class PANet(Block):
 CHARS = '0123456789АВЕКМНОРСТУХ'
 CHAR2LABEL = {char: i + 1 for i, char in enumerate(CHARS)}
 LABEL2CHAR = {label: char for char, label in CHAR2LABEL.items()}
+
+
 class CRNN(Block):
 
     def __init__(self, in_channels, out_channels, img_height, img_width, num_class,
@@ -597,7 +663,8 @@ class CRNN(Block):
         self.cnn, (output_channel, output_height, output_width) = \
             self._cnn_backbone(in_channels, img_height, img_width, leaky_relu)
 
-        self.map_to_seq = nn.Linear(output_channel * output_height, map_to_seq_hidden)
+        self.map_to_seq = nn.Linear(
+            output_channel * output_height, map_to_seq_hidden)
 
         self.rnn1 = nn.LSTM(map_to_seq_hidden, rnn_hidden, bidirectional=True)
         self.rnn2 = nn.LSTM(2 * rnn_hidden, rnn_hidden, bidirectional=True)
@@ -622,13 +689,15 @@ class CRNN(Block):
 
             cnn.add_module(
                 f'conv{i}',
-                nn.Conv2d(input_channel, output_channel, kernel_sizes[i], strides[i], paddings[i])
+                nn.Conv2d(input_channel, output_channel,
+                          kernel_sizes[i], strides[i], paddings[i])
             )
 
             if batch_norm:
                 cnn.add_module(f'batchnorm{i}', nn.BatchNorm2d(output_channel))
 
-            relu = nn.LeakyReLU(0.2, inplace=True) if leaky_relu else nn.ReLU(inplace=True)
+            relu = nn.LeakyReLU(
+                0.2, inplace=True) if leaky_relu else nn.ReLU(inplace=True)
             cnn.add_module(f'relu{i}', relu)
 
         # size of image: (channel, height, width) = (in_channels, img_height, img_width)
@@ -665,34 +734,42 @@ class CRNN(Block):
         # det is object of type ultralytics.engine.results
         bboxes = det[0].boxes
         # bboxes is a tensor of (4, # of bboxes)
-        image = det[0].orig_img # np.ndarray
+        image = det[0].orig_img  # np.ndarray
         # get crops from image using bboxes
         crops = []
         for bbox in bboxes:
-            left, top, right, bottom = bbox.xyxy[0] # extracting coordinates]
-            crop = image[int(top):int(bottom), int(left):int(right), :] # crop image
-            crop = torch.from_numpy(crop).permute(2, 0, 1).float() # convert to tensor and permute dimensions
-            #crop = (crop / 127.5) - 1.0
+            left, top, right, bottom = bbox.xyxy[0]  # extracting coordinates]
+            crop = image[int(top):int(bottom), int(
+                left):int(right), :]  # crop image
+            # convert to tensor and permute dimensions
+            crop = torch.from_numpy(crop).permute(2, 0, 1).float()
+            # crop = (crop / 127.5) - 1.0
             # print(crop.shape)
-            crop = rgb_to_grayscale(F.resize(crop, [self.img_height, self.img_width]))
+            crop = rgb_to_grayscale(
+                F.resize(crop, [self.img_height, self.img_width]))
             crops.append(crop.unsqueeze(0))
             
+        if not crops:
+            setattr(det[0], 'labels', [])
+            return det
+        
         crops_tensor = torch.cat(crops, dim=0)
         conv = self.cnn(crops_tensor)
         batch, channel, height, width = conv.size()
 
         conv = conv.view(batch, channel * height, width)
         conv = conv.permute(2, 0, 1)  # (width, batch, feature)
-        
+
         seq = self.map_to_seq(conv)
 
         recurrent, _ = self.rnn1(seq)
         recurrent, _ = self.rnn2(recurrent)
 
-        crnn_output = self.dense(recurrent) # crnn output shape: (seq_len, batch, num_class)
+        # crnn output shape: (seq_len, batch, num_class)
+        crnn_output = self.dense(recurrent)
         log_probs = torch.nn.functional.log_softmax(crnn_output, dim=-1)
-        labels = ctc_decode(log_probs, method='beam_search', beam_size=1, label2char=LABEL2CHAR)
+        labels = ctc_decode(log_probs, method='beam_search',
+                            beam_size=1, label2char=LABEL2CHAR)
         labels = [''.join(x) for x in labels]
         setattr(det[0], 'labels', labels)  # add labels to det object
         return det
-
