@@ -22,7 +22,7 @@ git clone https://github.com/MLFreelib/cvflow.git
 **Рекомендуется использовать версию python 3.8.**
 
 2) Если в качестве установки была выбрана Anaconda, то проследуйте следующей инструкции для создания среды для работы
-[Создание среды](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html). Иначе, сосдайте виртуальную среду, используя [venv](https://docs.python.org/3/library/venv.html). 
+[Создание среды](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html). Иначе, создайте виртуальную среду, используя [venv](https://docs.python.org/3/library/venv.html). 
 
 3) После установки python/Anaconda откройте консоль и введите команду(В случае Anaconda необходимо вводить в созданной 
 выше среде):
