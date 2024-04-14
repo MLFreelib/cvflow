@@ -209,10 +209,10 @@ def ganet(weights = None,  is_train=False, device='cuda'):
     return model
 
 
-def yolov8(weights=None):
+def yolov8(weights=None, device='cpu'):
     return YOLOv8Builder(
         input_block=Block(1, 1),
-        backbone=YOLO(weights),
+        backbone=YOLO(weights).to(device),
         output_block=Block(1, 1),
     )
     
