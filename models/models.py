@@ -235,4 +235,3 @@ def unet(weights=None, device='cpu'):
         output_block=Block(1, 1),
         device=device
     )
-
