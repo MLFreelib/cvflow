@@ -10,8 +10,8 @@ from models.models import yolov8
 
 if __name__ == '__main__':
     weights_path = get_weights()
-    model = yolov8(weights=weights_path)
     device = get_device()
+    model = yolov8(weights=weights_path, device=device)
 
     pipeline = Pipeline()
 
