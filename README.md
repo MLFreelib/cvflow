@@ -136,18 +136,12 @@ python -m examples.stereo_tracking_example.run --videofile examples/stereo_track
 
 ### Запуск алгоритма
 
-  Скачать веса можно, запустив команду в терминале:
-  
-    wget "drive.google.com/u/3/uc?id=17X4zVFQedWeLAEgKkWcNiqPp2_j1xkgh&export=download&confirm=yes"
+  Скачать веса можно по [ссылке](https://drive.google.com/drive/folders/1-b0MccOAo2v6yGwBywqBCJc5MZkyUFYc?usp=drive_link) или использовать скрипт для скачивания `download_checkpoints.sh`. Убедитесь, что путь к весам: examples/checkpoints/flaws/flaws.pt
 
-
-
-  1) Скачать шаблоны для примера из [ссылка на веса]([[https://statanly.com/info/weight](https://drive.google.com/drive/folders/1-b0MccOAo2v6yGwBywqBCJc5MZkyUFYc)](https://drive.google.com/drive/folders/1YPBDpGG3spgh7J8HKUtmDJi7KX7BwNmJ?usp=sharing)) из папки "flaws" и распакуйте в examples/checkpoints/flaws/ . Название архива "templates"
-     
-  2) Пример команды для запуска:  
+   Пример команды для запуска:  
      
      
-    python -m examples.defects_example.run --images tests/test_data/flaw.jpg --weights examples/checkpoints/flaws/flaw.pt
+    python -m examples.defects_example.run --images tests/test_data/flaw.jpg --weights examples/checkpoints/flaws/flaws.pt
 
 
 ### Об алгоритме
