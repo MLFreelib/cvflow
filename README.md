@@ -140,31 +140,19 @@ python -m examples.stereo_tracking_example.run --videofile examples/stereo_track
   
     wget "drive.google.com/u/3/uc?id=17X4zVFQedWeLAEgKkWcNiqPp2_j1xkgh&export=download&confirm=yes"
 
-  Перейдя в терминале перед этим в деректорию, в которую хотите скачать веса.
 
-  Также для алгоритма потребуются шаблоны их можно скачать в той же папке, что и веса или ввести комманду:
 
-    
-
-  1) Открыть директорию со скриптом
-
-    cd examples/defects_example
-    
-  2) Скачать шаблоны для примера из [ссылка на веса]([[https://statanly.com/info/weight](https://drive.google.com/drive/folders/1-b0MccOAo2v6yGwBywqBCJc5MZkyUFYc)](https://drive.google.com/drive/folders/1YPBDpGG3spgh7J8HKUtmDJi7KX7BwNmJ?usp=sharing)) из папки "Дефекты на поверхностях" и распакуйте его куда угодно. Название архива "templates"
+  1) Скачать шаблоны для примера из [ссылка на веса]([[https://statanly.com/info/weight](https://drive.google.com/drive/folders/1-b0MccOAo2v6yGwBywqBCJc5MZkyUFYc)](https://drive.google.com/drive/folders/1YPBDpGG3spgh7J8HKUtmDJi7KX7BwNmJ?usp=sharing)) из папки "flaws" и распакуйте в examples/checkpoints/flaws/ . Название архива "templates"
      
-  4) Пример команды для запуска:  
+  2) Пример команды для запуска:  
      
-   --temppath - путь к шаблоннам, которые были скачаны из предыдущего пункта.
      
-    python run.py --images ../../tests/test_data/flaw_wood.jpg --weights ../../tests/test/checkpoint_ssd300.pth.tar --temppath <path_to_templates>
+    python -m examples.defects_example.run --images tests/test_data/flaw.jpg --weights examples/checkpoints/flaws/flaw.pt
 
 
 ### Об алгоритме
 
-    За основу алгоритма взята архитектура SSD300, в которой последний слой классификации был удален,
-    а перед слоями по предсказанию сдвигов добавлен слой для для векторного представления каждой
-    ограничивающей рамки и на основе функции ошибки TripletLoss создается векторное пространство, которое 
-    позволяет без обучения обнаруживать дефекты на различных материалах.
+    За основу алгоритма взята архитектура Yolov8, которая была обучена на 50 тысячах изображений с дефектами. 
 
 Примеры детекции
 

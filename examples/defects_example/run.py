@@ -1,5 +1,6 @@
-from models.models import defects_model
+from torchvision.transforms import Resize
 
+from models.models import defects_model, yolov8
 
 from common.utils import *
 
@@ -39,8 +40,10 @@ def get_tiler(name: str, tiler_size: tuple, frame_size: tuple = (640, 1280)) -> 
 
 
 if __name__ == '__main__':
-    model = defects_model(weights=get_weights(),
-                          path_to_templates=get_path_to_templates(), device=get_device())
+    # model = defects_model(weights=get_weights(),
+    #                       path_to_templates=get_path_to_templates(), device=get_device())
+
+    model = yolov8(weights=get_weights())
 
     pipeline = Pipeline()
 
@@ -57,17 +60,19 @@ if __name__ == '__main__':
 
     name = None
     file_srcs = get_img_srcs()
-    print(file_srcs)
     for i_file_srcs in range(len(file_srcs)):
         name = f'{file_srcs[i_file_srcs]}_{i_file_srcs}'
         readers.append(ImageReader(file_srcs[i_file_srcs], name))
 
     muxer = get_muxer(readers)
-    model_det = get_detection_model('detection', model, sources=readers,
-                                    classes=['Blue_Stain', 'Crack', 'Dead_Knot', 'Knot_missing', 'Live_Knot', 'Marrow',
-                                             'Quartzity', 'knot_with_crack', 'overgrown', 'resin'], confidence=get_confidence())
+    # 'Blue_Stain', 'Crack', 'Dead_Knot', 'Knot_missing', 'Live_Knot', 'Marrow',
+    # 'Quartzity', 'knot_with_crack', 'overgrown', 'resin'
 
-    model_det.set_transforms([torchvision.transforms.Resize((300, 300))])
+    transforms = [Resize((256, 640))]
+    model_det = get_detection_model('detection', model, sources=readers,
+                                    classes=['defect'], confidence=get_confidence(), transforms=transforms)
+
+    # model_det.set_transforms([torchvision.transforms.Resize((300, 300))])
     model_det.set_source_names([reader.get_name() for reader in readers])
     bbox_painter = BBoxPainter('bboxer')
 
