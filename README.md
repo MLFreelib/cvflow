@@ -138,7 +138,7 @@ python -m examples.stereo_tracking_example.run --videofile examples/stereo_track
 
   Скачать веса можно по [ссылке](https://drive.google.com/drive/folders/1-b0MccOAo2v6yGwBywqBCJc5MZkyUFYc?usp=drive_link) или использовать скрипт для скачивания `download_checkpoints.sh`. Убедитесь, что путь к весам: examples/checkpoints/flaws/flaws.pt
 
-   Пример команды для запуска:  
+   Выполнять код нужно из директории cvflow. Пример команды для запуска:  
      
      
     python -m examples.defects_example.run --images tests/test_data/flaw.jpg --weights examples/checkpoints/flaws/flaws.pt
@@ -230,14 +230,10 @@ Note: веса передаются в формате .pt для через за
 <summary><b>Распознавание QR и штрихкодов</b></summary>
 
 ### Запуск алгоритма
-
-  1) Открыть директорию со скриптом
-
-    cd examples/qrcode_detection
     
-  2) Пример команды для запуска:
+  Выполнять код нужно из директории cvflow. Пример команды для запуска:
   
-    python run.py --images ../../tests/test_data/qrcodes
+    python -m examples.qrcode_detection.run --images tests/test_data/qrcodes
 
 ### Об алгоритме
 
