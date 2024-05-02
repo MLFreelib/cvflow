@@ -61,9 +61,10 @@ def get_videofile_reader(path: str, name: str) -> VideoReader:
 if __name__ == '__main__':
     args = vars(ap.parse_args())
     checkpoint = torch.load(args['weights'],
-                            map_location=torch.device(args['device']))['model']
-    model = mobilestereonet(checkpoint, device=args['device'])
-    model = torch.nn.DataParallel(model)
+                            map_location=torch.device(get_device()))['model']
+    model = mobilestereonet(checkpoint, device=get_device())
+    if get_device() == 'cuda':
+        model = torch.nn.DataParallel(model)
     pipeline = Pipeline()
 
     readers = []
