@@ -63,7 +63,8 @@ if __name__ == '__main__':
     checkpoint = torch.load(args['weights'],
                             map_location=torch.device(args['device']))['model']
     model = mobilestereonet(checkpoint, device=args['device'])
-    model = torch.nn.DataParallel(model)
+    if args['device'] == 'cuda':
+        model = torch.nn.DataParallel(model)
     pipeline = Pipeline()
 
     readers = []
