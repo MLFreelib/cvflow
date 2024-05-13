@@ -151,7 +151,6 @@ class ModelBase(ComponentBase):
     def _add_to_meta(self, data: MetaBatch, predictions: list, shape: torch.Tensor, src_name: list, *args, **kwargs):
         pass
 
-
     def _get_transforms(self):
         r""" Returns a list of transformations. """
         return self.__transforms
@@ -209,6 +208,7 @@ class ModelDetection(ModelBase):
             :param shape: torch.tensor - image resolution.
             :param src_name: str - source name
         """
+
         for i in range(len(preds)):
             boxes = preds[i]['boxes'].cpu()
             labels = preds[i]['labels'].cpu().detach().numpy()
@@ -310,14 +310,14 @@ class ModelSegmentation(ModelBase):
                     values in the range from 0 to 1.
     """
 
-    def __init__(self, name: str, model: torch.nn.Module, model_name = 'deeplabv3'):
+    def __init__(self, name: str, model: torch.nn.Module, model_name='deeplabv3'):
         super().__init__(name, model)
         self.model_name = model_name
 
     def _to_inference(self, batch: torch.Tensor, *args, **kwargs):
 
         with torch.no_grad():
-            if self.model_name =='deeplabv3':
+            if self.model_name == 'deeplabv3':
                 output = self._inference(batch)['out']
                 output = torch.nn.functional.softmax(output, dim=1)
             else:
@@ -353,7 +353,6 @@ class ModelDepth(ModelBase):
     def __init__(self, name: str, model: torch.nn.Module, training=False):
         super().__init__(name, model)
 
-
     def _to_model_format(self, connected_sources: List[str], data: MetaBatch, device: str, transform,
                          calib=1017.,
                          need_calib=False, **kwargs) -> \
@@ -376,6 +375,7 @@ class ModelDepth(ModelBase):
 
         connected_sources = list(chunk(connected_sources, 2))
         size_frames = [0] * len(connected_sources)
+
         def clone_data(needed_data):
             cloned_data = needed_data.clone().to(dtype=torch.float, device=device)
             cloned_data = cloned_data.div(255)
@@ -466,6 +466,7 @@ class LiquidModel(ModelDetection):
             cloned_data = transform(cloned_data)
             src_data.append(cloned_data)
         return self._to_tensor(src_data)
+
     def _add_to_meta(self, data: MetaBatch, preds: list, shape: torch.Tensor, src_name: str, **kwargs):
         r""" Adds bounding boxes to MetaBatch.
             :param data: MetaBatch
@@ -492,5 +493,3 @@ class LiquidModel(ModelDetection):
                 meta_label = MetaLabel(labels=label_names, confidence=conf)
 
                 meta_frame.add_meta(MetaName.META_BBOX.value, MetaBBox(boxes, meta_label))
-
-

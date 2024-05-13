@@ -141,7 +141,7 @@ python -m examples.stereo_tracking_example.run --videofile examples/stereo_track
    Выполнять код нужно из директории cvflow. Пример команды для запуска:  
      
      
-    python -m examples.defects_example.run --images tests/test_data/flaw.jpg --weights examples/checkpoints/flaws/flaws.pt
+    python -m examples.defects_example.run --images tests/test_data/flaws --weights examples/checkpoints/flaws/flaws.pt
 
 
 ### Об алгоритме

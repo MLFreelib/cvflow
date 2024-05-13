@@ -127,7 +127,7 @@ class BBoxPainter(Painter):
                                                        boxes=bbox,
                                                        width=self.__font_width,
                                                        labels=full_labels,
-                                                       font='arial.ttf',
+                                                       font=os.path.join('fonts', 'arial.ttf'),
                                                        font_size=self.__font_size,
                                                        colors=self.__get_colors(labels))
 
