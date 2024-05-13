@@ -74,7 +74,7 @@ if __name__ == '__main__':
 
     # model_det.set_transforms([torchvision.transforms.Resize((300, 300))])
     model_det.set_source_names([reader.get_name() for reader in readers])
-    bbox_painter = BBoxPainter('bboxer')
+    bbox_painter = BBoxPainter('bboxer', font=get_font())
 
     tiler = get_tiler('tiler', tiler_size=get_tsize(), frame_size=get_fsize())
 

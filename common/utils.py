@@ -104,6 +104,8 @@ argparser.add_argument('-w', '--weights', required=False)
 argparser.add_argument('-n', '--num', required=False, help='Number of tracking objects')
 argparser.add_argument('--destination', required=False)
 argparser.add_argument('--config', required=False)
+argparser.add_argument('--font', required=False)
+
 
 args = vars(argparser.parse_args())
 
@@ -115,6 +117,7 @@ def get_weights():
         assert os.path.exists(weight), f'Weights path does not exist. {weight}'
     return weights_path
 
+    
 
 def get_video_file_srcs():
     return get_src('videofile')
