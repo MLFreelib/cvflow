@@ -81,10 +81,11 @@ class BBoxPainter(Painter):
                     font width
     """
 
-    def __init__(self, name: str, font_size: int = 30, font_width: int = 3):
+    def __init__(self, name: str, font_size: int = 30, font_width: int = 3, font: str = None):
         super().__init__(name)
         self.__font_size = font_size
         self.__font_width = font_width
+        self.__font = font
         self.__colors = dict()
         self.__resolution = None
 
@@ -127,7 +128,7 @@ class BBoxPainter(Painter):
                                                        boxes=bbox,
                                                        width=self.__font_width,
                                                        labels=full_labels,
-                                                       font=os.path.join('fonts', 'arial.ttf'),
+                                                       font=self.__font,
                                                        font_size=self.__font_size,
                                                        colors=self.__get_colors(labels))
 
