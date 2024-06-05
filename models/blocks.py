@@ -648,7 +648,8 @@ class PANet(Block):
 
 
 # fixed constants for plates model
-CHARS = '0123456789АВЕКМНОРСТУХ'
+# CHARS = '0123456789АВЕКМНОРСТУХ'
+CHARS = '0123456789ABEKMHOPCTYX'
 CHAR2LABEL = {char: i + 1 for i, char in enumerate(CHARS)}
 LABEL2CHAR = {label: char for char, label in CHAR2LABEL.items()}
 
