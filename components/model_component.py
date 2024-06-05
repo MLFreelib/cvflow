@@ -258,11 +258,11 @@ class ModelDetectionDiffLabels(ModelDetection):
             if np.any(true_conf):
                 conf = conf[true_conf]
                 boxes = boxes[true_conf]
+                labels = np.array(labels)[true_conf]
                 self._bbox_normalize(boxes, shape)
                 meta_frame = data.get_meta_frames_by_src_name(src_name)[i]
                 # meta_label = MetaLabel(labels=['plate'] * len(preds[i].boxes), confidence=conf)
                 meta_label = MetaLabel(labels=labels, confidence=conf)
-
                 meta_frame.add_meta(MetaName.META_BBOX.value, MetaBBox(boxes, meta_label))
 
 
