@@ -37,6 +37,12 @@ git clone https://github.com/MLFreelib/cvflow.git
 
          pip install -r requirements.txt
 
+    Альтернативно зависимости можно установить через poetry:
+    
+        pip install poetry==1.8.2
+
+        poetry install
+
 4) Для использования алгоритмов на видеокарте введите команду указанную на сайте в соответствии вашим
 требованиям [Официальный сайт PyTorch](https://pytorch.org/get-started/locally/)
 
