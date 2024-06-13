@@ -52,7 +52,7 @@ git clone https://github.com/MLFreelib/cvflow.git
 <summary><b>Определение положения объектов в пространстве и расстояния между ними</b></summary>
 
 ### Запуск алгоритма
-  Скачайте веса модели стереозрения из директории "stereo" на [диске](https://drive.google.com/drive/folders/1_x61eikAcR3PCp4cjxzU5OedUirlHN1t?usp=drive_link) и поместите её в директорию examples/checkpoints для корректного запуска примера.
+  Скачайте веса модели стереозрения из директории "stereo" на [диске](https://statanly.com/info/weight) и поместите её в директорию examples/checkpoints для корректного запуска примера.
   
 Запустите файл  run.py для демонстрации примера. В качестве аргументов необходимо указать путь к файлам источников данных через запятую (не менее двух). Можно использовать данные из папки stereo_tracking_example/data.
 
