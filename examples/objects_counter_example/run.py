@@ -4,14 +4,14 @@ from components.outer_component import DisplayComponent
 from components.painter_component import Tiler, BBoxPainter
 from components.reader_component import *
 from pipeline import Pipeline
-from set_stream import *
+from examples.set_stream import *
 from common.utils import *
-from models.models import yolo_large
+from models.models import yolov8
 
 if __name__ == '__main__':
     weights_path = get_weights()
-    model = yolo_large(weights_path=weights_path)
     device = get_device()
+    model = yolov8(weights=weights_path)
 
     pipeline = Pipeline()
 
