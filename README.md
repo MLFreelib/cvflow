@@ -330,8 +330,9 @@ Note: веса передаются в формате .pt для через за
 
 ### Запуск алгоритма
 Скачайте веса: [веса для speed_detection](https://drive.google.com/file/d/1A5vtooMwaz2TPBdQQWuDnV7qIg5oC8bA/view?usp=drive_link)
+```
 python3 -m examples.speed_detection_example.run --videofile <path_to_video> -w <path_to_weights>
-
+```
 
 ### Об алгоритме
 
