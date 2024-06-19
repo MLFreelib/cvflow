@@ -175,7 +175,7 @@ CRNN для распознавания текстовых последовате
 ### Запуск алгоритма
 
 ```python
-python -m examples.plates_example.run --videofile <path_to_video> --weights <path_to_yolo_weights>,<path_to_crnn_weights>
+python -m examples.plates_example.run --videofile examples/checkpoints/plates/test_video.avi --weights examples/checkpoints/plates/yolo.pt,examples/checkpoints/plates/crnn.pt
 ```
 Note: веса передаются в формате .pt для через запятую. Первым идет файл весов для детектора – yolo.
 По умолчанию используются веса из папки `examples/checkpoints/plates`.
