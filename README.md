@@ -260,10 +260,10 @@ Note: веса передаются в формате .pt для через за
 
 ### Запуск алгоритма
    Скачайте [веса](https://drive.google.com/file/d/1A5vtooMwaz2TPBdQQWuDnV7qIg5oC8bA/view?usp=drive_link)
+ 
+    python3 examples/objects_counter_example/line_gui.py -v "examples/checkpoints/objects_counter and speed_detection/cvflow_test.mp4" -n <path_to_config_file>
 
-    python3 examples/objects_counter_example/line_gui.py -v <video_file> -n <path_to_config_file>
-
-    python3 -m examples.objects_counter_example.run --videofile <path_to_video> -l <path_to_config_file> -w <path_to_weights>
+    python3 -m examples.objects_counter_example.run --videofile "examples/checkpoints/objects_counter and speed_detection/cvflow_test.mp4" -l "examples/checkpoints/objects_counter and speed_detection/conf" -w "examples/checkpoints/objects_counter and speed_detection/yolo_for_opencv.pt"
 
 
 ### Об алгоритме
@@ -331,13 +331,13 @@ Note: веса передаются в формате .pt для через за
 ### Запуск алгоритма
 Скачайте веса: [веса для speed_detection](https://drive.google.com/file/d/1A5vtooMwaz2TPBdQQWuDnV7qIg5oC8bA/view?usp=drive_link)
 ```
-python3 -m examples.speed_detection_example.run --videofile <path_to_video> -w <path_to_weights>
+python3 -m examples.speed_detection_example.run --videofile "examples/checkpoints/objects_counter and speed_detection/cvflow_test.mp4" -w "examples/checkpoints/objects_counter and speed_detection/yolo_for_opencv.pt"
 ```
 
 ### Об алгоритме
 
     Модуль использует несколько различных алгоритмов компьютерного зрения для подсчёта скорости объекта: нейронную 
-    сеть yolov5, состоящую из 367 слоёв и содержащую свыше 46 миллионов параметров, трекер объектов SORT для 
+    сеть yolov5, состоящую из 367 слоёв и содержащую свыше 46 миллионов параметров, трекер объектов KCF для 
     отслеживания обнаруженных объектов и сравнения положений их центроидов, а также алгоритм расчёта скорости, 
     использующий данные о положениях центроидов, заранее известные размеры объектов (ширина или длина кузова),
     также частоту кадров, размер кадра и свободный параметр, необходимый для более точной калибровки системы. 
