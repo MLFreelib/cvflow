@@ -46,6 +46,8 @@ git clone https://github.com/MLFreelib/cvflow.git
 4) Для использования алгоритмов на видеокарте введите команду указанную на сайте в соответствии вашим
 требованиям [Официальный сайт PyTorch](https://pytorch.org/get-started/locally/)
 
+5) Необходимо скачать [веса](https://disk.yandex.ru/d/Pg6UouWXJebn7w) и поместить их в cvflow/examples/checkpoints
+
 ## Список алгоритмов
 
 <details open>
