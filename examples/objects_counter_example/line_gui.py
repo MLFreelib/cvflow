@@ -66,7 +66,7 @@ if __name__ == '__main__':
     new_height = int(new_width * height / width)
     height_coef = height / new_height
     width_coef = width / new_width
-    frame = frame.resize((new_width, new_height), Image.ANTIALIAS)
+    frame = frame.resize((new_width, new_height), Image.Resampling.LANCZOS)
     image = ImageTk.PhotoImage(frame)
     canvas = Canvas(root, width=new_width, height=new_height)
     canvas.create_image(0, 0, image=image, anchor=NW)

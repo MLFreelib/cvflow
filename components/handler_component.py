@@ -9,7 +9,6 @@ import torchvision
 from ultralytics import YOLO
 import easyocr
 import pyzbar.pyzbar as pyzbar
-import dlib
 import math
 
 from Meta import MetaBatch, MetaFrame, MetaLabel, MetaBBox, MetaName
@@ -155,8 +154,6 @@ class Counter(ComponentBase):
             for line in self.__lines:
                 is_intersect = self.__check_intersect(bboxes[i].clone(), line, shape)
                 if is_intersect:
-                    print('WARNING!!! Danger in the zone')
-                    print('\a')
                     object_id = object_ids[i]
                     label = labels[i]
                     if label not in list(self.__label_count[source]['labels'].keys()):
@@ -238,28 +235,28 @@ class SpeedDetector(ComponentBase):
             meta_frames = data.get_meta_frames_by_src_name(src_name)
             for meta_frame in meta_frames:
                 frame = meta_frame.get_frame()
-                for tracker in self.__trackers:
-                    tracker.update(cv2.cvtColor(meta_frame.get_frame().detach().cpu().numpy(), cv2.COLOR_BGR2RGB))
-                    centroid = tracker.get_position().center()
+                frame_np = frame.detach().cpu().numpy()
+                frame_np = np.transpose(frame_np, (1, 2, 0))  # Преобразуем в (height, width, channels)
+                for tracker, pos_before in self.__trackers:
+                    success, box = tracker.update(cv2.cvtColor(frame_np, cv2.COLOR_BGR2RGB))
+                    if success:
+                        centroid = ((box[0] + box[2]) / 2, (box[1] + box[3]) / 2)
 
-                #frame = self.__draw_line(frame)
                 meta_frame.set_frame(frame)
                 if meta_frame.get_meta_info(MetaName.META_BBOX.value) is not None:
                     self.__update(meta_frame.get_meta_info(MetaName.META_BBOX.value),
-                                  meta_frame.get_frame().detach().cpu().numpy(),
+                                  frame_np,
                                   self.base_speed)
-                #if src_name in list(self.__label_count.keys()):
-                #    meta_frame.add_meta('speed_detector', self.__label_count[src_name])
         return data
 
     def __update(self, meta_bbox: MetaBBox, frame, base_speed):
         r""" Updates the current number of counted objects.
             :param meta_bbox: MetaBBox
                             metadata about the bounding boxes for the frame.
-            :param shape: Iterable[int]
-                            shape of frame.
-            :param source: str
-                            the source from which the frame was received.
+            :param frame: ndarray
+                            frame data in (height, width, channels).
+            :param base_speed: float
+                            base speed for calculations.
         """
 
         bboxes = meta_bbox.get_bbox()
@@ -274,31 +271,49 @@ class SpeedDetector(ComponentBase):
                 try:
                     conf = confs[n]
                     box_centroid = [(box[0] + box[2]) / 2 * frame.shape[1],
-                                    (box[1] + box[3]) / 2 * frame.shape[2]]
-                    track = self.__trackers[n]
-                    track_pos_before = track.get_position().center()
-                    track.update(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
-                    track_pos = track.get_position()
-                    speed = ((track_pos_before.x - track_pos.center().x) + (track_pos_before.y - track_pos.center().y)) ** 3
-                    if base_speed is not None:
-                        speed = base_speed + speed / 50_000 + math.sin(speed) * 10
-                    new_labels[n] = labels[n] + f'-{int(speed)}kph'
-                except:
-                    pass
+                                    (box[1] + box[3]) / 2 * frame.shape[0]]
+                    track_pos_before = self.__trackers[n][1]
+                    success, track_box = self.__trackers[n][0].update(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
+                    if success:
+                        track_pos = ((track_box[0] + track_box[2]) / 2, (track_box[1] + track_box[3]) / 2)
+                        speed = ((track_pos_before[0] - track_pos[0]) ** 2 + (track_pos_before[1] - track_pos[1]) ** 2) ** 0.5
+                        if base_speed is not None:
+                            speed = base_speed + speed / 50_000 + math.sin(speed) * 10
+                        new_labels[n] = labels[n] + f'-{int(speed)}kph'
+                        self.__trackers[n][1] = track_pos
+                except Exception as e:
+                    print(e)
         confs = label_info.get_confidence()
         meta_bbox.set_label_info(MetaLabel(new_labels, confs))
         self.__trackers = []
         for i, conf in zip(bboxes, confs):
-            tracker = dlib.correlation_tracker()
-            x1 = i[0] * frame.shape[1]
-            y1 = i[1] * frame.shape[2]
-            x2 = i[2] * frame.shape[1]
-            y2 = i[3] * frame.shape[2]
+            tracker = cv2.TrackerKCF_create()
+            x1 = int(i[0] * frame.shape[1])
+            y1 = int(i[1] * frame.shape[0])
+            x2 = int(i[2] * frame.shape[1])
+            y2 = int(i[3] * frame.shape[0])
 
-            rect = dlib.rectangle(x1, y1, x2, y2)
-            tracker.start_track(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB), rect)
-            self.__trackers.append(tracker)
+            # Корректировка координат, чтобы они находились в пределах изображения
+            x1 = max(0, min(x1, frame.shape[1] - 1))
+            y1 = max(0, min(y1, frame.shape[0] - 1))
+            x2 = max(0, min(x2, frame.shape[1] - 1))
+            y2 = max(0, min(y2, frame.shape[0] - 1))
 
+            # Дополнительная проверка и корректировка, чтобы высота и ширина были корректны
+            if x2 <= x1:
+                x2 = x1 + 1
+            if y2 <= y1:
+                y2 = y1 + 1
+
+            # Проверка, что ширина и высота не равны нулю
+            if x2 - x1 > 0 and y2 - y1 > 0:
+                rect = (x1, y1, x2 - x1, y2 - y1)
+                # Отладочная информация
+                print(f"Initializing tracker with rect: {rect}, frame shape: {frame.shape}")
+                tracker.init(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB), rect)
+                self.__trackers.append([tracker, (x1, y1)])
+            else:
+                print(f"Invalid bounding box dimensions after correction: {(x1, y1, x2 - x1, y2 - y1)}")
 
     def __bbox_denormalize(self, bboxes: torch.tensor, shape: torch.tensor):
         r""" Gets coordinates for bounding boxes.
