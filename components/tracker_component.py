@@ -43,12 +43,13 @@ class TrackerBase(ComponentBase):
 class ManualROICorrelationBasedTracker(TrackerBase):
     r""" Gets bboxes, tracks objects and calculate distance between. """
 
-    def __init__(self, name: str, boxes):
+    def __init__(self, name: str, boxes, tracker_type: str = 'KCF'):
         super().__init__(name)
         self.trackers = []
         self.ids = []
         self.boxes = boxes
         self.start_bb_not_set = True
+        self.tracker_type = tracker_type
 
     def set_labels(self, labels: List[str]):
         self.__label_names = labels
@@ -63,6 +64,25 @@ class ManualROICorrelationBasedTracker(TrackerBase):
         bboxes[:, (0, 2)] = bboxes[:, (0, 2)].div(shape[3])
         bboxes[:, (1, 3)] = bboxes[:, (1, 3)].div(shape[2])
         return bboxes
+
+    def __get_tracker(self, tracker_type):
+
+        if tracker_type == 'BOOSTING':
+            return cv2.legacy.TrackerBoosting_create()
+        if tracker_type == 'MIL':
+            return cv2.TrackerMIL_create()
+        if tracker_type == 'KCF':
+            return cv2.TrackerKCF_create()
+        if tracker_type == 'TLD':
+            return cv2.legacy.TrackerTLD_create()
+        if tracker_type == 'MEDIANFLOW':
+            return cv2.legacy.TrackerMedianFlow_create()
+        if tracker_type == 'GOTURN':
+            return cv2.TrackerGOTURN_create()
+        if tracker_type == 'MOSSE':
+            return cv2.legacy.TrackerMOSSE_create()
+        if tracker_type == "CSRT":
+            return cv2.TrackerCSRT_create()
 
     def do(self, data: MetaBatch) -> MetaBatch:
 
@@ -114,7 +134,7 @@ class ManualROICorrelationBasedTracker(TrackerBase):
             frame *= 255
             frame = torch.permute(frame, (1, 2, 0))
             frame = np.array(frame, dtype=np.uint8)
-            tracker = cv2.TrackerKCF_create()
+            tracker = self.__get_tracker(self.tracker_type)
             tracker.init(frame, rect)
             self.trackers.append(tracker)
         boxes = self.__bbox_normalize(torch.tensor(self.boxes), shape)
