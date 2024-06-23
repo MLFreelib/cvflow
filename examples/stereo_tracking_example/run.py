@@ -36,8 +36,8 @@ def get_depth_model(name: str, model: torch.nn.Module, sources: List[ReaderBase]
 
 
 def get_tracker(name: str, sources: List[ReaderBase],
-                classes: List[str], boxes=None) -> ManualROICorrelationBasedTracker:
-    tracker = ManualROICorrelationBasedTracker(name, boxes)
+                classes: List[str], boxes=None, tracker_type = None) -> ManualROICorrelationBasedTracker:
+    tracker = ManualROICorrelationBasedTracker(name, boxes, tracker_type)
     tracker.set_labels(classes)
     for src in sources:
         tracker.add_source(src.get_name())
@@ -100,7 +100,7 @@ if __name__ == '__main__':
     model_depth.set_transforms(
         [torchvision.transforms.Resize((512, 960)), torchvision.transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                                                                      std=[0.229, 0.224, 0.225])])
-    tracker = get_tracker('tracking', sources=readers, classes=["object"], boxes=bboxes)
+    tracker = get_tracker('tracking', sources=readers, classes=["object"], boxes=bboxes, tracker_type='MEDIANFLOW')
     dist = DistanceCalculator('distance')
 
     depth_painter = DepthPainter('depth_painter')
@@ -110,7 +110,8 @@ if __name__ == '__main__':
     outer = DisplayComponent('file')
 
     pipeline.set_device(get_device())
-    pipeline.add_all([muxer, model_depth,tracker, dist, depth_painter, bbox_painter, tiler, outer])
+    #
+    pipeline.add_all([muxer,  model_depth, tracker,  dist,  bbox_painter, depth_painter, tiler, outer])
     pipeline.compile()
     pipeline.run()
     pipeline.close()
