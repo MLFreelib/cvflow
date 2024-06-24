@@ -315,6 +315,7 @@ class SpeedDetector(ComponentBase):
             else:
                 print(f"Invalid bounding box dimensions after correction: {(x1, y1, x2 - x1, y2 - y1)}")
 
+
     def __bbox_denormalize(self, bboxes: torch.tensor, shape: torch.tensor):
         r""" Gets coordinates for bounding boxes.
             :param bboxes: torch.tensor
