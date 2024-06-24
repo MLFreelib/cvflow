@@ -108,13 +108,14 @@ class Counter(ComponentBase):
         r"""
             :param name: str
                     name of component.
-            :param line: List[int]
+            :param lines: List[int]
                     the line along which the objects will be counted. Format: [x_min, y_min, x_max, y_max]
         """
         super().__init__(name)
         self.__lines = lines
         self.__label_count = dict()
         self.__checked_ids = dict()
+        self.trackers = []
 
     def do(self, data: MetaBatch) -> MetaBatch:
         r""" Counts objects. """
@@ -126,50 +127,65 @@ class Counter(ComponentBase):
                 meta_frame.set_frame(frame)
                 if meta_frame.get_meta_info(MetaName.META_BBOX.value) is not None:
                     self.__update(meta_frame.get_meta_info(MetaName.META_BBOX.value),
-                                  meta_frame.get_frame().detach().cpu().numpy().shape, src_name)
+                                  frame.permute(1, 2, 0).detach().cpu().numpy(), src_name)
                 if src_name in list(self.__label_count.keys()):
                     meta_frame.add_meta('counter', self.__label_count[src_name])
         return data
 
-    def __update(self, meta_bbox: MetaBBox, shape: Iterable[int], source: str):
+    def __update(self, meta_bbox: MetaBBox, frame: np.ndarray, source: str):
         r""" Updates the current number of counted objects.
             :param meta_bbox: MetaBBox
                             metadata about the bounding boxes for the frame.
-            :param shape: Iterable[int]
-                            shape of frame.
+            :param frame: np.ndarray
+                            frame data.
             :param source: str
                             the source from which the frame was received.
         """
-        if source not in list(self.__checked_ids.keys()):
-            self.__checked_ids[source] = dict()
+        if source not in self.__checked_ids:
+            self.__checked_ids[source] = set()
             self.__label_count[source] = {'labels': dict(), 'ids': dict()}
 
         checked_ids = list()
         bboxes = meta_bbox.get_bbox()
         label_info = meta_bbox.get_label_info()
 
-        object_ids = [i for i in range(len(label_info.get_labels()))]
-        labels = label_info.get_labels()
-        for i in range(bboxes.shape[0]):
-            for line in self.__lines:
-                is_intersect = self.__check_intersect(bboxes[i].clone(), line, shape)
-                if is_intersect:
-                    object_id = object_ids[i]
-                    label = labels[i]
-                    if label not in list(self.__label_count[source]['labels'].keys()):
-                        self.__label_count[source]['labels'][label] = 0
-                    if object_id not in list(self.__checked_ids[source].keys()):
-                        self.__label_count[source]['ids'][object_id] = 1
-                        self.__label_count[source]['labels'][label] += 1
-                    elif not self.__checked_ids[source][object_id]:
-                        self.__label_count[source]['ids'][object_id] += 1
-                        self.__label_count[source]['labels'][label] += 1
-                    self.__checked_ids[source][object_id] = True
-                    checked_ids.append(object_id)
+        object_ids = label_info.get_object_ids()
+        if object_ids is None or len(object_ids) == 0:
+            object_ids = list(range(len(label_info.get_labels())))
 
-        for object_id in list(self.__checked_ids[source].keys()):
-            if object_id not in checked_ids:
-                self.__checked_ids[source][object_id] = False
+        labels = label_info.get_labels()
+        shape = frame.shape
+
+        # Initialize trackers if not already done
+        if not self.trackers:
+            for i in range(len(bboxes)):
+                tracker = cv2.TrackerKCF_create()
+                x1, y1, x2, y2 = self.__bbox_denormalize_single(bboxes[i], shape)
+                tracker.init(frame, (x1, y1, x2-x1, y2-y1))
+                self.trackers.append((tracker, object_ids[i], labels[i]))
+
+        new_trackers = []
+        for tracker, object_id, label in self.trackers:
+            success, bbox = tracker.update(frame)
+            if success:
+                x, y, w, h = [int(v) for v in bbox]
+                center_x, center_y = x + w // 2, y + h // 2
+                for line in self.__lines:
+                    is_intersect = self.__check_intersect(center_x, center_y, line)
+                    if is_intersect:
+                        if object_id not in self.__checked_ids[source]:
+                            self.__checked_ids[source].add(object_id)
+                            if label not in self.__label_count[source]['labels']:
+                                self.__label_count[source]['labels'][label] = 0
+                            self.__label_count[source]['labels'][label] += 1
+                            self.__label_count[source]['ids'][object_id] = 1
+                        checked_ids.append(object_id)
+                new_trackers.append((tracker, object_id, label))
+
+        self.trackers = new_trackers
+
+        # Update checked_ids to remove objects no longer in frame
+        self.__checked_ids[source].intersection_update(checked_ids)
 
     def __draw_line(self, frame: torch.Tensor):
         r""" Draws a line along which objects are counted.
@@ -182,43 +198,55 @@ class Counter(ComponentBase):
         frame = np.ascontiguousarray(frame)
 
         for line in self.__lines:
-            frame = cv2.line(frame, line[0], line[1], color=line[2], thickness=line[3])
+            frame = cv2.line(frame, tuple(line[0]), tuple(line[1]), color=tuple(line[2]), thickness=line[3])
 
         return torch.tensor(frame, device=self.get_device()).permute(2, 0, 1)
 
-    def __check_intersect(self, bbox: torch.Tensor, line, shape: Iterable[int]) -> bool:
-        r""" Checks whether the object crosses the line.
-            :param bbox: torch.Tensor
-                        bounding box.
-            :param shape: tuple
-                        shape of frame.
+    def __check_intersect(self, center_x: int, center_y: int, line) -> bool:
+        r""" Checks whether the object's center crosses the line.
+            :param center_x: int
+                        x-coordinate of the object's center.
+            :param center_y: int
+                        y-coordinate of the object's center.
+            :param line: tuple
+                        coordinates of the line.
         """
-        cv_shape = (*shape[1:], shape[0])
-        self.__bbox_denormalize(torch.unsqueeze(bbox, dim=0), shape)
-        np_bbox = bbox.detach().cpu().numpy().astype(int)
-        check_line = cv2.line(np.zeros(cv_shape), line[0], line[1], thickness=line[3], color=(255, 255, 255))
-        check_bbox = cv2.line(np.zeros(cv_shape), (np_bbox[0], np_bbox[3]), (np_bbox[2], np_bbox[3]),
-                              color=(255, 255, 255), thickness=5)
-        dif = check_bbox - check_line
-        dif[dif < 0] = 0
+        x1, y1 = line[0]
+        x2, y2 = line[1]
+        # Line equation coefficients A, B, C for the line Ax + By + C = 0
+        A = y2 - y1
+        B = x1 - x2
+        C = x2 * y1 - x1 * y2
 
-        if np.sum(check_bbox) != np.sum(dif):
-            return True
-        else:
-            return False
+        # Check the position of the center relative to the line
+        position = A * center_x + B * center_y + C
+        # We assume the line is horizontal or vertical
+        if abs(A) > abs(B):  # Mostly vertical line
+            if y1 <= center_y <= y2 or y2 <= center_y <= y1:
+                return np.abs(position) < 100
+        else:  # Mostly horizontal line
+            if x1 <= center_x <= x2 or x2 <= center_x <= x1:
+                return np.abs(position) < 100
 
-    def __bbox_denormalize(self, bboxes: torch.tensor, shape: torch.tensor):
-        r""" Gets coordinates for bounding boxes.
-            :param bboxes: torch.tensor
-                        bounding boxes. shape: [N, 4]
-            :param shape: torch.tensor
+        return False
+
+    def __bbox_denormalize_single(self, bbox: torch.tensor, shape: Iterable[int]):
+        r""" Gets coordinates for a single bounding box.
+            :param bbox: torch.tensor
+                        bounding box. shape: [4]
+            :param shape: Iterable[int]
                         frame resolution
         """
-        bboxes[:, (0, 2)] = bboxes[:, (0, 2)].mul(shape[2])
-        bboxes[:, (1, 3)] = bboxes[:, (1, 3)].mul(shape[1])
+        bbox = bbox.clone()
+        bbox[0] = int(bbox[0] * shape[1])
+        bbox[1] = int(bbox[1] * shape[0])
+        bbox[2] = int(bbox[2] * shape[1])
+        bbox[3] = int(bbox[3] * shape[0])
+        return bbox.int().numpy()
 
     def stop(self):
         print(self.__label_count)
+
 
 
 class SpeedDetector(ComponentBase):
