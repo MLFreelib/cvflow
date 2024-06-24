@@ -217,6 +217,7 @@ class ModelDetection(ModelBase):
             if np.any(true_conf):
                 conf = conf[true_conf]
                 boxes = boxes[true_conf]
+                boxes[:, (1, 3)] -= 10
                 label_names = [self.get_labels()[int(ind)] for ind in labels[true_conf]]
 
                 self._bbox_normalize(boxes, shape)
