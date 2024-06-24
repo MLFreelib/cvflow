@@ -223,10 +223,10 @@ class Counter(ComponentBase):
         # We assume the line is horizontal or vertical
         if abs(A) > abs(B):  # Mostly vertical line
             if y1 <= center_y <= y2 or y2 <= center_y <= y1:
-                return np.abs(position) < 100
+                return np.abs(position) < 200
         else:  # Mostly horizontal line
             if x1 <= center_x <= x2 or x2 <= center_x <= x1:
-                return np.abs(position) < 100
+                return np.abs(position) < 200
 
         return False
 
