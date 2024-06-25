@@ -167,9 +167,12 @@ class Counter(ComponentBase):
             # Initialize or update the tracker
             if object_id not in self.trackers:
                 tracker = cv2.TrackerCSRT_create()
-                print(int(x1), int(y1), int(w), int(h))
-                tracker.init(frame, (int(x1), int(y1), int(w), int(h)))
-                self.trackers[object_id] = tracker
+                try:
+                    tracker.init(frame, (int(x1), int(y1), int(w), int(h)))
+                    self.trackers[object_id] = tracker
+                except cv2.error:
+                    pass
+            new_bboxes[object_id] = (x1, y1, x2, y2)
             new_bboxes[object_id] = (x1, y1, x2, y2)
 
         active_trackers = []
