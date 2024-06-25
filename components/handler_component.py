@@ -115,7 +115,9 @@ class Counter(ComponentBase):
         self.__lines = lines
         self.__label_count = dict()
         self.__checked_ids = dict()
-        self.trackers = []
+        self.trackers = {}
+        self.previous_bboxes = {}
+        self.frame_count = 0
 
     def do(self, data: MetaBatch) -> MetaBatch:
         r""" Counts objects. """
@@ -123,13 +125,15 @@ class Counter(ComponentBase):
             meta_frames = data.get_meta_frames_by_src_name(src_name)
             for meta_frame in meta_frames:
                 frame = meta_frame.get_frame()
-                frame = self.__draw_line(frame)
-                meta_frame.set_frame(frame)
+                frame_np = frame.permute(1, 2, 0).detach().cpu().numpy()
+                frame_np = np.ascontiguousarray(frame_np)  # Ensure memory layout is correct
+                frame_with_line = self.__draw_line(frame_np.copy())
+                meta_frame.set_frame(torch.tensor(frame_with_line, device=self.get_device()).permute(2, 0, 1))
                 if meta_frame.get_meta_info(MetaName.META_BBOX.value) is not None:
-                    self.__update(meta_frame.get_meta_info(MetaName.META_BBOX.value),
-                                  frame.permute(1, 2, 0).detach().cpu().numpy(), src_name)
-                if src_name in list(self.__label_count.keys()):
+                    self.__update(meta_frame.get_meta_info(MetaName.META_BBOX.value), frame_np, src_name)
+                if src_name in self.__label_count:
                     meta_frame.add_meta('counter', self.__label_count[src_name])
+                self.frame_count += 1
         return data
 
     def __update(self, meta_bbox: MetaBBox, frame: np.ndarray, source: str):
@@ -145,7 +149,7 @@ class Counter(ComponentBase):
             self.__checked_ids[source] = set()
             self.__label_count[source] = {'labels': dict(), 'ids': dict()}
 
-        checked_ids = list()
+        checked_ids = []
         bboxes = meta_bbox.get_bbox()
         label_info = meta_bbox.get_label_info()
 
@@ -154,53 +158,67 @@ class Counter(ComponentBase):
             object_ids = list(range(len(label_info.get_labels())))
 
         labels = label_info.get_labels()
-        shape = frame.shape
 
-        # Initialize trackers if not already done
-        if not self.trackers:
-            for i in range(len(bboxes)):
-                tracker = cv2.TrackerKCF_create()
-                x1, y1, x2, y2 = self.__bbox_denormalize_single(bboxes[i], shape)
-                tracker.init(frame, (x1, y1, x2-x1, y2-y1))
-                self.trackers.append((tracker, object_ids[i], labels[i]))
+        new_bboxes = {}
+        for i, object_id in enumerate(object_ids):
+            x1, y1, x2, y2 = self.__bbox_denormalize_single(bboxes[i], frame.shape)
+            w, h = x2 - x1, y2 - y1
+            if object_id in self.trackers:
+                self.trackers[object_id].init(frame, (int(x1), int(y1), int(w), int(h)))
+            else:
+                tracker = cv2.TrackerCSRT_create()
+                tracker.init(frame, (int(x1), int(y1), int(w), int(h)))
+                self.trackers[object_id] = tracker
+            new_bboxes[object_id] = (x1, y1, x2, y2)
 
-        new_trackers = []
-        for tracker, object_id, label in self.trackers:
+        active_trackers = []
+        for object_id, tracker in self.trackers.items():
             success, bbox = tracker.update(frame)
             if success:
                 x, y, w, h = [int(v) for v in bbox]
                 center_x, center_y = x + w // 2, y + h // 2
+
+                # Calculate IoU with previous bboxes
+                if object_id in self.previous_bboxes:
+                    prev_bbox = self.previous_bboxes[object_id]
+                    iou = self.__calculate_iou((x, y, x+w, y+h), prev_bbox)
+                    if iou > 0.2:
+                        new_bboxes[object_id] = (x, y, x+w, y+h)
+
                 for line in self.__lines:
                     is_intersect = self.__check_intersect(center_x, center_y, line)
                     if is_intersect:
                         if object_id not in self.__checked_ids[source]:
                             self.__checked_ids[source].add(object_id)
+                            label = labels[object_ids.index(object_id)]
                             if label not in self.__label_count[source]['labels']:
                                 self.__label_count[source]['labels'][label] = 0
                             self.__label_count[source]['labels'][label] += 1
                             self.__label_count[source]['ids'][object_id] = 1
                         checked_ids.append(object_id)
-                new_trackers.append((tracker, object_id, label))
+                active_trackers.append((tracker, object_id))
 
-        self.trackers = new_trackers
+        self.trackers = {object_id: tracker for tracker, object_id in active_trackers}
+        self.previous_bboxes = new_bboxes
 
         # Update checked_ids to remove objects no longer in frame
         self.__checked_ids[source].intersection_update(checked_ids)
 
-    def __draw_line(self, frame: torch.Tensor):
+    def __get_tracker(self, object_id):
+        for tracker, obj_id, label in self.trackers:
+            if obj_id == object_id:
+                return tracker
+        return None
+
+    def __draw_line(self, frame: np.ndarray):
         r""" Draws a line along which objects are counted.
 
-            :param frame: torch.Tensor
+            :param frame: np.ndarray
                         the frame on which the line will be drawn.
         """
-        frame = frame.detach().cpu()
-        frame = frame.permute(1, 2, 0).numpy()
-        frame = np.ascontiguousarray(frame)
-
         for line in self.__lines:
             frame = cv2.line(frame, tuple(line[0]), tuple(line[1]), color=tuple(line[2]), thickness=line[3])
-
-        return torch.tensor(frame, device=self.get_device()).permute(2, 0, 1)
+        return frame
 
     def __check_intersect(self, center_x: int, center_y: int, line) -> bool:
         r""" Checks whether the object's center crosses the line.
@@ -213,6 +231,7 @@ class Counter(ComponentBase):
         """
         x1, y1 = line[0]
         x2, y2 = line[1]
+
         # Line equation coefficients A, B, C for the line Ax + By + C = 0
         A = y2 - y1
         B = x1 - x2
@@ -220,13 +239,14 @@ class Counter(ComponentBase):
 
         # Check the position of the center relative to the line
         position = A * center_x + B * center_y + C
+
         # We assume the line is horizontal or vertical
         if abs(A) > abs(B):  # Mostly vertical line
             if y1 <= center_y <= y2 or y2 <= center_y <= y1:
-                return np.abs(position) < 200
+                return np.abs(position) <= 50
         else:  # Mostly horizontal line
             if x1 <= center_x <= x2 or x2 <= center_x <= x1:
-                return np.abs(position) < 200
+                return np.abs(position) <= 50
 
         return False
 
@@ -242,11 +262,29 @@ class Counter(ComponentBase):
         bbox[1] = int(bbox[1] * shape[0])
         bbox[2] = int(bbox[2] * shape[1])
         bbox[3] = int(bbox[3] * shape[0])
-        return bbox.int().numpy()
+        return bbox.numpy()
+
+    def __calculate_iou(self, boxA, boxB):
+        r""" Calculates Intersection over Union (IoU) between two bounding boxes.
+            :param boxA: tuple
+                        coordinates of the first box (x1, y1, x2, y2).
+            :param boxB: tuple
+                        coordinates of the second box (x1, y1, x2, y2).
+        """
+        xA = max(boxA[0], boxB[0])
+        yA = max(boxA[1], boxB[1])
+        xB = min(boxA[2], boxB[2])
+        yB = min(boxA[3], boxB[3])
+
+        interArea = max(0, xB - xA + 1) * max(0, yB - yA + 1)
+        boxAArea = (boxA[2] - boxA[0] + 1) * (boxA[3] - boxA[1] + 1)
+        boxBArea = (boxB[2] - boxB[0] + 1) * (boxB[3] - boxB[1] + 1)
+
+        iou = interArea / float(boxAArea + boxBArea - interArea)
+        return iou
 
     def stop(self):
         print(self.__label_count)
-
 
 
 class SpeedDetector(ComponentBase):
@@ -351,6 +389,7 @@ class SpeedDetector(ComponentBase):
             :param shape: torch.tensor
                         frame resolution
         """
+        #print('BBDNRM', shape)
         bboxes[:, (0, 2)] = bboxes[:, (0, 2)].mul(shape[2])
         bboxes[:, (1, 3)] = bboxes[:, (1, 3)].mul(shape[1])
 
