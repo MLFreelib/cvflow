@@ -163,9 +163,9 @@ class Counter(ComponentBase):
         for i, object_id in enumerate(object_ids):
             x1, y1, x2, y2 = self.__bbox_denormalize_single(bboxes[i], frame.shape)
             w, h = x2 - x1, y2 - y1
-            if object_id in self.trackers:
-                self.trackers[object_id].init(frame, (int(x1), int(y1), int(w), int(h)))
-            else:
+
+            # Initialize or update the tracker
+            if object_id not in self.trackers:
                 tracker = cv2.TrackerCSRT_create()
                 tracker.init(frame, (int(x1), int(y1), int(w), int(h)))
                 self.trackers[object_id] = tracker
@@ -181,9 +181,9 @@ class Counter(ComponentBase):
                 # Calculate IoU with previous bboxes
                 if object_id in self.previous_bboxes:
                     prev_bbox = self.previous_bboxes[object_id]
-                    iou = self.__calculate_iou((x, y, x+w, y+h), prev_bbox)
+                    iou = self.__calculate_iou((x, y, x + w, y + h), prev_bbox)
                     if iou > 0.2:
-                        new_bboxes[object_id] = (x, y, x+w, y+h)
+                        new_bboxes[object_id] = (x, y, x + w, y + h)
 
                 for line in self.__lines:
                     is_intersect = self.__check_intersect(center_x, center_y, line)
@@ -203,12 +203,6 @@ class Counter(ComponentBase):
 
         # Update checked_ids to remove objects no longer in frame
         self.__checked_ids[source].intersection_update(checked_ids)
-
-    def __get_tracker(self, object_id):
-        for tracker, obj_id, label in self.trackers:
-            if obj_id == object_id:
-                return tracker
-        return None
 
     def __draw_line(self, frame: np.ndarray):
         r""" Draws a line along which objects are counted.
