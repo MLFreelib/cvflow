@@ -150,6 +150,7 @@ class Counter(ComponentBase):
 
         object_ids = [i for i in range(len(label_info.get_labels()))]
         labels = label_info.get_labels()
+        print('-------------')
         for i in range(bboxes.shape[0]):
             for line in self.__lines:
                 is_intersect = self.__check_intersect(bboxes[i].clone(), line, shape)
@@ -200,25 +201,33 @@ class Counter(ComponentBase):
         dnbox[1] = int(bbox[1].mul(shape[1]))
         dnbox[2] = int(bbox[2].mul(shape[2]))
         dnbox[3] = int(bbox[3].mul(shape[1]))
+        height = dnbox[3] - dnbox[1]
         center_x = int((dnbox[0] + dnbox[2]) / 2)
-        center_y = int((dnbox[1] + dnbox[3]) / 2)
+        center_y = (dnbox[1] + dnbox[3]) / 2
+        #print(center_y)
+        center_y = center_y + height * 0.35
+
+        #print(height, center_y)
         x1, y1 = line[0]
         x2, y2 = line[1]
 
-        # Line equation coefficients A, B, C for the line Ax + By + C = 0
         A = y2 - y1
         B = x1 - x2
         C = x2 * y1 - x1 * y2
 
-        # Check the position of the center relative to the line
-        position = A * center_x + B * center_y + C
-        # We assume the line is horizontal or vertical
-        if abs(A) > abs(B):  # Mostly vertical line
-            if y1 <= center_y <= y2 or y2 <= center_y <= y1:
-                return np.abs(position) <= 50
-        else:  # Mostly horizontal line
-            if x1 <= center_x <= x2 or x2 <= center_x <= x1:
-                return np.abs(position) <= 50
+        position = np.abs(A * center_x + B * center_y + C) / (A**2 + B**2) ** 0.5
+        print(height, (center_x, center_y), ((x1, y1), (x2, y2)), position)
+        if ((y1-5)<=center_y<=(y2+5)or(y2-5)<=center_y<=(y1+5)) and ((x1-5) <= center_x <= (x2+5) or (x2-5) <= center_x <= (x1+5)):
+            print(position)
+            return 0 <= position <= 0.59
+        else:
+            return False
+        #if abs(A) > abs(B):  
+        #    if (y1 <= center_y <= y2 or y2 <= center_y <= y1):
+        #    #return np.abs(position) <= 100
+        #else:  
+        #    #if x1 <= center_x <= x2 or x2 <= center_x <= x1:
+        #    return np.abs(position) <= 100
 
         return False
 
