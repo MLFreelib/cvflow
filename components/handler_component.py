@@ -187,25 +187,40 @@ class Counter(ComponentBase):
         return torch.tensor(frame, device=self.get_device()).permute(2, 0, 1)
 
     def __check_intersect(self, bbox: torch.Tensor, line, shape: Iterable[int]) -> bool:
-        r""" Checks whether the object crosses the line.
-            :param bbox: torch.Tensor
-                        bounding box.
-            :param shape: tuple
-                        shape of frame.
+        r""" Checks whether the object's center crosses the line.
+            :param center_x: int
+                        x-coordinate of the object's center.
+            :param center_y: int
+                        y-coordinate of the object's center.
+            :param line: tuple
+                        coordinates of the line.
         """
-        cv_shape = (*shape[1:], shape[0])
-        self.__bbox_denormalize(torch.unsqueeze(bbox, dim=0), shape)
-        np_bbox = bbox.detach().cpu().numpy().astype(int)
-        check_line = cv2.line(np.zeros(cv_shape), line[0], line[1], thickness=line[3], color=(255, 255, 255))
-        check_bbox = cv2.line(np.zeros(cv_shape), (np_bbox[0], np_bbox[3]), (np_bbox[2], np_bbox[3]),
-                              color=(255, 255, 255), thickness=5)
-        dif = check_bbox - check_line
-        dif[dif < 0] = 0
+        dnbox = bbox.clone()
+        dnbox[0] = int(bbox[0].mul(shape[2]))
+        dnbox[1] = int(bbox[1].mul(shape[1]))
+        dnbox[2] = int(bbox[2].mul(shape[2]))
+        dnbox[3] = int(bbox[3].mul(shape[1]))
+        center_x = int((dnbox[0] + dnbox[2]) / 2)
+        center_y = int((dnbox[1] + dnbox[3]) / 2)
+        x1, y1 = line[0]
+        x2, y2 = line[1]
 
-        if np.sum(check_bbox) != np.sum(dif):
-            return True
-        else:
-            return False
+        # Line equation coefficients A, B, C for the line Ax + By + C = 0
+        A = y2 - y1
+        B = x1 - x2
+        C = x2 * y1 - x1 * y2
+
+        # Check the position of the center relative to the line
+        position = A * center_x + B * center_y + C
+        # We assume the line is horizontal or vertical
+        if abs(A) > abs(B):  # Mostly vertical line
+            if y1 <= center_y <= y2 or y2 <= center_y <= y1:
+                return np.abs(position) <= 50
+        else:  # Mostly horizontal line
+            if x1 <= center_x <= x2 or x2 <= center_x <= x1:
+                return np.abs(position) <= 50
+
+        return False
 
     def __bbox_denormalize(self, bboxes: torch.tensor, shape: torch.tensor):
         r""" Gets coordinates for bounding boxes.
