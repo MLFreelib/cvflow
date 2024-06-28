@@ -133,7 +133,6 @@ class Counter(ComponentBase):
                 if src_name in list(self.__label_count.keys()):
                     meta_frame.add_meta('counter', self.__label_count[src_name])
         self.__bbox_cash = self.__distances
-        print('BBCASH', self.__bbox_cash)
         return data
 
     def __update(self, meta_bbox: MetaBBox, shape: Iterable[int], source: str):
@@ -155,7 +154,6 @@ class Counter(ComponentBase):
 
         object_ids = [i for i in range(len(label_info.get_labels()))]
         labels = label_info.get_labels()
-        print('-------------')
         #self.__distances = []
         for i in range(bboxes.shape[0]):
             for line in self.__lines:
