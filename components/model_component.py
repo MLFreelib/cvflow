@@ -210,6 +210,7 @@ class ModelDetection(ModelBase):
         """
 
         for i in range(len(preds)):
+
             boxes = preds[i]['boxes'].cpu()
             labels = preds[i]['labels'].cpu().detach().numpy()
             conf = preds[i]['scores'].cpu().detach().numpy()
@@ -232,8 +233,12 @@ class ModelDetection(ModelBase):
             :param shape: torch.tensor - image resolution.
             :return:
         """
-        bboxes[:, (0, 2)] = bboxes[:, (0, 2)].div(shape[1])
-        bboxes[:, (1, 3)] = bboxes[:, (1, 3)].div(shape[0])
+        print('SHAPE', shape)
+        bboxes[:, (0, 2)] = bboxes[:, (0, 2)].div(640)
+        bboxes[:, (1, 3)] = bboxes[:, (1, 3)].div(360)
+        print('MODEL OUT')
+        for i in bboxes:
+            print(np.array(i).astype(float))
         return bboxes
 
 
