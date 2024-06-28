@@ -233,12 +233,8 @@ class ModelDetection(ModelBase):
             :param shape: torch.tensor - image resolution.
             :return:
         """
-        print('SHAPE', shape)
         bboxes[:, (0, 2)] = bboxes[:, (0, 2)].div(640)
         bboxes[:, (1, 3)] = bboxes[:, (1, 3)].div(360)
-        print('MODEL OUT')
-        for i in bboxes:
-            print(np.array(i).astype(float))
         return bboxes
 
 
