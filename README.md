@@ -263,9 +263,9 @@ Note: веса передаются в формате .pt для через за
 ### Запуск алгоритма
    Скачайте [веса](https://drive.google.com/file/d/1A5vtooMwaz2TPBdQQWuDnV7qIg5oC8bA/view?usp=drive_link)
  
-    python -m examples.objects_counter_example.line_gui -v "examples/checkpoints/objects_counter and speed_detection/cvflow_test.mp4" -n conf
+    python -m examples.objects_counter_example.line_gui -v "examples/checkpoints/plates/test_video.avi" -n conf
 
-    python -m examples.objects_counter_example.run --videofile "examples/checkpoints/objects_counter and speed_detection/cvflow_test.mp4" -l "examples/checkpoints/objects_counter and speed_detection/conf" -w "examples/checkpoints/objects_counter and speed_detection/yolo_for_opencv.pt"
+    python -m examples.objects_counter_example.run --videofile "examples/checkpoints/plates/test_video.avi" -l "examples/checkpoints/objects_counter and speed_detection/conf" -w "examples/checkpoints/objects_counter and speed_detection/yolo_for_opencv.pt"
 
 
 ### Об алгоритме

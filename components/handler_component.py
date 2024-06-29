@@ -115,9 +115,12 @@ class Counter(ComponentBase):
         self.__lines = lines
         self.__label_count = dict()
         self.__checked_ids = dict()
+        self.__bbox_cash = []
+        self.__distances = []
 
     def do(self, data: MetaBatch) -> MetaBatch:
         r""" Counts objects. """
+        self.__distances = []
         for src_name in data.get_source_names():
             meta_frames = data.get_meta_frames_by_src_name(src_name)
             for meta_frame in meta_frames:
@@ -129,6 +132,7 @@ class Counter(ComponentBase):
                                   meta_frame.get_frame().detach().cpu().numpy().shape, src_name)
                 if src_name in list(self.__label_count.keys()):
                     meta_frame.add_meta('counter', self.__label_count[src_name])
+        self.__bbox_cash = self.__distances
         return data
 
     def __update(self, meta_bbox: MetaBBox, shape: Iterable[int], source: str):
@@ -150,6 +154,7 @@ class Counter(ComponentBase):
 
         object_ids = [i for i in range(len(label_info.get_labels()))]
         labels = label_info.get_labels()
+        #self.__distances = []
         for i in range(bboxes.shape[0]):
             for line in self.__lines:
                 is_intersect = self.__check_intersect(bboxes[i].clone(), line, shape)
@@ -166,7 +171,6 @@ class Counter(ComponentBase):
                         self.__label_count[source]['labels'][label] += 1
                     self.__checked_ids[source][object_id] = True
                     checked_ids.append(object_id)
-
         for object_id in list(self.__checked_ids[source].keys()):
             if object_id not in checked_ids:
                 self.__checked_ids[source][object_id] = False
@@ -200,27 +204,36 @@ class Counter(ComponentBase):
         dnbox[1] = int(bbox[1].mul(shape[1]))
         dnbox[2] = int(bbox[2].mul(shape[2]))
         dnbox[3] = int(bbox[3].mul(shape[1]))
+        height = dnbox[3] - dnbox[1]
         center_x = int((dnbox[0] + dnbox[2]) / 2)
-        center_y = int((dnbox[1] + dnbox[3]) / 2)
+        center_y = (dnbox[1] + dnbox[3]) / 2
+        #print(center_y)
+        center_y = int(center_y)
+
+        #print(height, center_y)
         x1, y1 = line[0]
         x2, y2 = line[1]
 
-        # Line equation coefficients A, B, C for the line Ax + By + C = 0
         A = y2 - y1
         B = x1 - x2
         C = x2 * y1 - x1 * y2
 
-        # Check the position of the center relative to the line
-        position = A * center_x + B * center_y + C
-        # We assume the line is horizontal or vertical
-        if abs(A) > abs(B):  # Mostly vertical line
-            if y1 <= center_y <= y2 or y2 <= center_y <= y1:
-                return np.abs(position) <= 50
-        else:  # Mostly horizontal line
-            if x1 <= center_x <= x2 or x2 <= center_x <= x1:
-                return np.abs(position) <= 50
-
+        position = (A * center_x + B * center_y + C) / (A**2 + B**2) ** 0.5
+        
+        print(height, (center_x, center_y), ((x1, y1), (x2, y2)), position)
+        if (y1 <= center_y <= y2 or y2 <= center_y <= y1) and (x1 <= center_x <= (x2) or (x2) <= center_x <= (x1)):
+            print(position)
+            if 0 <= position <= 10:
+                self.__distances.append(position)
+                return 0 <= position <= 10
         return False
+        #if abs(A) > abs(B):  
+        #    if (y1 <= center_y <= y2 or y2 <= center_y <= y1):
+        #    #return np.abs(position) <= 100
+        #else:  
+        #    #if x1 <= center_x <= x2 or x2 <= center_x <= x1:
+        #    return np.abs(position) <= 100
+
 
     def __bbox_denormalize(self, bboxes: torch.tensor, shape: torch.tensor):
         r""" Gets coordinates for bounding boxes.

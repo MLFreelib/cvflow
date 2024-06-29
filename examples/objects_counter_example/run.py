@@ -38,7 +38,7 @@ if __name__ == '__main__':
 
     outer = DisplayComponent('display')
 
-    pipeline.set_device('cpu')
+    pipeline.set_device(device)
     pipeline.add_all([muxer, model_det, counter, bbox_painter, tiler, outer])
     pipeline.compile()
     pipeline.run()
