@@ -223,9 +223,9 @@ class Counter(ComponentBase):
         print(height, (center_x, center_y), ((x1, y1), (x2, y2)), position)
         if (y1 <= center_y <= y2 or y2 <= center_y <= y1) and (x1 <= center_x <= (x2) or (x2) <= center_x <= (x1)):
             print(position)
-            if 0 <= position <= 10:
+            if 0 <= position <= 3:
                 self.__distances.append(position)
-                return 0 <= position <= 10
+                return 0 <= position <= 3
         return False
         #if abs(A) > abs(B):  
         #    if (y1 <= center_y <= y2 or y2 <= center_y <= y1):
