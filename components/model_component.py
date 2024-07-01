@@ -233,6 +233,78 @@ class ModelDetection(ModelBase):
             :param shape: torch.tensor - image resolution.
             :return:
         """
+        bboxes[:, (0, 2)] = bboxes[:, (0, 2)].div(shape[1])
+        bboxes[:, (1, 3)] = bboxes[:, (1, 3)].div(shape[0])
+        return bboxes
+
+class ModelDetectionForOC(ModelBase):
+    r""" Component for detection models.
+        The model must have a forward method that returns a dictionary with the keys:
+            - boxes - [N, 4]
+            - labels - [N]
+            - scores - [N]
+
+        Examples:
+            Example for the forward method of the model:
+
+                def forward(self, x):
+                    ...
+                    return {boxes:...,
+                            labels: ...,
+                            scores: ...}
+            Example of data:
+                - boxes: tensor([[12, 15, 53, 74],
+                          [101, 56, 156, 89],
+                          41, 32, 112, 96]]), where shape [3, 4]
+                - labels: tensor([0, 3, 3])
+                - scores: tensor([0.832, 0.12, 0.675])
+
+    """
+
+    def __init__(self, name: str, model: torch.nn.Module):
+        super().__init__(name, model)
+
+    def _add_to_meta_all(self, meta_batch: MetaBatch, src_data: List, predictions, src_size, *args, **kwargs):
+        i_point = 0
+        for i_src_name in range(len(self._source_names)):
+            src_name = self._source_names[i_src_name]
+            shape = src_data[i_src_name].shape[-2:]
+            self._add_to_meta(data=meta_batch, preds=predictions[i_point: i_point + src_size[i_src_name]], shape=shape,
+                              src_name=src_name)
+            i_point += src_size[i_src_name]
+
+    def _add_to_meta(self, data: MetaBatch, preds: list, shape: torch.Tensor, src_name: str, **kwargs):
+        r""" Adds bounding boxes to MetaBatch.
+            :param data: MetaBatch
+            :param preds: A list of floating point values.
+            :param shape: torch.tensor - image resolution.
+            :param src_name: str - source name
+        """
+
+        for i in range(len(preds)):
+
+            boxes = preds[i]['boxes'].cpu()
+            labels = preds[i]['labels'].cpu().detach().numpy()
+            conf = preds[i]['scores'].cpu().detach().numpy()
+            true_conf = conf > self._confidence
+            if np.any(true_conf):
+                conf = conf[true_conf]
+                boxes = boxes[true_conf]
+                boxes[:, (1, 3)] -= 10
+                label_names = [self.get_labels()[int(ind)] for ind in labels[true_conf]]
+
+                self._bbox_normalize(boxes, shape)
+                meta_frame = data.get_meta_frames_by_src_name(src_name)[i]
+                meta_label = MetaLabel(labels=label_names, confidence=conf)
+
+                meta_frame.add_meta(MetaName.META_BBOX.value, MetaBBox(boxes, meta_label))
+
+    def _bbox_normalize(self, bboxes: torch.tensor, shape: torch.tensor):
+        r""" Normalization of bounding box values in the range from 0 to 1.
+            :param bboxes: torch.tensor
+            :param shape: torch.tensor - image resolution.
+            :return:
+        """
         bboxes[:, (0, 2)] = bboxes[:, (0, 2)].div(640)
         bboxes[:, (1, 3)] = bboxes[:, (1, 3)].div(360)
         return bboxes
