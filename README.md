@@ -261,11 +261,15 @@ Note: веса передаются в формате .pt для через за
 <summary><b>Классификация транспортных средств</b></summary>
 
 ### Запуск алгоритма
-   Скачайте [веса](https://drive.google.com/file/d/1A5vtooMwaz2TPBdQQWuDnV7qIg5oC8bA/view?usp=drive_link)
- 
-    python -m examples.objects_counter_example.line_gui -v "examples/checkpoints/plates/test_video.avi" -n conf
-
+   Скачайте [веса](https://drive.google.com/file/d/1A5vtooMwaz2TPBdQQWuDnV7qIg5oC8bA/view?usp=drive_link)<br>
+   Для задания черты подсчёта объектов Вы можете создать свой конфигурационный файл:
+   ```
+    python -m examples.objects_counter_example.line_gui -v "examples/checkpoints/plates/test_video.avi" -n <путь до конфиг-файла>
+   ```
+   Либо запустить алгоритм с демонстрационным конфигурационным файлом:
+   ```
     python -m examples.objects_counter_example.run --videofile "examples/checkpoints/plates/test_video.avi" -l "examples/checkpoints/objects_counter and speed_detection/conf" -w "examples/checkpoints/objects_counter and speed_detection/yolo_for_opencv.pt"
+   ```
 
 
 ### Об алгоритме
