@@ -27,7 +27,7 @@ if __name__ == '__main__':
         readers.append(VideoReader(file_srcs[i_file_srcs], name))
 
     muxer = get_muxer(readers)
-    model_det = get_detection_model('detection', model, sources=readers, classes=COCO_INSTANCE_CATEGORY_NAMES)
+    model_det = get_oc_model('detection', model, sources=readers, classes=COCO_INSTANCE_CATEGORY_NAMES)
     bbox_painter = BBoxPainter('bboxer')
     speed_detector = SpeedDetector('speed_detector', base_speed=90)
 
@@ -35,7 +35,7 @@ if __name__ == '__main__':
 
     outer = DisplayComponent('display')
 
-    pipeline.set_device('cpu')
+    pipeline.set_device(device)
     pipeline.add_all([muxer, model_det, speed_detector, bbox_painter, tiler, outer])
     pipeline.compile()
     pipeline.run()

@@ -4,7 +4,7 @@ import configparser
 
 from typing import List
 import torch
-from components.model_component import ModelDetection
+from components.model_component import ModelDetection, ModelDetectionForOC
 from components.muxer_component import SourceMuxer
 from components.handler_component import Counter, Filter
 from components.painter_component import Tiler, BBoxPainter
@@ -46,6 +46,17 @@ def get_detection_model(name: str, model: torch.nn.Module, sources: List[ReaderB
                         transforms: list = None,
                         confidence: float = 0.5) -> ModelDetection:
     model_det = ModelDetection(name, model)
+    model_det.set_labels(classes)
+    for src in sources:
+        model_det.add_source(src.get_name())
+    model_det.set_transforms(transforms)
+    model_det.set_confidence(conf=confidence)
+    return model_det
+
+def get_oc_model(name: str, model: torch.nn.Module, sources: List[ReaderBase], classes: List[str],
+                        transforms: list = None,
+                        confidence: float = 0.5) -> ModelDetection:
+    model_det = ModelDetectionForOC(name, model)
     model_det.set_labels(classes)
     for src in sources:
         model_det.add_source(src.get_name())

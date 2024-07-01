@@ -28,13 +28,13 @@ if __name__ == '__main__':
         readers.append(VideoReader(file_srcs[i_file_srcs], name))
 
     muxer = get_muxer(readers)
-    model_det = get_detection_model('detection', model, sources=readers, classes=COCO_INSTANCE_CATEGORY_NAMES)
+    model_det = get_oc_model('detection', model, sources=readers, classes=COCO_INSTANCE_CATEGORY_NAMES)
     lines = get_line()
     line = [lines[0][0][0], lines[0][0][1], lines[0][1][0], lines[0][1][1]]
     counter = get_counter('counter', lines)
     bbox_painter = BBoxPainter('bboxer')
 
-    tiler = get_tiler('tiler', tiler_size=(2, 2), frame_size=(1440, 2160))
+    tiler = get_tiler('tiler', tiler_size=(2, 2), frame_size=(1080, 1920))
 
     outer = DisplayComponent('display')
 
