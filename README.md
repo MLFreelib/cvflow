@@ -335,7 +335,7 @@ Note: веса передаются в формате .pt для через за
 <summary><b>Определения скорости объектов по видеопотоку</b></summary>
 
 ### Запуск алгоритма
-Скачайте веса: [веса для speed_detection](https://disk.yandex.ru/d/Pg6UouWXJebn7w/objects_counter%20and%20speed_detection/yolo_for_opencv.pt)
+Скачайте веса: [веса](https://disk.yandex.ru/d/Pg6UouWXJebn7w/objects_counter%20and%20speed_detection/yolo_for_opencv.pt)
 ```
 python -m examples.speed_detection_example.run --videofile "examples/checkpoints/objects_counter and speed_detection/cvflow_test.mp4" -w "examples/checkpoints/objects_counter and speed_detection/yolo_for_opencv.pt"
 ```
