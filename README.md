@@ -54,7 +54,7 @@ git clone https://github.com/MLFreelib/cvflow.git
 <summary><b>Определение положения объектов в пространстве и расстояния между ними</b></summary>
 
 ### Запуск алгоритма
-  Скачайте веса модели стереозрения из директории "stereo" на [диске](https://statanly.com/info/weight) и поместите её в директорию examples/checkpoints для корректного запуска примера.
+  Скачайте веса модели стереозрения из директории "stereo" на [диске](https://disk.yandex.ru/d/Pg6UouWXJebn7w/stereo/mobilestereonet.ckpt) и поместите её в директорию examples/checkpoints для корректного запуска примера.
   
 Запустите файл  run.py для демонстрации примера. В качестве аргументов необходимо указать путь к файлам источников данных через запятую (не менее двух). Можно использовать данные из папки stereo_tracking_example/data.
 
@@ -144,7 +144,7 @@ python -m examples.stereo_tracking_example.run --videofile examples/stereo_track
 
 ### Запуск алгоритма
 
-  Скачать веса можно по [ссылке](https://drive.google.com/drive/folders/1-b0MccOAo2v6yGwBywqBCJc5MZkyUFYc?usp=drive_link) или использовать скрипт для скачивания `download_checkpoints.sh`. Убедитесь, что путь к весам: examples/checkpoints/flaws/flaws.pt
+  Скачать веса можно по [ссылке](https://disk.yandex.ru/d/Pg6UouWXJebn7w/flaws/flaws.pt) или использовать скрипт для скачивания `download_checkpoints.sh`. Убедитесь, что путь к весам: examples/checkpoints/flaws/flaws.pt
 
    Выполнять код нужно из директории cvflow. Пример команды для запуска:  
      
@@ -172,7 +172,7 @@ python -m examples.stereo_tracking_example.run --videofile examples/stereo_track
 Алгормитм по распозаванию номеров состоит из двух моделей: YOLOv8n для детекции номеров и
 CRNN для распознавания текстовых последовательностей.
 
-Убедитесь, что загружена папка с весами в папку `examples/checkpoints/plates`. Веса можно скачать по [ссылке](https://drive.google.com/drive/folders/1Y8INJvMM5FiG2FFbggo87E0ll9-lyjw5?usp=share_link) или использовать скрипт для скачивания `download_checkpoints.sh`.
+Убедитесь, что загружена папка с весами в папку `examples/checkpoints/plates`. Веса можно скачать по [ссылке](https://disk.yandex.ru/d/Pg6UouWXJebn7w/plates/yolov8_plates.pt) или использовать скрипт для скачивания `download_checkpoints.sh`.
 
 ### Запуск алгоритма
 
@@ -261,7 +261,7 @@ Note: веса передаются в формате .pt для через за
 <summary><b>Классификация транспортных средств</b></summary>
 
 ### Запуск алгоритма
-   Скачайте [веса](https://drive.google.com/file/d/1A5vtooMwaz2TPBdQQWuDnV7qIg5oC8bA/view?usp=drive_link)<br>
+   Скачайте [веса](https://disk.yandex.ru/d/Pg6UouWXJebn7w/objects_counter%20and%20speed_detection/yolo_for_opencv.pt)<br>
    Для задания черты подсчёта объектов Вы можете создать свой конфигурационный файл:
    ```
     python -m examples.objects_counter_example.line_gui -v "examples/checkpoints/plates/test_video.avi" -n <путь до конфиг-файла>
@@ -293,7 +293,7 @@ Note: веса передаются в формате .pt для через за
    
 ### Запуск алгоритма
 
-1.Скачайте веса и подготовьте источники данных для определения размеров. Можно использовать данные из директории test_data. Поместите [веса](https://drive.google.com/drive/folders/1v1IsdUyqpYgn7ebLXpsd7Esmqb45bNMW) в директорию examples/checkpoints для запуска примера.  
+1.Скачайте веса и подготовьте источники данных для определения размеров. Можно использовать данные из директории test_data. Поместите [веса](https://disk.yandex.ru/d/Pg6UouWXJebn7w/granulometry/unet.pt) в директорию examples/checkpoints для запуска примера.  
 
 
 3. Запустите файл примера run.py, указав в качестве параметров источники данных (параметр videofile) и строгость (параметр -c, по умолчанию 0.5).
@@ -335,7 +335,7 @@ Note: веса передаются в формате .pt для через за
 <summary><b>Определения скорости объектов по видеопотоку</b></summary>
 
 ### Запуск алгоритма
-Скачайте веса: [веса для speed_detection](https://drive.google.com/file/d/1A5vtooMwaz2TPBdQQWuDnV7qIg5oC8bA/view?usp=drive_link)
+Скачайте веса: [веса для speed_detection](https://disk.yandex.ru/d/Pg6UouWXJebn7w/objects_counter%20and%20speed_detection/yolo_for_opencv.pt)
 ```
 python -m examples.speed_detection_example.run --videofile "examples/checkpoints/objects_counter and speed_detection/cvflow_test.mp4" -w "examples/checkpoints/objects_counter and speed_detection/yolo_for_opencv.pt"
 ```
@@ -377,5 +377,5 @@ python -m examples.speed_detection_example.run --videofile "examples/checkpoints
 ## Веса
 
     Веса находятся по сссылке в папке в соответствие названию алгоритма: 
-<b>[ссылка на веса](https://statanly.com/info/weight)
+<b>[ссылка на веса](https://disk.yandex.ru/d/Pg6UouWXJebn7w)
     
